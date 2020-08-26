@@ -1,0 +1,8 @@
+.idea
+*.iml
+.mvn/wrapper/*
+!.mvn/wrapper/maven-wrapper.properties
+target
+
+.env
+.env-test
