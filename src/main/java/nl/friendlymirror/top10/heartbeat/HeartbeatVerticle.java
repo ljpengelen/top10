@@ -1,10 +1,10 @@
-package nl.friendlymirror.top10.verticles;
+package nl.friendlymirror.top10.heartbeat;
 
 import io.vertx.core.AbstractVerticle;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
-public class Heartbeat extends AbstractVerticle {
+public class HeartbeatVerticle extends AbstractVerticle {
 
     private static final int INTERVAL_IN_MILLISECONDS = 60 * 1000;
 
