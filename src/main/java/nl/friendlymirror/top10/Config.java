@@ -31,7 +31,7 @@ public class Config {
     }
 
     private JsonObject fetchJdbcOptions() {
-        JsonObject jdbcOptions = new JsonObject();
+        var jdbcOptions = new JsonObject();
 
         jdbcOptions.put("url", fetchMandatoryString("JDBC_POSTGRES_URL"));
         jdbcOptions.put("user", fetchMandatoryString("JDBC_POSTGRES_USERNAME"));
