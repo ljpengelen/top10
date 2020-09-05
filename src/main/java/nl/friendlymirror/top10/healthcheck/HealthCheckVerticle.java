@@ -3,26 +3,24 @@ package nl.friendlymirror.top10.healthcheck;
 import java.io.IOException;
 import java.util.Properties;
 
-import com.google.common.annotations.VisibleForTesting;
-
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
+@RequiredArgsConstructor
 public class HealthCheckVerticle extends AbstractVerticle {
 
-    private final int port;
+    private final String responseBody = new JsonObject()
+            .put("commitHash", getCommitHash())
+            .put("version", getVersion())
+            .toString();
 
-    private String responseBody;
-
-    @VisibleForTesting HealthCheckVerticle(int port) {
-        this.port = port;
-    }
-
-    public HealthCheckVerticle() {
-        this(1242);
-    }
+    private final Router router;
 
     private String getCommitHash() {
         var commitHash = System.getenv("DEPLOY_REVISION");
@@ -43,32 +41,15 @@ public class HealthCheckVerticle extends AbstractVerticle {
         }
     }
 
+    public void handle(RoutingContext routingContext) {
+        var response = routingContext.response();
+        response.putHeader("content-type", "application/json");
+        response.end(this.responseBody);
+    }
+
     @Override
     public void start() {
-        log.info("Starting health-check verticle");
-
-        var server = vertx.createHttpServer();
-
-        var commitHash = getCommitHash();
-        var version = getVersion();
-
-        responseBody = new JsonObject()
-                .put("commitHash", commitHash)
-                .put("version", version)
-                .toString();
-
-        server.requestHandler(request -> {
-            var response = request.response();
-            response.putHeader("content-type", "application/json");
-            response.end(responseBody);
-        });
-
-        server.listen(port, ar -> {
-            if (ar.succeeded()) {
-                log.info("listening on port {}", port);
-            } else {
-                log.error("Unable to listen on port {}", port, ar.cause());
-            }
-        });
+        log.info("Starting");
+        router.route(HttpMethod.GET, "/health").handler(this::handle);
     }
 }

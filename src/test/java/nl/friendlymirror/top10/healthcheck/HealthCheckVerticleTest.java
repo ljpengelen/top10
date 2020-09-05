@@ -10,6 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
@@ -21,22 +22,33 @@ import lombok.extern.log4j.Log4j2;
 @ExtendWith(VertxExtension.class)
 public class HealthCheckVerticleTest {
 
+    private static final String PATH = "/health";
+
     private int port;
 
     @BeforeEach
     public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) throws IOException {
-        ServerSocket socket = new ServerSocket(0);
+        var socket = new ServerSocket(0);
         port = socket.getLocalPort();
         socket.close();
 
-        vertx.deployVerticle(new HealthCheckVerticle(port), vertxTestContext.completing());
+        var server = vertx.createHttpServer();
+        var router = Router.router(vertx);
+        server.requestHandler(router);
+        vertx.deployVerticle(new HealthCheckVerticle(router), deploymentResult -> {
+            if (deploymentResult.succeeded()) {
+                server.listen(port, vertxTestContext.completing());
+            } else {
+                log.error("Failed to deploy verticle", deploymentResult.cause());
+            }
+        });
     }
 
     @Test
     @DisplayName("Returns an HTTP 200 OK on every request")
     public void testHTTP200OK(Vertx vertx, VertxTestContext vertxTestContext) {
         WebClient client = WebClient.create(vertx);
-        client.get(port, "localhost", "/health")
+        client.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
                         log.error("Request to health endpoint failed", ar.cause());
@@ -57,7 +69,7 @@ public class HealthCheckVerticleTest {
     @DisplayName("Returns commit hash on every request")
     public void returnsCommitHash(Vertx vertx, VertxTestContext vertxTestContext) {
         WebClient client = WebClient.create(vertx);
-        client.get(port, "localhost", "/health")
+        client.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
                         log.error("Request to health endpoint failed", ar.cause());
@@ -78,7 +90,7 @@ public class HealthCheckVerticleTest {
     @DisplayName("Returns version on every request")
     public void returnsVersion(Vertx vertx, VertxTestContext vertxTestContext) {
         WebClient client = WebClient.create(vertx);
-        client.get(port, "localhost", "/health")
+        client.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
                         log.error("Request to health endpoint failed", ar.cause());

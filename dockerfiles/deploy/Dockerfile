@@ -10,7 +10,7 @@ RUN mvn package -Dmaven.test.skip
 
 FROM openjdk:13 AS EXECUTION_STAGE
 
-EXPOSE 1242
+EXPOSE 8080
 
 RUN groupadd -g 999 appuser \
   && useradd -r -u 999 -g appuser appuser
