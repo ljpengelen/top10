@@ -3,7 +3,6 @@ package nl.friendlymirror.top10;
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.SessionHandler;
 import io.vertx.ext.web.sstore.LocalSessionStore;
 import lombok.extern.log4j.Log4j2;
@@ -47,7 +46,7 @@ public class Application {
         log.info("Setting up HTTP server");
 
         var router = Router.router(vertx);
-        router.errorHandler(500, (RoutingContext routingContext) -> log.error("Something went wrong", routingContext.failure()));
+        router.errorHandler(500, routingContext -> log.error("Something went wrong", routingContext.failure()));
 
         var sessionStore = LocalSessionStore.create(vertx);
         router.route().handler(SessionHandler.create(sessionStore));
