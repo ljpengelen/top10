@@ -1,0 +1,4 @@
+^{:open-url "http://[[server-hostname]]:[[server-port]]/test.html"
+  :launch-js ["/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" "--headless" "--disable-gpu" "--repl" :open-url]}
+
+{:main top10.test-runner}

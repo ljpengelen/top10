@@ -1,0 +1,7 @@
+.calva
+.lein-failures
+.lein-repl-history
+.nrepl-port
+.rebel_readline_history
+/resources/public/cljs-out
+/target

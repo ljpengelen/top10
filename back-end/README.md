@@ -1,11 +1,11 @@
-# Top 10
+# Back end
 
 ## Prerequisites
 
 For development, you need:
 
 - [Java 13](https://openjdk.java.net/projects/jdk/13/)
-- [Postgres database](dockerfiles/database)
+- [Postgres database](back-end/dockerfiles/database)
 
 ## Configuration
 

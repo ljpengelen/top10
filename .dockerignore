@@ -1,1 +1,3 @@
-target
+.git
+front-end/resources/public/cljs-out
+**/target

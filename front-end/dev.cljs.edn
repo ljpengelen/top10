@@ -1,0 +1,4 @@
+^{:watch-dirs ["src" "test"]
+  :css-dirs ["resources/public/css"]
+  :auto-testing true}
+{:main top10.core}
