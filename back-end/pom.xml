@@ -14,9 +14,11 @@
 
         <assertj-core.version>3.17.1</assertj-core.version>
         <commons-lang3.version>3.11</commons-lang3.version>
+        <commons-math3.version>3.6.1</commons-math3.version>
         <google-api-client.version>1.30.10</google-api-client.version>
         <guava.version>27.1-jre</guava.version>
         <jacoco.version>0.8.4</jacoco.version>
+        <jjwt.version>0.11.2</jjwt.version>
         <junit-jupiter.version>5.1.0</junit-jupiter.version>
         <log4j.version>2.11.2</log4j.version>
         <lombok.version>1.18.12</lombok.version>
@@ -84,6 +86,11 @@
             <artifactId>commons-lang3</artifactId>
             <version>${commons-lang3.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-math3</artifactId>
+            <version>${commons-math3.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
@@ -105,6 +112,24 @@
             <groupId>io.sentry</groupId>
             <artifactId>sentry-log4j2</artifactId>
             <version>${sentry-log4j2.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>

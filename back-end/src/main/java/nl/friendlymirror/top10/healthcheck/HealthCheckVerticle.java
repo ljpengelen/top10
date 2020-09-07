@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -15,10 +16,10 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class HealthCheckVerticle extends AbstractVerticle {
 
-    private final String responseBody = new JsonObject()
+    private final Buffer responseBody = new JsonObject()
             .put("commitHash", getCommitHash())
             .put("version", getVersion())
-            .toString();
+            .toBuffer();
 
     private final Router router;
 
@@ -42,9 +43,9 @@ public class HealthCheckVerticle extends AbstractVerticle {
     }
 
     public void handle(RoutingContext routingContext) {
-        var response = routingContext.response();
-        response.putHeader("content-type", "application/json");
-        response.end(this.responseBody);
+        routingContext.response()
+                .putHeader("content-type", "application/json")
+                .end(responseBody);
     }
 
     @Override

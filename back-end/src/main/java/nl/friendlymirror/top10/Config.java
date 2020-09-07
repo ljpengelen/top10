@@ -1,7 +1,11 @@
 package nl.friendlymirror.top10;
 
+import javax.crypto.SecretKey;
+
 import org.apache.commons.lang3.StringUtils;
 
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
@@ -11,6 +15,8 @@ import lombok.extern.log4j.Log4j2;
 @Getter
 public class Config {
 
+    private final SecretKey csrfSecretKey = fetchCsrfSecretKey();
+    private final String csrfTarget = fetchMandatoryString("CSRF_TARGET");
     private final String googleOauth2ClientId = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_ID");
     private final String googleOauth2ClientSecret = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_SECRET");
     private final JsonObject jdbcOptions = fetchJdbcOptions();
@@ -33,6 +39,13 @@ public class Config {
 
     private int fetchMandatoryInt(String name) {
         return Integer.parseInt(fetchMandatoryString(name));
+    }
+
+    private SecretKey fetchCsrfSecretKey() {
+        var encodedSecretKey = fetchMandatoryString("CSRF_ENCODED_SECRET_KEY");
+        var decodedSecretKey = Decoders.BASE64.decode(encodedSecretKey);
+
+        return Keys.hmacShaKeyFor(decodedSecretKey);
     }
 
     private JsonObject fetchJdbcOptions() {
