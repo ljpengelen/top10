@@ -46,7 +46,7 @@ public class HealthCheckVerticleTest {
 
     @Test
     @DisplayName("Returns an HTTP 200 OK on every request")
-    public void testHTTP200OK(Vertx vertx, VertxTestContext vertxTestContext) {
+    public void returnsHttp200Ok(Vertx vertx, VertxTestContext vertxTestContext) {
         WebClient client = WebClient.create(vertx);
         client.get(port, "localhost", PATH)
                 .send(ar -> {

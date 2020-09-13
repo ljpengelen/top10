@@ -1,4 +1,4 @@
-package nl.friendlymirror.top10.csrf;
+package nl.friendlymirror.top10.session.csrf;
 
 import java.net.MalformedURLException;
 import java.net.URL;

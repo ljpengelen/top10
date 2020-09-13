@@ -1,4 +1,4 @@
-package nl.friendlymirror.top10.csrf;
+package nl.friendlymirror.top10.session.csrf;
 
 import java.util.Set;
 
@@ -6,7 +6,8 @@ import javax.crypto.SecretKey;
 
 import org.apache.commons.math3.random.RandomDataGenerator;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.*;
@@ -25,7 +26,7 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
             .toBuffer();
 
     private static final String CSRF_TOKEN_HEADER_NAME = "X-CSRF-Token";
-    private static final String CSRF_TOKEN_COOKIE_NAME = "__Host-csrf-token";
+    private static final String CSRF_TOKEN_COOKIE_NAME = "csrf-token";
     private static final String CSRF_TOKEN_CLAIM_NAME = "csrfToken";
 
     private final RandomDataGenerator randomDataGenerator = new RandomDataGenerator();
