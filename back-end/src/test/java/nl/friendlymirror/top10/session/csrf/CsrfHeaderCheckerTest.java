@@ -16,6 +16,8 @@ import io.vertx.ext.web.RoutingContext;
 class CsrfHeaderCheckerTest {
 
     private static final String TARGET = "https://www.example.com";
+    private static final String ORIGIN_HEADER_NAME = "Origin";
+    private static final String REFERER_HEADER_NAME = "Referer";
 
     private final CsrfHeaderChecker csrfHeaderChecker = new CsrfHeaderChecker(TARGET);
     private final RoutingContext routingContext = mock(RoutingContext.class);
@@ -44,8 +46,8 @@ class CsrfHeaderCheckerTest {
 
     @Test
     public void rejectsRequestWithMalformedHeaders() {
-        when(request.getHeader("Origin")).thenReturn("bogus");
-        when(request.getHeader("Referer")).thenReturn("bogus");
+        when(request.getHeader(ORIGIN_HEADER_NAME)).thenReturn("bogus");
+        when(request.getHeader(REFERER_HEADER_NAME)).thenReturn("bogus");
         csrfHeaderChecker.handle(routingContext);
 
         verify(response).setStatusCode(400);
@@ -57,7 +59,7 @@ class CsrfHeaderCheckerTest {
 
     @Test
     public void acceptsRequestWithMatchingOriginHeader() {
-        when(request.getHeader("Origin")).thenReturn(TARGET);
+        when(request.getHeader(ORIGIN_HEADER_NAME)).thenReturn(TARGET);
         csrfHeaderChecker.handle(routingContext);
 
         verifyNoInteractions(response);
@@ -66,7 +68,7 @@ class CsrfHeaderCheckerTest {
 
     @Test
     public void acceptsRequestWithMatchingRefererHeader() {
-        when(request.getHeader("Referer")).thenReturn(TARGET);
+        when(request.getHeader(REFERER_HEADER_NAME)).thenReturn(TARGET);
         csrfHeaderChecker.handle(routingContext);
 
         verifyNoInteractions(response);
