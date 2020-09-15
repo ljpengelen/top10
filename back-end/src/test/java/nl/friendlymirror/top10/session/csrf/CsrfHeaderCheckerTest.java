@@ -32,7 +32,20 @@ class CsrfHeaderCheckerTest {
     }
 
     @Test
-    public void rejectsRequestWithoutMatchingHeaders() {
+    public void rejectsRequestWithoutHeaders() {
+        csrfHeaderChecker.handle(routingContext);
+
+        verify(response).setStatusCode(400);
+        var bufferCaptor = ArgumentCaptor.forClass(Buffer.class);
+        verify(response).end(bufferCaptor.capture());
+        var actualResponse = new JsonObject(bufferCaptor.getValue());
+        assertThat(actualResponse.getString("error")).isEqualTo("Origin and referer do not match \"https://www.example.com\"");
+    }
+
+    @Test
+    public void rejectsRequestWithMalformedHeaders() {
+        when(request.getHeader("Origin")).thenReturn("bogus");
+        when(request.getHeader("Referer")).thenReturn("bogus");
         csrfHeaderChecker.handle(routingContext);
 
         verify(response).setStatusCode(400);
