@@ -45,8 +45,8 @@ public class Application {
         deploy(new HeartbeatVerticle());
         deploy(new HealthCheckVerticle(router));
         deploy(new GoogleAccountVerticle(CONFIG.getJdbcOptions()));
-        deploy(new LogInVerticle(CONFIG.getGoogleOauth2ClientId(), router, CONFIG.getCsrfSecretKey()));
-        deploy(new SessionStatusVerticle(jwt, router, CONFIG.getCsrfSecretKey()));
+        deploy(new LogInVerticle(CONFIG.getGoogleOauth2ClientId(), router, CONFIG.getJwtSecretKey()));
+        deploy(new SessionStatusVerticle(jwt, router, CONFIG.getJwtSecretKey()));
         deploy(new EchoVerticle(router));
     }
 
@@ -60,8 +60,8 @@ public class Application {
         var router = Router.router(vertx);
         router.errorHandler(500, routingContext -> log.error("Something went wrong", routingContext.failure()));
         router.route("/session/*").handler(new CsrfHeaderChecker(CONFIG.getCsrfTarget()));
-        var jwt = new Jwt(CONFIG.getCsrfSecretKey());
-        router.route("/session/*").handler(new CsrfTokenHandler(jwt, CONFIG.getCsrfSecretKey()));
+        var jwt = new Jwt(CONFIG.getJwtSecretKey());
+        router.route("/session/*").handler(new CsrfTokenHandler(jwt, CONFIG.getJwtSecretKey()));
         router.route("/private/*").handler(new JwtSessionHandler(jwt));
 
         server = vertx.createHttpServer();

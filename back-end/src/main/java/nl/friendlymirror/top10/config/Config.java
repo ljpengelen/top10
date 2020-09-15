@@ -15,19 +15,19 @@ public class Config extends AbstractConfig {
     private static final String JDBC_POSTGRES_USERNAME = "JDBC_POSTGRES_USERNAME";
     private static final String JDBC_POSTGRES_PASSWORD = "JDBC_POSTGRES_PASSWORD";
 
-    private final SecretKey csrfSecretKey = fetchCsrfSecretKey();
     private final String csrfTarget = fetchMandatoryString("CSRF_TARGET");
     private final String googleOauth2ClientId = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_ID");
     private final String googleOauth2ClientSecret = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_SECRET");
+    private final int httpPort = fetchMandatoryInt("HTTP_PORT");
     private final JsonObject jdbcOptions = fetchJdbcOptions();
     private final String jdbcUrl = fetchMandatoryString(JDBC_POSTGRES_URL);
     private final String jdbcUsername = fetchMandatoryString(JDBC_POSTGRES_USERNAME);
     private final String jdbcPassword = fetchOptionalString(JDBC_POSTGRES_PASSWORD);
-    private final int httpPort = fetchMandatoryInt("HTTP_PORT");
+    private final SecretKey jwtSecretKey = fetchJwtSecretKey();
     private final VertxOptions vertxOptions = fetchVertxOptions();
 
-    private SecretKey fetchCsrfSecretKey() {
-        var encodedSecretKey = fetchMandatoryString("CSRF_ENCODED_SECRET_KEY");
+    private SecretKey fetchJwtSecretKey() {
+        var encodedSecretKey = fetchMandatoryString("JWT_ENCODED_SECRET_KEY");
         var decodedSecretKey = Decoders.BASE64.decode(encodedSecretKey);
 
         return Keys.hmacShaKeyFor(decodedSecretKey);
