@@ -15,7 +15,6 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.config.TestConfig;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
 
