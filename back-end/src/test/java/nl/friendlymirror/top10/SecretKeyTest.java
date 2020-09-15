@@ -1,4 +1,4 @@
-package nl.friendlymirror.top10.healthcheck;
+package nl.friendlymirror.top10;
 
 import org.junit.jupiter.api.Test;
 
