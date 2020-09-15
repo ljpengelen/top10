@@ -30,6 +30,7 @@ public class CsrfHeaderChecker implements Handler<RoutingContext> {
         }
 
         routingContext.response()
+                .setStatusCode(400)
                 .putHeader("content-type", "application/json")
                 .end(errorResponse);
     }
