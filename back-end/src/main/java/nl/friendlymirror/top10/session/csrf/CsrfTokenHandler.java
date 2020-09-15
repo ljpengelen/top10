@@ -39,6 +39,7 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
         var request = routingContext.request();
         if (!METHODS_TO_IGNORE.contains(request.method()) && !hasValidCsrfToken(request)) {
             routingContext.response()
+                    .setStatusCode(400)
                     .putHeader("content-type", "application/json")
                     .end(INVALID_CSRF_TOKEN_RESPONSE);
 
@@ -63,6 +64,10 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
         var tokenInJws = csrfJws.getBody().get(CSRF_TOKEN_CLAIM_NAME, String.class);
         var tokenInHeader = request.getHeader(CSRF_TOKEN_HEADER_NAME);
+
+        if (tokenInJws == null || tokenInHeader == null) {
+            return false;
+        }
 
         return tokenInJws.equals(tokenInHeader);
     }
