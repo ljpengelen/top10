@@ -24,7 +24,6 @@ import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.Application;
 import nl.friendlymirror.top10.config.TestConfig;
 
-@Log4j2
 @ExtendWith(VertxExtension.class)
 public class SessionIntegrationTest {
 
@@ -42,12 +41,6 @@ public class SessionIntegrationTest {
         var webClient = WebClient.create(vertx);
         webClient.get(config.getHttpPort(), "localhost", "/session/status")
                 .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
-
                     vertxTestContext.verify(() -> {
                         assertThat(ar.succeeded()).isTrue();
 
@@ -65,12 +58,6 @@ public class SessionIntegrationTest {
         webClient.get(config.getHttpPort(), "localhost", "/session/status")
                 .putHeader("Origin", config.getCsrfTarget())
                 .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
-
                     vertxTestContext.verify(() -> {
                         assertThat(ar.succeeded()).isTrue();
 
@@ -98,12 +85,6 @@ public class SessionIntegrationTest {
         webClientSession.get(config.getHttpPort(), "localhost", "/session/status")
                 .putHeader("Origin", config.getCsrfTarget())
                 .send(getStatus -> {
-                    if (getStatus.failed()) {
-                        var cause = getStatus.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
-
                     vertxTestContext.verify(() -> {
                         var csrfToken = getStatus.result().getHeader("X-CSRF-Token");
                         assertThat(csrfToken).isNotBlank();
@@ -116,12 +97,6 @@ public class SessionIntegrationTest {
                             .sendJsonObject(new JsonObject()
                                     .put("type", "GOOGLE")
                                     .put("token", validGoogleIdToken), login -> {
-                                if (login.failed()) {
-                                    var cause = login.cause();
-                                    log.error("Request to login endpoint failed", cause);
-                                    vertxTestContext.failNow(cause);
-                                }
-
                                 vertxTestContext.verify(() -> {
                                     var loginResult = login.result();
                                     assertThat(loginResult.statusCode()).isEqualTo(200);
