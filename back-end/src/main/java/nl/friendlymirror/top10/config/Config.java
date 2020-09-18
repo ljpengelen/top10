@@ -15,10 +15,10 @@ public class Config extends AbstractConfig {
     private final String googleOauth2ClientId = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_ID");
     private final String googleOauth2ClientSecret = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_SECRET");
     private final int httpPort = fetchMandatoryInt("HTTP_PORT");
-    private final JsonObject jdbcOptions = fetchJdbcOptions();
     private final String jdbcUrl = fetchMandatoryString("JDBC_POSTGRES_URL");
     private final String jdbcUsername = fetchMandatoryString("JDBC_POSTGRES_USERNAME");
     private final String jdbcPassword = fetchOptionalString("JDBC_POSTGRES_PASSWORD");
+    private final JsonObject jdbcOptions = fetchJdbcOptions();
     private final SecretKey jwtSecretKey = fetchJwtSecretKey();
     private final VertxOptions vertxOptions = fetchVertxOptions();
 

@@ -13,7 +13,7 @@ public class JwtSessionUser implements User {
     @EqualsAndHashCode.Include
     private final JsonObject principal;
 
-    public JwtSessionUser(String userId) {
+    public JwtSessionUser(int userId) {
         principal = new JsonObject().put("userId", userId);
     }
 

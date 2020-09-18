@@ -76,10 +76,10 @@ public class LogInVerticle extends AbstractVerticle {
                 return;
             }
 
-            var accountId = (String) reply.result().body();
+            var accountId = (int) reply.result().body();
             var jwt = Jwts.builder()
                     .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
-                    .setSubject(accountId)
+                    .setSubject(String.valueOf(accountId))
                     .signWith(secretKey, SignatureAlgorithm.HS512)
                     .compact();
 

@@ -32,7 +32,7 @@ public class JwtSessionHandler implements Handler<RoutingContext> {
             return;
         }
 
-        var userId = claims.getBody().getSubject();
+        var userId = Integer.parseInt(claims.getBody().getSubject());
         routingContext.setUser(new JwtSessionUser(userId));
 
         routingContext.next();

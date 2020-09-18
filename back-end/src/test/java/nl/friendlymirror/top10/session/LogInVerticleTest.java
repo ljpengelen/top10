@@ -28,6 +28,7 @@ import nl.friendlymirror.top10.RandomPort;
 class LogInVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/logIn";
+    private static final int INTERNAL_ID = 1234;
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
 
@@ -158,8 +159,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var validTokenString = "validTokenString";
         when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
 
-        var internalId = "internalIdForJohnDoe";
-        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(internalId));
+        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(INTERNAL_ID));
 
         var webClient = WebClient.create(vertx);
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
@@ -183,7 +183,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
 
                         var body = claims.getBody();
                         assertThat(body).isNotNull();
-                        assertThat(body.getSubject()).isEqualTo(internalId);
+                        assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
                     });
                     vertxTestContext.completeNow();
                 });
@@ -201,8 +201,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var validTokenString = "validTokenString";
         when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
 
-        var internalId = "internalIdForJohnDoe";
-        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(internalId));
+        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(INTERNAL_ID));
 
         var webClient = WebClient.create(vertx);
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
@@ -224,7 +223,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
                         assertThat(token).isNotBlank();
 
                         var claims = jwt.getJws(token);
-                        assertThat(claims.getBody().getSubject()).isEqualTo(internalId);
+                        assertThat(claims.getBody().getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
                     });
                     vertxTestContext.completeNow();
                 });

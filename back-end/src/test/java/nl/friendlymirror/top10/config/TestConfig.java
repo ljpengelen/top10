@@ -8,10 +8,10 @@ import nl.friendlymirror.top10.RandomPort;
 public class TestConfig extends Config {
 
     private final int httpPort = RandomPort.get();
-    private final JsonObject jdbcOptions = fetchJdbcOptions();
     private final String jdbcUrl = fetchMandatoryString("TEST_JDBC_POSTGRES_URL");
     private final String jdbcUsername = fetchMandatoryString("TEST_JDBC_POSTGRES_USERNAME");
     private final String jdbcPassword = fetchOptionalString("TEST_JDBC_POSTGRES_PASSWORD");
+    private final JsonObject jdbcOptions = fetchJdbcOptions();
 
     @Override
     protected JsonObject fetchJdbcOptions() {
