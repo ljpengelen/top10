@@ -5,7 +5,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 import java.security.GeneralSecurityException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +34,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
     private final int port = RandomPort.get();
 
     @BeforeEach
-    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) throws IOException {
+    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
         server.requestHandler(router);

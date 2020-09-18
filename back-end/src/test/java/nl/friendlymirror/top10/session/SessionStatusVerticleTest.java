@@ -2,8 +2,6 @@ package nl.friendlymirror.top10.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.net.ServerSocket;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -51,8 +49,8 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
 
     @Test
     public void returnsNoSessionWithoutSessionCookie(Vertx vertx, VertxTestContext vertxTestContext) {
-        WebClient client = WebClient.create(vertx);
-        client.get(port, "localhost", PATH)
+        var webClient = WebClient.create(vertx);
+        webClient.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
                         var cause = ar.cause();
