@@ -7,37 +7,28 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.security.GeneralSecurityException;
-
-import javax.crypto.SecretKey;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
-import nl.friendlymirror.top10.jwt.Jwt;
+import nl.friendlymirror.top10.AbstractVerticleTest;
 
 @Log4j2
-@ExtendWith(VertxExtension.class)
-class LogInVerticleTest {
+class LogInVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/logIn";
-
-    private static final String ENCODED_SECRET_KEY = "FsJtRGG84NM7BNewGo5AXvg6GJ1DKedDJjkirpDEAOtVgdi6j3f+THdeEika6v3dB8N4DO0fywkd+JK2A5eKLQ==";
-    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ENCODED_SECRET_KEY));
-    private final Jwt jwt = new Jwt(SECRET_KEY);
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
 
@@ -129,6 +120,116 @@ class LogInVerticleTest {
                         HttpResponse<Buffer> response = ar.result();
                         assertThat(response.statusCode()).isEqualTo(401);
                         assertThat(response.bodyAsJsonObject().getString("error")).isEqualTo("Invalid credentials");
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    @Test
+    public void rejectsRequestWithInvalidToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+        var invalidTokenString = "invalidTokenString";
+        when(googleIdTokenVerifier.verify(invalidTokenString)).thenReturn(null);
+
+        var webClient = WebClient.create(vertx);
+        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", invalidTokenString);
+        webClient.post(port, "localhost", PATH)
+                .sendJsonObject(requestBody, ar -> {
+                    if (ar.failed()) {
+                        var cause = ar.cause();
+                        log.error("Request to log-in endpoint failed", cause);
+                        vertxTestContext.failNow(cause);
+                    }
+
+                    vertxTestContext.verify(() -> {
+                        assertThat(ar.succeeded()).isTrue();
+
+                        HttpResponse<Buffer> response = ar.result();
+                        assertThat(response.statusCode()).isEqualTo(401);
+                        assertThat(response.bodyAsJsonObject().getString("error")).isEqualTo("Invalid credentials");
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    @Test
+    public void setsCookieGivenValidGoogleIdToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+        var googleIdToken = mock(GoogleIdToken.class);
+        var payload = mock(GoogleIdToken.Payload.class);
+        when(googleIdToken.getPayload()).thenReturn(payload);
+        when(payload.getSubject()).thenReturn("johndoe");
+        when(payload.getEmail()).thenReturn("john.doe@example.com");
+        when(payload.get("name")).thenReturn("John Doe");
+
+        var validTokenString = "validTokenString";
+        when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
+
+        var internalId = "internalIdForJohnDoe";
+        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(internalId));
+
+        var webClient = WebClient.create(vertx);
+        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
+        webClient.post(port, "localhost", PATH)
+                .sendJsonObject(requestBody, ar -> {
+                    if (ar.failed()) {
+                        var cause = ar.cause();
+                        log.error("Request to log-in endpoint failed", cause);
+                        vertxTestContext.failNow(cause);
+                    }
+
+                    vertxTestContext.verify(() -> {
+                        assertThat(ar.succeeded()).isTrue();
+
+                        HttpResponse<Buffer> response = ar.result();
+                        assertThat(response.statusCode()).isEqualTo(200);
+
+                        var cookieValue = extractCookie("jwt", response.cookies());
+                        var claims = jwt.getJws(cookieValue);
+                        assertThat(claims).isNotNull();
+
+                        var body = claims.getBody();
+                        assertThat(body).isNotNull();
+                        assertThat(body.getSubject()).isEqualTo(internalId);
+                    });
+                    vertxTestContext.completeNow();
+                });
+    }
+
+    @Test
+    public void returnsAccessTokenGivenValidGoogleIdToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+        var googleIdToken = mock(GoogleIdToken.class);
+        var payload = mock(GoogleIdToken.Payload.class);
+        when(googleIdToken.getPayload()).thenReturn(payload);
+        when(payload.getSubject()).thenReturn("johndoe");
+        when(payload.getEmail()).thenReturn("john.doe@example.com");
+        when(payload.get("name")).thenReturn("John Doe");
+
+        var validTokenString = "validTokenString";
+        when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
+
+        var internalId = "internalIdForJohnDoe";
+        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(internalId));
+
+        var webClient = WebClient.create(vertx);
+        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
+        webClient.post(port, "localhost", PATH)
+                .sendJsonObject(requestBody, ar -> {
+                    if (ar.failed()) {
+                        var cause = ar.cause();
+                        log.error("Request to log-in endpoint failed", cause);
+                        vertxTestContext.failNow(cause);
+                    }
+
+                    vertxTestContext.verify(() -> {
+                        assertThat(ar.succeeded()).isTrue();
+
+                        HttpResponse<Buffer> response = ar.result();
+                        assertThat(response.statusCode()).isEqualTo(200);
+
+                        var token = response.bodyAsJsonObject().getString("token");
+                        assertThat(token).isNotBlank();
+
+                        var claims = jwt.getJws(token);
+                        assertThat(claims.getBody().getSubject()).isEqualTo(internalId);
                     });
                     vertxTestContext.completeNow();
                 });

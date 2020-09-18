@@ -6,41 +6,29 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-
 import java.util.Date;
-
-import javax.crypto.SecretKey;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.*;
-import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
-import nl.friendlymirror.top10.jwt.Jwt;
+import nl.friendlymirror.top10.AbstractVerticleTest;
 
 @Log4j2
-@ExtendWith(VertxExtension.class)
-class SessionStatusVerticleTest {
+class SessionStatusVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/status";
     private static final String USER_ID = "userId";
     private static final String COOKIE_NAME = "jwt";
     private static final int FIVE_SECONDS_IN_MILLISECONDS = 5000;
-
-    private static final String ENCODED_SECRET_KEY = "FsJtRGG84NM7BNewGo5AXvg6GJ1DKedDJjkirpDEAOtVgdi6j3f+THdeEika6v3dB8N4DO0fywkd+JK2A5eKLQ==";
-    private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ENCODED_SECRET_KEY));
-    private final Jwt jwt = new Jwt(SECRET_KEY);
 
     private int port;
 
@@ -177,10 +165,7 @@ class SessionStatusVerticleTest {
                     vertxTestContext.verify(() -> {
                         assertThat(ar.succeeded()).isTrue();
 
-                        var cookies = ar.result().cookies();
-                        assertThat(cookies).hasSize(1);
-
-                        var newCookie = extractCookie(cookies.get(0), COOKIE_NAME);
+                        var newCookie = extractCookie(COOKIE_NAME, ar.result().cookies());
                         var claims = jwt.getJws(newCookie);
                         assertThat(claims).isNotNull();
 
@@ -192,19 +177,5 @@ class SessionStatusVerticleTest {
                     });
                     vertxTestContext.completeNow();
                 });
-    }
-
-    private String extractCookie(String cookies, String cookieName) {
-        if (cookies == null) {
-            return null;
-        }
-
-        for (var cookie : cookies.split(";")) {
-            if (cookie.startsWith(cookieName)) {
-                return cookie.substring(cookieName.length() + 1);
-            }
-        }
-
-        return null;
     }
 }
