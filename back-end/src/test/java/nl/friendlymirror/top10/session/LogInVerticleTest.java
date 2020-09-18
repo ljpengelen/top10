@@ -7,7 +7,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.security.GeneralSecurityException;
-import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +23,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.AbstractVerticleTest;
+import nl.friendlymirror.top10.RandomPort;
 
 @Log4j2
 class LogInVerticleTest extends AbstractVerticleTest {
@@ -32,14 +32,10 @@ class LogInVerticleTest extends AbstractVerticleTest {
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
 
-    private int port;
+    private final int port = RandomPort.get();
 
     @BeforeEach
     public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) throws IOException {
-        var socket = new ServerSocket(0);
-        port = socket.getLocalPort();
-        socket.close();
-
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
         server.requestHandler(router);

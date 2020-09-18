@@ -3,7 +3,6 @@ package nl.friendlymirror.top10.healthcheck;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.net.ServerSocket;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +15,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
+import nl.friendlymirror.top10.RandomPort;
 
 @Log4j2
 @DisplayName("Health-check verticle")
@@ -24,14 +24,10 @@ public class HealthCheckVerticleTest {
 
     private static final String PATH = "/health";
 
-    private int port;
+    private final int port = RandomPort.get();
 
     @BeforeEach
-    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) throws IOException {
-        var socket = new ServerSocket(0);
-        port = socket.getLocalPort();
-        socket.close();
-
+    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
         server.requestHandler(router);

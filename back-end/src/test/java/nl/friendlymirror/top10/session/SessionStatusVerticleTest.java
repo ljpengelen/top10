@@ -21,6 +21,7 @@ import io.vertx.ext.web.client.*;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.AbstractVerticleTest;
+import nl.friendlymirror.top10.RandomPort;
 
 @Log4j2
 class SessionStatusVerticleTest extends AbstractVerticleTest {
@@ -30,14 +31,10 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
     private static final String COOKIE_NAME = "jwt";
     private static final int FIVE_SECONDS_IN_MILLISECONDS = 5000;
 
-    private int port;
+    private final int port = RandomPort.get();
 
     @BeforeEach
-    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) throws IOException {
-        var socket = new ServerSocket(0);
-        port = socket.getLocalPort();
-        socket.close();
-
+    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
         server.requestHandler(router);
