@@ -14,8 +14,10 @@ import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.jwt.Jwt;
 
+@Log4j2
 @RequiredArgsConstructor
 public class CsrfTokenHandler implements Handler<RoutingContext> {
 
@@ -36,8 +38,12 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext routingContext) {
+        log.debug("Validating CSRF token");
+
         var request = routingContext.request();
         if (!METHODS_TO_IGNORE.contains(request.method()) && !hasValidCsrfToken(request)) {
+            log.debug("Invalid CSRF token");
+
             routingContext.response()
                     .setStatusCode(400)
                     .putHeader("content-type", "application/json")
@@ -45,6 +51,8 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
             return;
         }
+
+        log.debug("CSRF token not required or valid CSRF token");
 
         setCsrfTokens(routingContext.response());
 
@@ -77,6 +85,8 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
     }
 
     private void setCsrfTokens(HttpServerResponse response) {
+        log.debug("Setting CSRF token in header and cookie");
+
         var token = generateToken();
         response.putHeader(CSRF_TOKEN_HEADER_NAME, token);
 

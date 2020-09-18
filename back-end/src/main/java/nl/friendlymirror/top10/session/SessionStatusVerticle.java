@@ -52,15 +52,19 @@ public class SessionStatusVerticle extends AbstractVerticle {
 
         var existingCookie = routingContext.getCookie(JWT_COOKIE_NAME);
         if (existingCookie == null) {
+            log.debug("No session cookie present");
             response.end(NO_SESSION_RESPONSE);
             return;
         }
 
         var jws = jwt.getJws(existingCookie.getValue());
         if (jws == null) {
+            log.debug("Session cookie is invalid");
             response.end(INVALID_SESSION_RESPONSE);
             return;
         }
+
+        log.debug("Extending expiration date of session cookie");
 
         var subject = jws.getBody().getSubject();
         var jwt = Jwts.builder()
@@ -73,6 +77,8 @@ public class SessionStatusVerticle extends AbstractVerticle {
                 .setHttpOnly(true)
                 .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
                 .setPath("/");
+
+        log.debug("Setting new session cookie");
 
         response.addCookie(newCookie);
         response.end(validSession(jwt));

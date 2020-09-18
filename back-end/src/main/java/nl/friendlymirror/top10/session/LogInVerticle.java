@@ -47,16 +47,20 @@ public class LogInVerticle extends AbstractVerticle {
     }
 
     private void handle(RoutingContext routingContext) {
+        log.debug("Logging in");
+
         var response = routingContext.response().putHeader("content-type", "application/json");
 
         var requestBody = getRequestBodyAsJson(routingContext);
         if (requestBody == null) {
+            log.debug("No request body provided");
             badRequest(response, "No credentials provided");
             return;
         }
 
         var loginType = requestBody.getString("type");
         if (!"GOOGLE".equals(loginType)) {
+            log.debug("Invalid login type \"{}\"", loginType);
             badRequest(response, "Unknown login type");
             return;
         }
@@ -77,6 +81,7 @@ public class LogInVerticle extends AbstractVerticle {
             }
 
             var accountId = (int) reply.result().body();
+            log.debug("Retrieved account ID \"{}\" for Google ID", accountId);
             var jwt = Jwts.builder()
                     .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
                     .setSubject(String.valueOf(accountId))
@@ -94,9 +99,12 @@ public class LogInVerticle extends AbstractVerticle {
     }
 
     private JsonObject getGoogleUserData(String idTokenString) {
+        log.debug("Verifying Google ID token");
+
         try {
             var googleIdToken = googleIdTokenVerifier.verify(idTokenString);
             if (googleIdToken != null) {
+                log.debug("Valid Google ID token");
                 var payload = googleIdToken.getPayload();
                 return new JsonObject()
                         .put("name", payload.get("name"))
