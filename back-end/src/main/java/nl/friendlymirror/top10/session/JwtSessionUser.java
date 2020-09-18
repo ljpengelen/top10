@@ -5,9 +5,12 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.AuthProvider;
 import io.vertx.ext.auth.User;
+import lombok.EqualsAndHashCode;
 
+@EqualsAndHashCode
 public class JwtSessionUser implements User {
 
+    @EqualsAndHashCode.Include
     private final JsonObject principal;
 
     public JwtSessionUser(String userId) {
