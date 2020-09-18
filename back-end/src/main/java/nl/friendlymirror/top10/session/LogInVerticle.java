@@ -5,17 +5,11 @@ import static nl.friendlymirror.top10.session.SessionConfiguration.JWT_COOKIE_NA
 import static nl.friendlymirror.top10.session.SessionConfiguration.SESSION_EXPIRATION_IN_SECONDS;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.Date;
 
 import javax.crypto.SecretKey;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.JsonFactory;
-import com.google.api.client.json.jackson2.JacksonFactory;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -33,9 +27,6 @@ import lombok.extern.log4j.Log4j2;
 @RequiredArgsConstructor
 public class LogInVerticle extends AbstractVerticle {
 
-    private static final Buffer BAD_REQUEST_RESPONSE = new JsonObject()
-            .put("error", "Bad request")
-            .toBuffer();
     private static final Buffer INVALID_CREDENTIALS_RESPONSE = new JsonObject()
             .put("error", "Invalid credentials")
             .toBuffer();
@@ -43,26 +34,30 @@ public class LogInVerticle extends AbstractVerticle {
             .put("error", "Internal server error")
             .toBuffer();
 
-    private final String googleOauth2ClientId;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final Router router;
     private final SecretKey secretKey;
 
-    private JsonFactory jsonFactory = new JacksonFactory();
-    private HttpTransport httpTransport;
-    private GoogleIdTokenVerifier verifier;
+    @Override
+    public void start() {
+        log.info("Starting");
+
+        router.route(HttpMethod.POST, "/session/logIn").handler(BodyHandler.create());
+        router.route(HttpMethod.POST, "/session/logIn").handler(this::handle);
+    }
 
     private void handle(RoutingContext routingContext) {
         var response = routingContext.response().putHeader("content-type", "application/json");
 
         var requestBody = getRequestBodyAsJson(routingContext);
         if (requestBody == null) {
-            badRequest(response);
+            badRequest(response, "No credentials provided");
             return;
         }
 
         var loginType = requestBody.getString("type");
         if (!"GOOGLE".equals(loginType)) {
-            badRequest(response);
+            badRequest(response, "Unknown login type");
             return;
         }
 
@@ -70,6 +65,7 @@ public class LogInVerticle extends AbstractVerticle {
         if (googleUserData == null) {
             response.setStatusCode(401)
                     .end(INVALID_CREDENTIALS_RESPONSE);
+            return;
         }
 
         vertx.eventBus().request(GOOGLE_LOGIN_ADDRESS, googleUserData, reply -> {
@@ -99,9 +95,9 @@ public class LogInVerticle extends AbstractVerticle {
 
     private JsonObject getGoogleUserData(String idTokenString) {
         try {
-            GoogleIdToken idToken = verifier.verify(idTokenString);
-            if (idToken != null) {
-                var payload = idToken.getPayload();
+            var googleIdToken = googleIdTokenVerifier.verify(idTokenString);
+            if (googleIdToken != null) {
+                var payload = googleIdToken.getPayload();
                 return new JsonObject()
                         .put("name", payload.get("name"))
                         .put("emailAddress", payload.getEmail())
@@ -125,9 +121,11 @@ public class LogInVerticle extends AbstractVerticle {
         }
     }
 
-    private void badRequest(HttpServerResponse response) {
+    private void badRequest(HttpServerResponse response, String errorMessage) {
         response.setStatusCode(400)
-                .end(BAD_REQUEST_RESPONSE);
+                .end(new JsonObject()
+                        .put("error", errorMessage)
+                        .toBuffer());
     }
 
     private Buffer sessionCreated(String jwt) {
@@ -135,18 +133,5 @@ public class LogInVerticle extends AbstractVerticle {
                 .put("status", "SESSION_CREATED")
                 .put("token", jwt)
                 .toBuffer();
-    }
-
-    @Override
-    public void start() throws Exception {
-        log.info("Starting");
-
-        httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        verifier = new GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
-                .setAudience(Collections.singletonList(googleOauth2ClientId))
-                .build();
-
-        router.route(HttpMethod.POST, "/session/logIn").handler(BodyHandler.create());
-        router.route(HttpMethod.POST, "/session/logIn").handler(this::handle);
     }
 }

@@ -1,8 +1,15 @@
 package nl.friendlymirror.top10;
 
+import java.util.Collections;
+
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.jackson2.JacksonFactory;
+
 import io.vertx.core.*;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.web.Router;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.account.GoogleAccountVerticle;
 import nl.friendlymirror.top10.config.Config;
@@ -37,6 +44,7 @@ public class Application {
         return deploy(verticle, new DeploymentOptions());
     }
 
+    @SneakyThrows
     private void deployVerticles(Jwt jwt, Router router) {
         log.info("Deploying verticles");
 
@@ -45,7 +53,12 @@ public class Application {
         deploy(new HeartbeatVerticle());
         deploy(new HealthCheckVerticle(router));
         deploy(new GoogleAccountVerticle(CONFIG.getJdbcOptions()));
-        deploy(new LogInVerticle(CONFIG.getGoogleOauth2ClientId(), router, CONFIG.getJwtSecretKey()));
+        var jsonFactory = new JacksonFactory();
+        var httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        var verifier = new GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
+                .setAudience(Collections.singletonList(CONFIG.getGoogleOauth2ClientId()))
+                .build();
+        deploy(new LogInVerticle(verifier, router, CONFIG.getJwtSecretKey()));
         deploy(new SessionStatusVerticle(jwt, router, CONFIG.getJwtSecretKey()));
         deploy(new EchoVerticle(router));
     }

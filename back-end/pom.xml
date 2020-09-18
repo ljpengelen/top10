@@ -310,11 +310,11 @@
                                 <rule>
                                     <limits>
                                         <limit>
-                                            <minimum>0%</minimum>
+                                            <minimum>60%</minimum>
                                         </limit>
                                         <limit>
                                             <counter>BRANCH</counter>
-                                            <minimum>0%</minimum>
+                                            <minimum>60%</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
