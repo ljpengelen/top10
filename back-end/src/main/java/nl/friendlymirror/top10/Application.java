@@ -8,6 +8,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 
 import io.vertx.core.*;
 import io.vertx.ext.web.Router;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.account.GoogleAccountVerticle;
 import nl.friendlymirror.top10.config.Config;
@@ -23,10 +24,25 @@ import nl.friendlymirror.top10.session.csrf.CsrfTokenHandler;
 public class Application {
 
     private final Config config;
+    private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final Vertx vertx;
 
     public Application(Config config, Vertx vertx) {
+        this(config, createGoogleIdTokenVerifier(config), vertx);
+    }
+
+    @SneakyThrows
+    private static GoogleIdTokenVerifier createGoogleIdTokenVerifier(Config config) {
+        var httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+        var jsonFactory = new JacksonFactory();
+        return new GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
+                .setAudience(Collections.singletonList(config.getGoogleOauth2ClientId()))
+                .build();
+    }
+
+    public Application(Config config, GoogleIdTokenVerifier googleIdTokenVerifier, Vertx vertx) {
         this.config = config;
+        this.googleIdTokenVerifier = googleIdTokenVerifier;
         this.vertx = vertx;
     }
 
@@ -79,24 +95,6 @@ public class Application {
 
         var result = Promise.<Void> promise();
 
-        try {
-            log.info("Creating Google ID token verifier");
-
-            var httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-            var jsonFactory = new JacksonFactory();
-            var googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
-                    .setAudience(Collections.singletonList(config.getGoogleOauth2ClientId()))
-                    .build();
-            start(googleIdTokenVerifier, result);
-        } catch (Exception e) {
-            log.error("Unable to create trusted HTTP transport", e);
-            result.fail(e);
-        }
-
-        return result.future();
-    }
-
-    public void start(GoogleIdTokenVerifier googleIdTokenVerifier, Promise<Void> result) {
         log.info("Setting up router");
 
         var router = Router.router(vertx);
@@ -120,5 +118,7 @@ public class Application {
                 result.fail(ar.cause());
             }
         });
+
+        return result.future();
     }
 }
