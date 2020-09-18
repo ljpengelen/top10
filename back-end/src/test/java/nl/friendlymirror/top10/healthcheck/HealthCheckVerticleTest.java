@@ -39,7 +39,9 @@ public class HealthCheckVerticleTest {
             if (deploymentResult.succeeded()) {
                 server.listen(port, vertxTestContext.completing());
             } else {
-                log.error("Failed to deploy verticle", deploymentResult.cause());
+                var cause = deploymentResult.cause();
+                log.error("Failed to deploy verticle", cause);
+                vertxTestContext.failNow(cause);
             }
         });
     }
@@ -51,8 +53,9 @@ public class HealthCheckVerticleTest {
         client.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
-                        log.error("Request to health endpoint failed", ar.cause());
-                        vertxTestContext.failNow(ar.cause());
+                        var cause = ar.cause();
+                        log.error("Request to health endpoint failed", cause);
+                        vertxTestContext.failNow(cause);
                     }
 
                     vertxTestContext.verify(() -> {
@@ -72,8 +75,9 @@ public class HealthCheckVerticleTest {
         client.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
-                        log.error("Request to health endpoint failed", ar.cause());
-                        vertxTestContext.failNow(ar.cause());
+                        var cause = ar.cause();
+                        log.error("Request to health endpoint failed", cause);
+                        vertxTestContext.failNow(cause);
                     }
 
                     vertxTestContext.verify(() -> {
@@ -93,8 +97,9 @@ public class HealthCheckVerticleTest {
         client.get(port, "localhost", PATH)
                 .send(ar -> {
                     if (ar.failed()) {
-                        log.error("Request to health endpoint failed", ar.cause());
-                        vertxTestContext.failNow(ar.cause());
+                        var cause = ar.cause();
+                        log.error("Request to health endpoint failed", cause);
+                        vertxTestContext.failNow(cause);
                     }
 
                     vertxTestContext.verify(() -> {

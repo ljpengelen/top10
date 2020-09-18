@@ -25,6 +25,10 @@ import nl.friendlymirror.top10.jwt.Jwt;
 @RequiredArgsConstructor
 public class SessionStatusVerticle extends AbstractVerticle {
 
+    private static final Buffer INVALID_SESSION_RESPONSE = new JsonObject()
+            .put("status", "INVALID_SESSION")
+            .toBuffer();
+
     private static final Buffer NO_SESSION_RESPONSE = new JsonObject()
             .put("status", "NO_SESSION")
             .toBuffer();
@@ -32,6 +36,13 @@ public class SessionStatusVerticle extends AbstractVerticle {
     private final Jwt jwt;
     private final Router router;
     private final SecretKey secretKey;
+
+    @Override
+    public void start() {
+        log.info("Starting");
+
+        router.route(HttpMethod.GET, "/session/status").handler(this::handle);
+    }
 
     private void handle(RoutingContext routingContext) {
         log.info("Session status");
@@ -47,7 +58,7 @@ public class SessionStatusVerticle extends AbstractVerticle {
 
         var jws = jwt.getJws(existingCookie.getValue());
         if (jws == null) {
-            response.end(NO_SESSION_RESPONSE);
+            response.end(INVALID_SESSION_RESPONSE);
             return;
         }
 
@@ -72,12 +83,5 @@ public class SessionStatusVerticle extends AbstractVerticle {
                 .put("status", "VALID_SESSION")
                 .put("token", token)
                 .toBuffer();
-    }
-
-    @Override
-    public void start() {
-        log.info("Starting");
-
-        router.route(HttpMethod.GET, "/session/status").handler(this::handle);
     }
 }
