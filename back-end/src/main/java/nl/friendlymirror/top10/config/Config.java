@@ -33,7 +33,7 @@ public class Config extends AbstractConfig {
         return Keys.hmacShaKeyFor(decodedSecretKey);
     }
 
-    private JsonObject fetchJdbcOptions() {
+    protected JsonObject fetchJdbcOptions() {
         var jdbcOptions = new JsonObject();
         jdbcOptions.put("url", fetchMandatoryString(JDBC_POSTGRES_URL));
         jdbcOptions.put("user", fetchMandatoryString(JDBC_POSTGRES_USERNAME));
