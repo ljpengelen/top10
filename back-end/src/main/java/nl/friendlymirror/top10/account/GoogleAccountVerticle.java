@@ -19,7 +19,8 @@ public class GoogleAccountVerticle extends AbstractVerticle {
     public static final String GOOGLE_LOGIN_ADDRESS = "google.login.accountId";
 
     private static final String GET_ACCOUNT_ID_TEMPLATE = "SELECT a.account_id FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
-    private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address) VALUES (?, ?)";
+    private static final String UPDATE_STATISTICS_TEMPLATE = "UPDATE account SET last_login_at = NOW(), number_of_logins = number_of_logins + 1 WHERE account_id = ?";
+    private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins) VALUES (?, ?, NOW(), NOW(), 1)";
     private static final String CREATE_GOOGLE_ACCOUNT_TEMPLATE = "INSERT INTO google_account (account_id, google_account_id) VALUES (?, ?)";
 
     private final JsonObject jdbcOptions;
@@ -48,7 +49,14 @@ public class GoogleAccountVerticle extends AbstractVerticle {
             var accountId = asyncAccountId.result();
             if (accountId != null) {
                 log.debug("Retrieved account ID for Google ID");
-                googleUserDataMessage.reply(accountId);
+                updateStatisticsForAccount(accountId).onComplete(asyncUpdate -> {
+                    if (asyncUpdate.failed()) {
+                        log.error("Unable to update login statistics for account \"{}\"", accountId, asyncUpdate.cause());
+                    } else {
+                        log.debug("Updated login statistics for account");
+                    }
+                    googleUserDataMessage.reply(accountId);
+                });
                 return;
             }
 
@@ -142,6 +150,24 @@ public class GoogleAccountVerticle extends AbstractVerticle {
             var accountId = asyncResult.result().getInteger(0);
             log.debug("Query \"{}\" produced result \"{}\"", GET_ACCOUNT_ID_TEMPLATE, accountId);
             promise.complete(accountId);
+        });
+
+        return promise.future();
+    }
+
+    private Future<Void> updateStatisticsForAccount(int accountId) {
+        var promise = Promise.<Void> promise();
+
+        var params = new JsonArray().add(accountId);
+        jdbcClient.querySingleWithParams(UPDATE_STATISTICS_TEMPLATE, params, asyncResult -> {
+            if (asyncResult.failed()) {
+                var cause = asyncResult.cause();
+                log.error("Unable to execute query \"{}\"", UPDATE_STATISTICS_TEMPLATE, cause);
+                promise.fail(asyncResult.cause());
+                return;
+            }
+
+            promise.complete();
         });
 
         return promise.future();
