@@ -6,7 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.*;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.security.GeneralSecurityException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -19,12 +20,13 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import nl.friendlymirror.top10.Application;
 import nl.friendlymirror.top10.config.TestConfig;
+import nl.friendlymirror.top10.http.BodyPublisher;
+import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
 
 @ExtendWith(VertxExtension.class)
 public class SessionIntegrationTest {
@@ -48,18 +50,6 @@ public class SessionIntegrationTest {
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
         var application = new Application(config, googleIdTokenVerifier, vertx);
         application.start().onComplete(vertxTestContext.completing());
-    }
-
-    private static class JsonObjectBodyHandler implements HttpResponse.BodyHandler<JsonObject> {
-
-        @Override
-        public HttpResponse.BodySubscriber<JsonObject> apply(HttpResponse.ResponseInfo responseInfo) {
-            return HttpResponse.BodySubscribers.mapping(HttpResponse.BodySubscribers.ofByteArray(), body -> new JsonObject(Buffer.buffer(body)));
-        }
-    }
-
-    private HttpRequest.BodyPublisher ofJsonObject(JsonObject body) {
-        return HttpRequest.BodyPublishers.ofString(body.toString());
     }
 
     @Test
@@ -110,7 +100,7 @@ public class SessionIntegrationTest {
         var echoBody = new JsonObject()
                 .put("someKey", "someValue");
         var echoRequest = HttpRequest.newBuilder()
-                .POST(ofJsonObject(echoBody))
+                .POST(BodyPublisher.ofJsonObject(echoBody))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
                 .build();
         var echoResponse = httpClient.send(echoRequest, new JsonObjectBodyHandler());
@@ -119,7 +109,7 @@ public class SessionIntegrationTest {
         assertThat(echoResponse.body().getString("error")).isEqualTo("Missing authorization header");
 
         echoRequest = HttpRequest.newBuilder()
-                .POST(ofJsonObject(echoBody))
+                .POST(BodyPublisher.ofJsonObject(echoBody))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
                 .header("Authorization", "Bearer invalidAccessToken")
                 .build();
@@ -140,7 +130,7 @@ public class SessionIntegrationTest {
         var csrfToken = optionalCsrfToken.get();
 
         var logInRequest = HttpRequest.newBuilder()
-                .POST(ofJsonObject(new JsonObject()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject()
                         .put("type", "GOOGLE")
                         .put("token", validGoogleIdToken)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
@@ -159,7 +149,7 @@ public class SessionIntegrationTest {
         assertThat(getStatusResponse.body().getString("status")).isEqualTo("VALID_SESSION");
 
         echoRequest = HttpRequest.newBuilder()
-                .POST(ofJsonObject(echoBody))
+                .POST(BodyPublisher.ofJsonObject(echoBody))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
                 .header("Authorization", "Bearer " + accessToken)
                 .build();

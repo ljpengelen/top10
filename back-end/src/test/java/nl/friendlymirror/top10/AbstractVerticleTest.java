@@ -33,4 +33,18 @@ public abstract class AbstractVerticleTest {
 
         return null;
     }
+
+    protected String extractCookie(String cookieName, String headerValue) {
+        if (headerValue == null) {
+            return null;
+        }
+
+        for (var headerSegment : headerValue.split(";")) {
+            if (headerSegment.startsWith(cookieName)) {
+                return headerSegment.substring(cookieName.length() + 1);
+            }
+        }
+
+        return null;
+    }
 }

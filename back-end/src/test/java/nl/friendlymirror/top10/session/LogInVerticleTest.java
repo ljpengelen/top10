@@ -5,6 +5,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.security.GeneralSecurityException;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -14,15 +17,14 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.AbstractVerticleTest;
 import nl.friendlymirror.top10.RandomPort;
+import nl.friendlymirror.top10.http.BodyPublisher;
+import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
 
 @Log4j2
 class LogInVerticleTest extends AbstractVerticleTest {
@@ -51,104 +53,67 @@ class LogInVerticleTest extends AbstractVerticleTest {
     }
 
     @Test
-    public void rejectsRequestWithoutBody(Vertx vertx, VertxTestContext vertxTestContext) {
-        var webClient = WebClient.create(vertx);
-        webClient.post(port, "localhost", PATH)
-                .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to log-in endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+    public void rejectsRequestWithoutBody() throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(400);
-                        assertThat(response.bodyAsJsonObject().getString("error")).isEqualTo("No credentials provided");
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body().getString("error")).isEqualTo("No credentials provided");
     }
 
     @Test
-    public void rejectsRequestWithUnknownLoginType(Vertx vertx, VertxTestContext vertxTestContext) {
-        var webClient = WebClient.create(vertx);
-        var requestBody = new JsonObject().put("type", "FACEBOOK");
-        webClient.post(port, "localhost", PATH)
-                .sendJsonObject(requestBody, ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to log-in endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+    public void rejectsRequestWithUnknownLoginType() throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("type", "FACEBOOK")))
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(400);
-                        assertThat(response.bodyAsJsonObject().getString("error")).isEqualTo("Unknown login type");
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body().getString("error")).isEqualTo("Unknown login type");
     }
 
     @Test
-    public void rejectsRequestWithUnverifiableToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+    public void rejectsRequestWithUnverifiableToken() throws GeneralSecurityException, IOException, InterruptedException {
         var unverifiableTokenString = "unverifiableTokenString";
         when(googleIdTokenVerifier.verify(unverifiableTokenString)).thenThrow(new RuntimeException());
 
-        var webClient = WebClient.create(vertx);
+        var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", unverifiableTokenString);
-        webClient.post(port, "localhost", PATH)
-                .sendJsonObject(requestBody, ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to log-in endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(requestBody))
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(401);
-                        assertThat(response.bodyAsJsonObject().getString("error")).isEqualTo("Invalid credentials");
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(response.body().getString("error")).isEqualTo("Invalid credentials");
     }
 
     @Test
-    public void rejectsRequestWithInvalidToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+    public void rejectsRequestWithInvalidToken() throws GeneralSecurityException, IOException, InterruptedException {
         var invalidTokenString = "invalidTokenString";
         when(googleIdTokenVerifier.verify(invalidTokenString)).thenReturn(null);
 
-        var webClient = WebClient.create(vertx);
+        var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", invalidTokenString);
-        webClient.post(port, "localhost", PATH)
-                .sendJsonObject(requestBody, ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to log-in endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(requestBody))
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(401);
-                        assertThat(response.bodyAsJsonObject().getString("error")).isEqualTo("Invalid credentials");
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(401);
+        assertThat(response.body().getString("error")).isEqualTo("Invalid credentials");
     }
 
     @Test
-    public void setsCookieGivenValidGoogleIdToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+    public void setsCookieGivenValidGoogleIdToken(Vertx vertx) throws GeneralSecurityException, IOException, InterruptedException {
         var googleIdToken = mock(GoogleIdToken.class);
         var payload = mock(GoogleIdToken.Payload.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
@@ -161,36 +126,29 @@ class LogInVerticleTest extends AbstractVerticleTest {
 
         vertx.eventBus().consumer("google.login.accountId", message -> message.reply(INTERNAL_ID));
 
-        var webClient = WebClient.create(vertx);
+        var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
-        webClient.post(port, "localhost", PATH)
-                .sendJsonObject(requestBody, ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to log-in endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(requestBody))
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
+        assertThat(response.statusCode()).isEqualTo(200);
 
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(200);
+        var optionalCookie = response.headers().firstValue("Set-Cookie");
+        assertThat(optionalCookie).isNotEmpty();
+        var cookieValue = extractCookie("jwt", optionalCookie.get());
+        var claims = jwt.getJws(cookieValue);
+        assertThat(claims).isNotNull();
 
-                        var cookieValue = extractCookie("jwt", response.cookies());
-                        var claims = jwt.getJws(cookieValue);
-                        assertThat(claims).isNotNull();
-
-                        var body = claims.getBody();
-                        assertThat(body).isNotNull();
-                        assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
-                    });
-                    vertxTestContext.completeNow();
-                });
+        var body = claims.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
     }
 
     @Test
-    public void returnsAccessTokenGivenValidGoogleIdToken(Vertx vertx, VertxTestContext vertxTestContext) throws GeneralSecurityException, IOException {
+    public void returnsAccessTokenGivenValidGoogleIdToken(Vertx vertx) throws GeneralSecurityException, IOException, InterruptedException {
         var googleIdToken = mock(GoogleIdToken.class);
         var payload = mock(GoogleIdToken.Payload.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
@@ -203,29 +161,23 @@ class LogInVerticleTest extends AbstractVerticleTest {
 
         vertx.eventBus().consumer("google.login.accountId", message -> message.reply(INTERNAL_ID));
 
-        var webClient = WebClient.create(vertx);
+        var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
-        webClient.post(port, "localhost", PATH)
-                .sendJsonObject(requestBody, ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to log-in endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(requestBody))
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
+        assertThat(response.statusCode()).isEqualTo(200);
 
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(200);
+        var token = response.body().getString("token");
+        assertThat(token).isNotBlank();
+        var claims = jwt.getJws(token);
+        assertThat(claims).isNotNull();
 
-                        var token = response.bodyAsJsonObject().getString("token");
-                        assertThat(token).isNotBlank();
-
-                        var claims = jwt.getJws(token);
-                        assertThat(claims.getBody().getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
-                    });
-                    vertxTestContext.completeNow();
-                });
+        var body = claims.getBody();
+        assertThat(body).isNotNull();
+        assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
     }
 }
