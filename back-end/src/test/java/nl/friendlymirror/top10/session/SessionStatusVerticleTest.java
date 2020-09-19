@@ -2,6 +2,11 @@ package nl.friendlymirror.top10.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.net.CookieHandler;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -11,15 +16,13 @@ import org.junit.jupiter.api.Test;
 
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.netty.handler.codec.http.cookie.DefaultCookie;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.client.*;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.AbstractVerticleTest;
 import nl.friendlymirror.top10.RandomPort;
+import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
 
 @Log4j2
 class SessionStatusVerticleTest extends AbstractVerticleTest {
@@ -48,129 +51,84 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
     }
 
     @Test
-    public void returnsNoSessionWithoutSessionCookie(Vertx vertx, VertxTestContext vertxTestContext) {
-        var webClient = WebClient.create(vertx);
-        webClient.get(port, "localhost", PATH)
-                .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+    public void returnsNoSessionWithoutSessionCookie() throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(200);
-                        assertThat(response.bodyAsJsonObject().getString("status")).isEqualTo("NO_SESSION");
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().getString("status")).isEqualTo("NO_SESSION");
     }
 
     @Test
-    public void returnsNoSessionGivenInvalidSessionCookie(Vertx vertx, VertxTestContext vertxTestContext) {
-        var webClient = WebClient.create(vertx);
-        var webClientSession = WebClientSession.create(webClient);
-
+    public void returnsNoSessionGivenInvalidSessionCookie() throws IOException, InterruptedException {
         var jwt = Jwts.builder()
                 .setExpiration(Date.from(Instant.now().minusSeconds(1)))
                 .setSubject(USER_ID)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
 
-        var cookie = new DefaultCookie(COOKIE_NAME, jwt);
-        webClientSession.cookieStore().put(cookie);
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .header("Cookie", COOKIE_NAME + "=" + jwt)
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-        webClientSession.get(port, "localhost", PATH)
-                .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
-
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(200);
-                        assertThat(response.bodyAsJsonObject().getString("status")).isEqualTo("INVALID_SESSION");
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().getString("status")).isEqualTo("INVALID_SESSION");
     }
 
     @Test
-    public void returnsAccessTokenGivenSessionCookie(Vertx vertx, VertxTestContext vertxTestContext) {
-        var webClient = WebClient.create(vertx);
-        var webClientSession = WebClientSession.create(webClient);
-
+    public void returnsAccessTokenGivenSessionCookie() throws IOException, InterruptedException {
         var token = Jwts.builder()
                 .setSubject(USER_ID)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
 
-        var cookie = new DefaultCookie(COOKIE_NAME, token);
-        webClientSession.cookieStore().put(cookie);
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .header("Cookie", COOKIE_NAME + "=" + token)
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-        webClientSession.get(port, "localhost", PATH)
-                .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
-
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
-
-                        HttpResponse<Buffer> response = ar.result();
-                        assertThat(response.statusCode()).isEqualTo(200);
-                        var body = response.bodyAsJsonObject();
-                        assertThat(body.getString("status")).isEqualTo("VALID_SESSION");
-                        assertThat(body.getString("token")).isNotBlank();
-                    });
-                    vertxTestContext.completeNow();
-                });
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().getString("status")).isEqualTo("VALID_SESSION");
+        assertThat(response.body().getString("token")).isNotBlank();
     }
 
     @Test
-    public void extendsSessionCookie(Vertx vertx, VertxTestContext vertxTestContext) {
-        var webClient = WebClient.create(vertx);
-        var webClientSession = WebClientSession.create(webClient);
-
+    public void extendsSessionCookie() throws IOException, InterruptedException {
         var token = Jwts.builder()
                 .setSubject(USER_ID)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
 
-        var cookie = new DefaultCookie(COOKIE_NAME, token);
-        webClientSession.cookieStore().put(cookie);
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .header("Cookie", COOKIE_NAME + "=" + token)
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-        webClientSession.get(port, "localhost", PATH)
-                .send(ar -> {
-                    if (ar.failed()) {
-                        var cause = ar.cause();
-                        log.error("Request to session-status endpoint failed", cause);
-                        vertxTestContext.failNow(cause);
-                    }
+        var optionalCookie = response.headers().firstValue("Set-Cookie");
+        assertThat(optionalCookie).isNotEmpty();
+        var cookieValue = extractCookie(COOKIE_NAME, optionalCookie.get());
 
-                    vertxTestContext.verify(() -> {
-                        assertThat(ar.succeeded()).isTrue();
+        var claims = jwt.getJws(cookieValue);
+        assertThat(claims).isNotNull();
 
-                        var newCookie = extractCookie(COOKIE_NAME, ar.result().cookies());
-                        var claims = jwt.getJws(newCookie);
-                        assertThat(claims).isNotNull();
+        var body = claims.getBody();
+        assertThat(body.getSubject()).isEqualTo(USER_ID);
 
-                        var body = claims.getBody();
-                        assertThat(body.getSubject()).isEqualTo(USER_ID);
-
-                        var eightHoursFromNow = Date.from(Instant.now().plus(8, ChronoUnit.HOURS));
-                        assertThat(body.getExpiration()).isCloseTo(eightHoursFromNow, FIVE_SECONDS_IN_MILLISECONDS);
-                    });
-                    vertxTestContext.completeNow();
-                });
+        var eightHoursFromNow = Date.from(Instant.now().plus(8, ChronoUnit.HOURS));
+        assertThat(body.getExpiration()).isCloseTo(eightHoursFromNow, FIVE_SECONDS_IN_MILLISECONDS);
     }
 }
