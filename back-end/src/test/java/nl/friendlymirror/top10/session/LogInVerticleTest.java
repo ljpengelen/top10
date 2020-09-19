@@ -81,7 +81,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
     @Test
     public void rejectsRequestWithUnverifiableToken() throws GeneralSecurityException, IOException, InterruptedException {
         var unverifiableTokenString = "unverifiableTokenString";
-        when(googleIdTokenVerifier.verify(unverifiableTokenString)).thenThrow(new RuntimeException());
+        when(googleIdTokenVerifier.verify(unverifiableTokenString)).thenThrow(new RuntimeException("Unverifiable token"));
 
         var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", unverifiableTokenString);
