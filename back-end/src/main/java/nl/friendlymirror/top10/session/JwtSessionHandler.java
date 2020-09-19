@@ -3,6 +3,7 @@ package nl.friendlymirror.top10.session;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
 import nl.friendlymirror.top10.jwt.Jwt;
@@ -33,7 +34,7 @@ public class JwtSessionHandler implements Handler<RoutingContext> {
         }
 
         var userId = Integer.parseInt(claims.getBody().getSubject());
-        routingContext.setUser(new JwtSessionUser(userId));
+        routingContext.setUser(User.create(new JsonObject().put("userId", userId)));
 
         routingContext.next();
     }

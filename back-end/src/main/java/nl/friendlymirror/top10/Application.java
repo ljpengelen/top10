@@ -50,7 +50,7 @@ public class Application {
         var config = new Config();
         var vertx = Vertx.vertx(config.getVertxOptions());
         var app = new Application(config, vertx);
-        app.start().setHandler(ar -> {
+        app.start().onComplete(ar -> {
             if (ar.succeeded()) {
                 log.info("Application started successfully");
             } else {
@@ -81,7 +81,7 @@ public class Application {
                                 deploy(new GoogleAccountVerticle(config.getJdbcOptions())),
                                 deploy(new LogInVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
                                 deploy(new SessionStatusVerticle(jwt, router, config.getJwtSecretKey())),
-                                deploy(new EchoVerticle(router))).setHandler(ar -> {
+                                deploy(new EchoVerticle(router))).onComplete(ar -> {
                             if (ar.succeeded()) {
                                 result.complete();
                             } else {

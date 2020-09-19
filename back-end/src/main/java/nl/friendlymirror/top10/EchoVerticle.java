@@ -26,7 +26,7 @@ public class EchoVerticle extends AbstractVerticle {
     public void start() {
         log.info("Starting");
 
-        router.route(HttpMethod.GET, "/private/echo").handler(BodyHandler.create());
-        router.route(HttpMethod.GET, "/private/echo").handler(this::handle);
+        router.route(HttpMethod.POST, "/private/echo").handler(BodyHandler.create());
+        router.route(HttpMethod.POST, "/private/echo").handler(this::handle);
     }
 }

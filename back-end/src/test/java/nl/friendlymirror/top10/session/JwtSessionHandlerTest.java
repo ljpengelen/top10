@@ -16,6 +16,7 @@ import io.jsonwebtoken.security.Keys;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import nl.friendlymirror.top10.jwt.Jwt;
 
@@ -85,6 +86,6 @@ class JwtSessionHandlerTest {
 
         verifyNoInteractions(response);
 
-        verify(routingContext).setUser(new JwtSessionUser(USER_ID));
+        verify(routingContext).setUser(User.create(new JsonObject().put("userId", USER_ID)));
     }
 }

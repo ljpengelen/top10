@@ -81,7 +81,6 @@ public class LogInVerticle extends AbstractVerticle {
             }
 
             var accountId = (int) reply.result().body();
-            log.debug("Retrieved account ID \"{}\" for Google ID", accountId);
             var jwt = Jwts.builder()
                     .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
                     .setSubject(String.valueOf(accountId))

@@ -24,7 +24,7 @@
         <log4j.version>2.11.2</log4j.version>
         <lombok.version>1.18.12</lombok.version>
         <mockito.version>3.2.4</mockito.version>
-        <vertx.version>3.8.5</vertx.version>
+        <vertx.version>4.0.0-milestone5</vertx.version>
         <postgresql.version>42.2.5</postgresql.version>
         <sentry-log4j2.version>1.7.30</sentry-log4j2.version>
 

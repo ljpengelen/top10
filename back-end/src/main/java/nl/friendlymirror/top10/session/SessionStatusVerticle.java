@@ -45,7 +45,7 @@ public class SessionStatusVerticle extends AbstractVerticle {
     }
 
     private void handle(RoutingContext routingContext) {
-        log.info("Session status");
+        log.debug("Session status requested");
 
         var response = routingContext.response();
         response.putHeader("content-type", "application/json");
