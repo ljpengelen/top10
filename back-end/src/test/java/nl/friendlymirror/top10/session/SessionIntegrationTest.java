@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.net.*;
 import java.net.http.*;
 import java.security.GeneralSecurityException;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,13 @@ public class SessionIntegrationTest {
     @BeforeEach
     public void setCookieHandler() {
         CookieHandler.setDefault(new CookieManager());
+    }
+
+    @BeforeEach
+    public void cleanUp() throws SQLException {
+        var connection = DriverManager.getConnection(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword());
+        var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
+        statement.execute();
     }
 
     @BeforeEach
