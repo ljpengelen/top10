@@ -31,7 +31,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                                                         + "WHERE q.external_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
     private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET active = false WHERE creator_id = ? AND external_id = ?";
-    private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (quiz_id, account_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
+    private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (account_id, quiz_id) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?)) ON CONFLICT DO NOTHING";
 
     private final JsonObject jdbcOptions;
 
@@ -160,7 +160,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     private Future<Void> participateInQuiz(SQLConnection connection, Integer accountId, String externalId) {
         var promise = Promise.<Void> promise();
 
-        connection.updateWithParams(PARTICIPATE_IN_QUIZ_TEMPLATE, new JsonArray().add(externalId).add(accountId), asyncQuiz -> {
+        connection.updateWithParams(PARTICIPATE_IN_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncQuiz -> {
             if (asyncQuiz.failed()) {
                 var cause = asyncQuiz.cause();
                 log.error("Unable to execute query \"{}\"", PARTICIPATE_IN_QUIZ_TEMPLATE, cause);
