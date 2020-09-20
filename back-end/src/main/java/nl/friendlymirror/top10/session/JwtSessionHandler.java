@@ -33,8 +33,8 @@ public class JwtSessionHandler implements Handler<RoutingContext> {
             return;
         }
 
-        var userId = Integer.parseInt(claims.getBody().getSubject());
-        routingContext.setUser(User.create(new JsonObject().put("userId", userId)));
+        var accountId = Integer.parseInt(claims.getBody().getSubject());
+        routingContext.setUser(User.create(new JsonObject().put("accountId", accountId)));
 
         routingContext.next();
     }

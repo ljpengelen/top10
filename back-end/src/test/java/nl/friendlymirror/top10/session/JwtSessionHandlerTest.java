@@ -22,7 +22,7 @@ import nl.friendlymirror.top10.jwt.Jwt;
 
 class JwtSessionHandlerTest {
 
-    private static final int USER_ID = 1234;
+    private static final int ACCOUNT_ID = 1234;
 
     private static final String ENCODED_SECRET_KEY = "FsJtRGG84NM7BNewGo5AXvg6GJ1DKedDJjkirpDEAOtVgdi6j3f+THdeEika6v3dB8N4DO0fywkd+JK2A5eKLQ==";
     private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ENCODED_SECRET_KEY));
@@ -78,7 +78,7 @@ class JwtSessionHandlerTest {
     @Test
     public void acceptsRequestWithToken() {
         var token = Jwts.builder()
-                .setSubject(String.valueOf(USER_ID))
+                .setSubject(String.valueOf(ACCOUNT_ID))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
@@ -86,6 +86,6 @@ class JwtSessionHandlerTest {
 
         verifyNoInteractions(response);
 
-        verify(routingContext).setUser(User.create(new JsonObject().put("userId", USER_ID)));
+        verify(routingContext).setUser(User.create(new JsonObject().put("accountId", ACCOUNT_ID)));
     }
 }
