@@ -21,8 +21,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
-import nl.friendlymirror.top10.AbstractVerticleTest;
-import nl.friendlymirror.top10.RandomPort;
+import nl.friendlymirror.top10.*;
 import nl.friendlymirror.top10.http.BodyPublisher;
 import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
 
@@ -40,6 +39,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
     public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
+        ErrorHandlers.configure(router);
         server.requestHandler(router);
         vertx.deployVerticle(new LogInVerticle(googleIdTokenVerifier, router, SECRET_KEY), deploymentResult -> {
             if (deploymentResult.succeeded()) {
@@ -62,7 +62,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(400);
-        assertThat(response.body().getString("error")).isEqualTo("No credentials provided");
+        assertThat(response.body().getString("error")).isEqualTo("Request body is empty");
     }
 
     @Test
@@ -75,7 +75,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(400);
-        assertThat(response.body().getString("error")).isEqualTo("Unknown login type");
+        assertThat(response.body().getString("error")).isEqualTo("Invalid login type \"FACEBOOK\"");
     }
 
     @Test
@@ -92,7 +92,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(401);
-        assertThat(response.body().getString("error")).isEqualTo("Invalid credentials");
+        assertThat(response.body().getString("error")).isEqualTo("Unable to verify Google ID token \"unverifiableTokenString\"");
     }
 
     @Test
@@ -109,7 +109,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(401);
-        assertThat(response.body().getString("error")).isEqualTo("Invalid credentials");
+        assertThat(response.body().getString("error")).isEqualTo("Unable to verify Google ID token \"invalidTokenString\"");
     }
 
     @Test

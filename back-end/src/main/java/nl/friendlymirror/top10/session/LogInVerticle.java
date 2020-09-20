@@ -15,24 +15,19 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.*;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import nl.friendlymirror.top10.*;
 
 @Log4j2
 @RequiredArgsConstructor
 public class LogInVerticle extends AbstractVerticle {
-
-    private static final Buffer INVALID_CREDENTIALS_RESPONSE = new JsonObject()
-            .put("error", "Invalid credentials")
-            .toBuffer();
-    private static final Buffer INTERNAL_SERVER_ERROR_RESPONSE = new JsonObject()
-            .put("error", "Internal server error")
-            .toBuffer();
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final Router router;
@@ -49,35 +44,20 @@ public class LogInVerticle extends AbstractVerticle {
     private void handle(RoutingContext routingContext) {
         log.debug("Logging in");
 
-        var response = routingContext.response().putHeader("content-type", "application/json");
-
         var requestBody = getRequestBodyAsJson(routingContext);
         if (requestBody == null) {
-            log.debug("No request body provided");
-            badRequest(response, "No credentials provided");
-            return;
+            throw new ValidationException("Request body is empty");
         }
 
         var loginType = requestBody.getString("type");
         if (!"GOOGLE".equals(loginType)) {
-            log.debug("Invalid login type \"{}\"", loginType);
-            badRequest(response, "Unknown login type");
-            return;
+            throw new ValidationException(String.format("Invalid login type \"%s\"", loginType));
         }
 
         var googleUserData = getGoogleUserData(requestBody.getString("token"));
-        if (googleUserData == null) {
-            response.setStatusCode(401)
-                    .end(INVALID_CREDENTIALS_RESPONSE);
-            return;
-        }
-
         vertx.eventBus().request(GOOGLE_LOGIN_ADDRESS, googleUserData, reply -> {
             if (reply.failed()) {
-                log.error("Unable to retrieve account ID for Google ID \"{}\"", googleUserData.getString("id"), reply.cause());
-                response.setStatusCode(500)
-                        .end(INTERNAL_SERVER_ERROR_RESPONSE);
-                return;
+                throw new InternalServerErrorException(String.format("Unable to retrieve account ID for Google ID \"%s\"", googleUserData.getString("id")), reply.cause());
             }
 
             var accountId = (int) reply.result().body();
@@ -92,7 +72,9 @@ public class LogInVerticle extends AbstractVerticle {
                     .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
                     .setPath("/");
 
-            response.addCookie(cookie)
+            routingContext.response()
+                    .putHeader("content-type", "application/json")
+                    .addCookie(cookie)
                     .end(sessionCreated(jwt));
         });
     }
@@ -110,13 +92,12 @@ public class LogInVerticle extends AbstractVerticle {
                         .put("emailAddress", payload.getEmail())
                         .put("id", payload.getSubject());
             } else {
-                log.warn("Invalid Google ID token: \"{}\"", idTokenString);
+                throw new InvalidCredentialsException(String.format("Invalid Google ID token: \"%s\"", idTokenString));
             }
         } catch (Exception e) {
-            log.warn("Unable to verify Google ID token \"{}\"", idTokenString, e);
+            log.warn("Exception occurred while validating Google ID token", e);
+            throw new InvalidCredentialsException(String.format("Unable to verify Google ID token \"%s\"", idTokenString));
         }
-
-        return null;
     }
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {
@@ -126,13 +107,6 @@ public class LogInVerticle extends AbstractVerticle {
             log.warn("Unable to parse request body as JSON", e);
             return null;
         }
-    }
-
-    private void badRequest(HttpServerResponse response, String errorMessage) {
-        response.setStatusCode(400)
-                .end(new JsonObject()
-                        .put("error", errorMessage)
-                        .toBuffer());
     }
 
     private Buffer sessionCreated(String jwt) {
