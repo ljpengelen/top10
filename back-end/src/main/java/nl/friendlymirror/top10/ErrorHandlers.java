@@ -8,12 +8,11 @@ import lombok.extern.log4j.Log4j2;
 public class ErrorHandlers {
 
     public static void configure(Router router) {
-        router.errorHandler(404, routingContext -> {
-            routingContext.response()
-                    .putHeader("content-type", "application/json")
-                    .setStatusCode(404)
-                    .end(new JsonObject().put("error", "Resource not found").toBuffer());
-        });
+        router.errorHandler(404, routingContext ->
+                routingContext.response()
+                        .putHeader("content-type", "application/json")
+                        .setStatusCode(404)
+                        .end(new JsonObject().put("error", "Resource not found").toBuffer()));
 
         router.errorHandler(500, routingContext -> {
             var failure = routingContext.failure();
