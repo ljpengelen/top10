@@ -98,7 +98,7 @@ public class Application {
         log.info("Setting up router");
 
         var router = Router.router(vertx);
-        router.errorHandler(500, routingContext -> log.error("Something went wrong", routingContext.failure()));
+        ErrorHandlers.configure(router);
         router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
         var jwt = new Jwt(config.getJwtSecretKey());
         router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
