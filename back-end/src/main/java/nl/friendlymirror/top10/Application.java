@@ -1,6 +1,7 @@
 package nl.friendlymirror.top10;
 
 import java.util.Collections;
+import java.util.List;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -16,6 +17,8 @@ import nl.friendlymirror.top10.healthcheck.HealthCheckVerticle;
 import nl.friendlymirror.top10.heartbeat.HeartbeatVerticle;
 import nl.friendlymirror.top10.jwt.Jwt;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
+import nl.friendlymirror.top10.quiz.QuizEntityVerticle;
+import nl.friendlymirror.top10.quiz.QuizHttpVerticle;
 import nl.friendlymirror.top10.session.*;
 import nl.friendlymirror.top10.session.csrf.CsrfHeaderChecker;
 import nl.friendlymirror.top10.session.csrf.CsrfTokenHandler;
@@ -75,13 +78,14 @@ public class Application {
         deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
                 .onFailure(result::fail)
                 .onSuccess(migrationResult ->
-                        CompositeFuture.all(
+                        CompositeFuture.all(List.of(
                                 deploy(new HeartbeatVerticle()),
                                 deploy(new HealthCheckVerticle(router)),
                                 deploy(new GoogleAccountVerticle(config.getJdbcOptions())),
                                 deploy(new LogInVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
                                 deploy(new SessionStatusVerticle(jwt, router, config.getJwtSecretKey())),
-                                deploy(new EchoVerticle(router))).onComplete(ar -> {
+                                deploy(new QuizHttpVerticle(router)),
+                                deploy(new QuizEntityVerticle(config.getJdbcOptions())))).onComplete(ar -> {
                             if (ar.succeeded()) {
                                 result.complete();
                             } else {

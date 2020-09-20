@@ -57,7 +57,8 @@ public class LogInVerticle extends AbstractVerticle {
         var googleUserData = getGoogleUserData(requestBody.getString("token"));
         vertx.eventBus().request(GOOGLE_LOGIN_ADDRESS, googleUserData, reply -> {
             if (reply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to retrieve account ID for Google ID \"%s\"", googleUserData.getString("id")), reply.cause());
+                var errorMessage = String.format("Unable to retrieve account ID for Google ID \"%s\"", googleUserData.getString("id"));
+                routingContext.fail(new InternalServerErrorException(errorMessage, reply.cause()));
             }
 
             var accountId = (int) reply.result().body();

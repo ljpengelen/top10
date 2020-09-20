@@ -1,20 +1,19 @@
 package nl.friendlymirror.top10.account;
 
-import java.util.function.Function;
-
-import io.vertx.core.*;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import nl.friendlymirror.top10.entity.AbstractEntityVerticle;
 
 @Log4j2
 @RequiredArgsConstructor
-public class GoogleAccountVerticle extends AbstractVerticle {
+public class GoogleAccountVerticle extends AbstractEntityVerticle {
 
     public static final String GOOGLE_LOGIN_ADDRESS = "google.login.accountId";
 
@@ -25,13 +24,11 @@ public class GoogleAccountVerticle extends AbstractVerticle {
 
     private final JsonObject jdbcOptions;
 
-    private SQLClient jdbcClient;
-
     @Override
     public void start() {
         log.info("Starting");
 
-        jdbcClient = JDBCClient.createShared(vertx, jdbcOptions);
+        sqlClient = JDBCClient.createShared(vertx, jdbcOptions);
 
         vertx.eventBus().consumer(GOOGLE_LOGIN_ADDRESS, this::handle);
     }
@@ -75,64 +72,11 @@ public class GoogleAccountVerticle extends AbstractVerticle {
         });
     }
 
-    private <T> Future<T> withTransaction(Function<SQLConnection, Future<T>> query) {
-        var promise = Promise.<T> promise();
-
-        jdbcClient.getConnection(asyncConnection -> {
-            if (asyncConnection.failed()) {
-                var cause = asyncConnection.cause();
-                log.error("Unable to get connection", cause);
-                promise.fail(cause);
-                return;
-            }
-
-            var connection = asyncConnection.result();
-            connection.setAutoCommit(false, asyncAutoCommit -> {
-                if (asyncAutoCommit.failed()) {
-                    var cause = asyncAutoCommit.cause();
-                    log.error("Unable to disable auto commit", cause);
-                    connection.close();
-                    promise.fail(cause);
-                    return;
-                }
-
-                log.debug("Successfully disabled auto commit");
-                query.apply(connection).onSuccess(t -> connection.commit(asyncCommit -> {
-                    if (asyncCommit.failed()) {
-                        var cause = asyncCommit.cause();
-                        log.error("Unable to commit transaction", cause);
-                        connection.close();
-                        promise.fail(cause);
-                        return;
-                    }
-
-                    log.debug("Successfully committed transaction");
-                    connection.close();
-                    promise.complete(t);
-                })).onFailure(queryCause -> connection.rollback(asyncRollback -> {
-                    if (asyncRollback.failed()) {
-                        var cause = asyncRollback.cause();
-                        log.error("Unable to rollback transaction", cause);
-                        connection.close();
-                        promise.fail(cause);
-                        return;
-                    }
-
-                    log.debug("Successfully rolled back transaction");
-                    connection.close();
-                    promise.fail(queryCause);
-                }));
-            });
-        });
-
-        return promise.future();
-    }
-
     private Future<Integer> getAccountId(String googleId) {
         var promise = Promise.<Integer> promise();
 
         var params = new JsonArray().add(googleId);
-        jdbcClient.querySingleWithParams(GET_ACCOUNT_ID_TEMPLATE, params, asyncResult -> {
+        sqlClient.querySingleWithParams(GET_ACCOUNT_ID_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();
                 log.error("Unable to execute query \"{}\"", GET_ACCOUNT_ID_TEMPLATE, cause);
@@ -159,7 +103,7 @@ public class GoogleAccountVerticle extends AbstractVerticle {
         var promise = Promise.<Void> promise();
 
         var params = new JsonArray().add(accountId);
-        jdbcClient.querySingleWithParams(UPDATE_STATISTICS_TEMPLATE, params, asyncResult -> {
+        sqlClient.querySingleWithParams(UPDATE_STATISTICS_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();
                 log.error("Unable to execute query \"{}\"", UPDATE_STATISTICS_TEMPLATE, cause);

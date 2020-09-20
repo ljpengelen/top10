@@ -24,7 +24,7 @@ class ApplicationIntegrationTest {
 
     @Test
     public void starts(Vertx vertx, VertxTestContext vertxTestContext) {
-        vertxTestContext.verify(() -> assertThat(vertx.deploymentIDs()).hasSize(7));
+        vertxTestContext.verify(() -> assertThat(vertx.deploymentIDs()).hasSize(8));
         vertxTestContext.completeNow();
     }
 }

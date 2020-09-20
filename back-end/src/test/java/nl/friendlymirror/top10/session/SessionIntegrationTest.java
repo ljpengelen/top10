@@ -25,8 +25,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import nl.friendlymirror.top10.Application;
 import nl.friendlymirror.top10.config.TestConfig;
-import nl.friendlymirror.top10.http.BodyPublisher;
-import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
+import nl.friendlymirror.top10.http.*;
 
 @ExtendWith(VertxExtension.class)
 public class SessionIntegrationTest {
@@ -97,26 +96,24 @@ public class SessionIntegrationTest {
         var httpClient = HttpClient.newBuilder()
                 .cookieHandler(CookieHandler.getDefault())
                 .build();
-        var echoBody = new JsonObject()
-                .put("someKey", "someValue");
-        var echoRequest = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(echoBody))
+        var allQuizzesRequest = HttpRequest.newBuilder()
+                .GET()
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
                 .build();
-        var echoResponse = httpClient.send(echoRequest, new JsonObjectBodyHandler());
+        var allQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonObjectBodyHandler());
 
-        assertThat(echoResponse.statusCode()).isEqualTo(400);
-        assertThat(echoResponse.body().getString("error")).isEqualTo("Missing authorization header");
+        assertThat(allQuizzesResponse.statusCode()).isEqualTo(400);
+        assertThat(allQuizzesResponse.body().getString("error")).isEqualTo("Missing authorization header");
 
-        echoRequest = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(echoBody))
+        allQuizzesRequest = HttpRequest.newBuilder()
+                .GET()
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
                 .header("Authorization", "Bearer invalidAccessToken")
                 .build();
-        echoResponse = httpClient.send(echoRequest, new JsonObjectBodyHandler());
+        allQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonObjectBodyHandler());
 
-        assertThat(echoResponse.statusCode()).isEqualTo(401);
-        assertThat(echoResponse.body().getString("error")).isEqualTo("No session");
+        assertThat(allQuizzesResponse.statusCode()).isEqualTo(401);
+        assertThat(allQuizzesResponse.body().getString("error")).isEqualTo("No session");
 
         var getStatusRequest = HttpRequest.newBuilder()
                 .GET()
@@ -148,14 +145,13 @@ public class SessionIntegrationTest {
 
         assertThat(getStatusResponse.body().getString("status")).isEqualTo("VALID_SESSION");
 
-        echoRequest = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(echoBody))
-                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
+        allQuizzesRequest = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/quiz"))
                 .header("Authorization", "Bearer " + accessToken)
                 .build();
-        echoResponse = httpClient.send(echoRequest, new JsonObjectBodyHandler());
+        var successfulAllQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonArrayBodyHandler());
 
-        assertThat(echoResponse.statusCode()).isEqualTo(200);
-        assertThat(echoResponse.body()).isEqualTo(echoBody);
+        assertThat(successfulAllQuizzesResponse.statusCode()).isEqualTo(200);
     }
 }
