@@ -12,6 +12,27 @@ public abstract class AbstractEntityVerticle extends AbstractVerticle {
 
     protected SQLClient sqlClient;
 
+    protected <T> Future<T> withConnection(Function<SQLConnection, Future<T>> query) {
+        var promise = Promise.<T> promise();
+
+        sqlClient.getConnection(asyncConnection -> {
+            if (asyncConnection.failed()) {
+                var cause = asyncConnection.cause();
+                log.error("Unable to get connection", cause);
+                promise.fail(cause);
+                return;
+            }
+
+            var connection = asyncConnection.result();
+            query.apply(connection).onComplete(queryResult -> {
+                connection.close();
+                promise.handle(queryResult);
+            });
+        });
+
+        return promise.future();
+    }
+
     protected <T> Future<T> withTransaction(Function<SQLConnection, Future<T>> query) {
         var promise = Promise.<T> promise();
 

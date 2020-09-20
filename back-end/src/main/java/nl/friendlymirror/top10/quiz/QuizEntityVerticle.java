@@ -1,11 +1,15 @@
 package nl.friendlymirror.top10.quiz;
 
+import java.time.Instant;
 import java.util.stream.Collectors;
 
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.entity.AbstractEntityVerticle;
@@ -20,13 +24,13 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     public static final String COMPLETE_QUIZ_ADDRESS = "entity.quiz.complete";
     public static final String PARTICIPATE_IN_QUIZ_ADDRESS = "entity.quiz.participate";
 
-    private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline FROM quiz q "
+    private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
                                                            + "JOIN participant p ON q.creator_id = p.account_id "
                                                            + "WHERE p.account_id = ?";
-    private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline FROM quiz q "
-                                                        + "WHERE q.quiz_id = ?";
-    private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline) VALUES (?, true, ?, ?)";
-    private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET active = false WHERE creator_id = ? AND quiz_id = ?";
+    private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
+                                                        + "WHERE q.external_id = ?";
+    private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
+    private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET active = false WHERE creator_id = ? AND external_id = ?";
     private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (quiz_id, account_id) VALUES (?, ?) ON CONFLICT DO NOTHING";
 
     private final JsonObject jdbcOptions;
@@ -44,38 +48,129 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         vertx.eventBus().consumer(PARTICIPATE_IN_QUIZ_ADDRESS, this::handleParticipate);
     }
 
-    private void handleGetAll(Message<Integer> accountIdMessage) {
-        var accountId = accountIdMessage.body();
+    private void handleGetAll(Message<Integer> getAllQuizzesRequest) {
+        var accountId = getAllQuizzesRequest.body();
         sqlClient.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(accountId), asyncQuizzes -> {
             if (asyncQuizzes.failed()) {
                 log.error("Unable to retrieve all quizzes for account ID \"{}\"", accountId, asyncQuizzes.cause());
-                accountIdMessage.fail(500, "Unable to retrieve all quizzes");
+                getAllQuizzesRequest.fail(500, "Unable to retrieve all quizzes");
                 return;
             }
 
             var quizzes = asyncQuizzes.result().getResults().stream()
-                    .map(array ->
-                            new JsonObject()
-                                    .put("id", array.getInteger(0))
-                                    .put("name", array.getString(1))
-                                    .put("isActive", array.getBoolean(2))
-                                    .put("creatorId", array.getInteger(3))
-                                    .put("deadline", array.getInstant(4)))
+                    .map(this::toJsonObject)
                     .collect(Collectors.toList());
 
-            accountIdMessage.reply(new JsonArray(quizzes));
+            getAllQuizzesRequest.reply(new JsonArray(quizzes));
         });
     }
 
-    private void handleGetOne(Message<Integer> quizId) {
+    private JsonObject toJsonObject(JsonArray array) {
+        return new JsonObject()
+                .put("id", array.getInteger(0))
+                .put("name", array.getString(1))
+                .put("isActive", array.getBoolean(2))
+                .put("creatorId", array.getInteger(3))
+                .put("deadline", array.getInstant(4))
+                .put("externalId", array.getString(5));
+    }
+
+    private void handleGetOne(Message<String> getOneQuizRequest) {
+        var externalId = getOneQuizRequest.body();
+        sqlClient.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(externalId), asyncQuiz -> {
+            if (asyncQuiz.failed()) {
+                log.error("Unable to retrieve quiz with external ID \"{}\"", externalId, asyncQuiz.cause());
+                getOneQuizRequest.fail(500, "Unable to retrieve quiz");
+                return;
+            }
+
+            getOneQuizRequest.reply(toJsonObject(asyncQuiz.result()));
+        });
     }
 
     private void handleCreate(Message<JsonObject> createRequest) {
+        var body = createRequest.body();
+        var accountId = body.getInteger("accountId");
+        var name = body.getString("name");
+        var deadline = body.getInstant("deadline");
+        var externalId = body.getString("externalId");
+
+        withTransaction(connection ->
+                createQuiz(connection, name, accountId, deadline, externalId)
+                        .compose(quizId -> participateInQuiz(connection, accountId, externalId))
+        ).onSuccess(nothing -> {
+            log.debug("Created quiz");
+            createRequest.reply(null);
+        }).onFailure(cause -> {
+            var errorMessage = "Unable to create quiz";
+            log.error(errorMessage, cause);
+            createRequest.fail(500, errorMessage);
+        });
+    }
+
+    private Future<Integer> createQuiz(SQLConnection connection, String name, Integer creatorId, Instant deadline, String externalId) {
+        var promise = Promise.<Integer> promise();
+
+        var params = new JsonArray().add(name).add(creatorId).add(deadline).add(externalId);
+        connection.updateWithParams(CREATE_QUIZ_TEMPLATE, params, asyncResult -> {
+            if (asyncResult.failed()) {
+                var cause = asyncResult.cause();
+                log.error("Unable to execute query \"{}\"", CREATE_QUIZ_TEMPLATE, cause);
+                promise.fail(cause);
+                return;
+            }
+
+            var accountId = asyncResult.result().getKeys().getInteger(0);
+            log.debug("Query \"{}\" produced result \"{}\"", CREATE_QUIZ_TEMPLATE, accountId);
+            promise.complete(accountId);
+        });
+
+        return promise.future();
     }
 
     private void handleComplete(Message<JsonObject> completeRequest) {
+        var body = completeRequest.body();
+        var accountId = body.getInteger("accountId");
+        var externalId = body.getString("externalId");
+
+        sqlClient.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncQuiz -> {
+            if (asyncQuiz.failed()) {
+                log.error("Unable to let account \"{}\" complete quiz with external ID \"{}\"", accountId, externalId, asyncQuiz.cause());
+                completeRequest.fail(500, "Unable to let account complete quiz");
+                return;
+            }
+
+            completeRequest.reply(null);
+        });
     }
 
     private void handleParticipate(Message<JsonObject> participateRequest) {
+        var body = participateRequest.body();
+        var accountId = body.getInteger("accountId");
+        var externalId = body.getString("externalId");
+
+        withConnection(connection -> participateInQuiz(connection, accountId, externalId))
+                .onSuccess(nothing -> participateRequest.reply(null))
+                .onFailure(throwable -> {
+                    log.error("Unable to let account \"{}\" participate in quiz with external ID \"{}\"", accountId, externalId, throwable);
+                    participateRequest.fail(500, "Unable to let account participate in quiz");
+                });
+    }
+
+    private Future<Void> participateInQuiz(SQLConnection connection, Integer accountId, String externalId) {
+        var promise = Promise.<Void> promise();
+
+        connection.updateWithParams(PARTICIPATE_IN_QUIZ_TEMPLATE, new JsonArray().add(externalId).add(accountId), asyncQuiz -> {
+            if (asyncQuiz.failed()) {
+                var cause = asyncQuiz.cause();
+                log.error("Unable to execute query \"{}\"", PARTICIPATE_IN_QUIZ_TEMPLATE, cause);
+                promise.fail(cause);
+                return;
+            }
+
+            promise.complete();
+        });
+
+        return promise.future();
     }
 }

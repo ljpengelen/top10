@@ -3,6 +3,7 @@ package nl.friendlymirror.top10.quiz;
 import static nl.friendlymirror.top10.quiz.QuizEntityVerticle.*;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.math3.random.RandomDataGenerator;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpMethod;
@@ -20,6 +21,8 @@ import nl.friendlymirror.top10.ValidationException;
 @RequiredArgsConstructor
 public class QuizHttpVerticle extends AbstractVerticle {
 
+    private final RandomDataGenerator randomDataGenerator = new RandomDataGenerator();
+
     private final Router router;
 
     @Override
@@ -32,11 +35,11 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .handler(BodyHandler.create())
                 .handler(this::handleCreate);
 
-        router.route(HttpMethod.GET, "/private/quiz/:quizId").handler(this::handleGetOne);
+        router.route(HttpMethod.GET, "/private/quiz/:externalId").handler(this::handleGetOne);
 
-        router.route(HttpMethod.POST, "/private/quiz/:quizId/complete").handler(this::handleComplete);
+        router.route(HttpMethod.POST, "/private/quiz/:externalId/complete").handler(this::handleComplete);
 
-        router.route(HttpMethod.POST, "/private/quiz/:quizId/participate").handler(this::handleParticipate);
+        router.route(HttpMethod.POST, "/private/quiz/:externalId/participate").handler(this::handleParticipate);
     }
 
     private void handleGetAll(RoutingContext routingContext) {
@@ -68,12 +71,11 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 throw new InternalServerErrorException(String.format("Unable to create quiz \"%s\"", createRequest), createQuizReply.cause());
             }
 
-            var quiz = (JsonObject) createQuizReply.result();
-            log.debug("Created quiz \"{}\"", quiz);
+            log.debug("Created quiz");
 
             routingContext.response()
-                    .putHeader("content-type", "application/json")
-                    .end(quiz.toBuffer());
+                    .setStatusCode(201)
+                    .end();
         });
     }
 
@@ -96,6 +98,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
         return new JsonObject()
                 .put("accountId", accountId)
                 .put("deadline", deadline)
+                .put("externalId", randomDataGenerator.nextSecureHexString(32))
                 .put("name", name);
     }
 
@@ -109,13 +112,13 @@ public class QuizHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetOne(RoutingContext routingContext) {
-        var quizId = routingContext.request().getParam("quizId");
+        var externalId = routingContext.request().getParam("externalId");
 
-        log.debug(String.format("Get quiz \"%s\"", quizId));
+        log.debug(String.format("Get quiz \"%s\"", externalId));
 
-        vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, quizId, quizReply -> {
+        vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, externalId, quizReply -> {
             if (quizReply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to get quiz \"%s\"", quizId), quizReply.cause());
+                throw new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause());
             }
 
             var quiz = (JsonObject) quizReply.result();
@@ -128,48 +131,45 @@ public class QuizHttpVerticle extends AbstractVerticle {
     }
 
     private void handleComplete(RoutingContext routingContext) {
-        var quizId = routingContext.request().getParam("quizId");
+        var externalId = routingContext.request().getParam("externalId");
 
-        log.debug(String.format("Complete quiz \"%s\"", quizId));
+        log.debug(String.format("Complete quiz with external ID \"%s\"", externalId));
 
         var accountId = routingContext.user().principal().getInteger("accountId");
         var completeRequest = new JsonObject()
                 .put("accountId", accountId)
-                .put("quizId", quizId);
-        vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, quizId, completeQuizReply -> {
+                .put("externalId", externalId);
+        vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, externalId, completeQuizReply -> {
             if (completeQuizReply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to complete quiz \"%s\"", completeRequest), completeQuizReply.cause());
+                throw new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause());
             }
 
-            log.debug("completed quiz \"{}\"", quizId);
+            log.debug("Completed quiz with external ID \"{}\"", externalId);
 
             routingContext.response()
                     .setStatusCode(201)
-                    .putHeader("content-type", "application/json")
                     .end();
         });
     }
 
     private void handleParticipate(RoutingContext routingContext) {
-        var quizId = routingContext.request().getParam("quizId");
+        var externalId = routingContext.request().getParam("externalId");
 
-        log.debug("Participate in quiz \"{}\"", quizId);
+        log.debug("Participate in quiz with external ID \"{}\"", externalId);
 
         var accountId = routingContext.user().principal().getInteger("accountId");
         var participateRequest = new JsonObject()
                 .put("accountId", accountId)
-                .put("quizId", quizId);
+                .put("externalId", externalId);
         vertx.eventBus().request(PARTICIPATE_IN_QUIZ_ADDRESS, participateRequest, participateReply -> {
             if (participateReply.failed()) {
                 throw new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause());
             }
 
-            var quiz = (JsonObject) participateReply.result();
-            log.debug("Participating in quiz \"{}\"", quiz);
+            log.debug("Participating in quiz with external ID\"{}\"", externalId);
 
             routingContext.response()
                     .setStatusCode(201)
-                    .putHeader("content-type", "application/json")
                     .end();
         });
     }
