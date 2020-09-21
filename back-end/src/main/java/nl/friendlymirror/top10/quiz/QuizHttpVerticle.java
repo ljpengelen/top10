@@ -69,7 +69,8 @@ public class QuizHttpVerticle extends AbstractVerticle {
         var createRequest = toCreateRequest(accountId, routingContext);
         vertx.eventBus().request(CREATE_QUIZ_ADDRESS, createRequest, createQuizReply -> {
             if (createQuizReply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to create quiz \"%s\"", createRequest), createQuizReply.cause());
+                routingContext.fail(new InternalServerErrorException(String.format("Unable to create quiz \"%s\"", createRequest), createQuizReply.cause()));
+                return;
             }
 
             log.debug("Created quiz");
@@ -128,7 +129,8 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, externalId, quizReply -> {
             if (quizReply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause());
+                routingContext.fail(new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause()));
+                return;
             }
 
             var quiz = (JsonObject) quizReply.result().body();
@@ -151,7 +153,8 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, completeRequest, completeQuizReply -> {
             if (completeQuizReply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause());
+                routingContext.fail(new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause()));
+                return;
             }
 
             var didComplete = (Boolean) completeQuizReply.result().body();
@@ -179,7 +182,8 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(PARTICIPATE_IN_QUIZ_ADDRESS, participateRequest, participateReply -> {
             if (participateReply.failed()) {
-                throw new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause());
+                routingContext.fail(new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause()));
+                return;
             }
 
             log.debug("Participating in quiz with external ID \"{}\"", externalId);
