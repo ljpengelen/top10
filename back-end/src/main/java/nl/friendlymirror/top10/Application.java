@@ -72,7 +72,7 @@ public class Application {
         return deploy(verticle, new DeploymentOptions());
     }
 
-    private void deployVerticles(GoogleIdTokenVerifier googleIdTokenVerifier, Jwt jwt, Promise<Void> result, Router router) {
+    private void deployVerticles(Jwt jwt, Promise<Void> result, Router router) {
         log.info("Deploying verticles");
 
         deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
@@ -116,7 +116,7 @@ public class Application {
         server.listen(port, ar -> {
             if (ar.succeeded()) {
                 log.info("Listening for HTTP requests on port {}", port);
-                deployVerticles(googleIdTokenVerifier, jwt, result, router);
+                deployVerticles(jwt, result, router);
             } else {
                 log.error("Failed to listen for HTTP requests on port {}", port, ar.cause());
                 result.fail(ar.cause());
