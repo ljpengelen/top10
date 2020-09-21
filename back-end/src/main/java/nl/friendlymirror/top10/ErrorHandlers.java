@@ -29,6 +29,9 @@ public class ErrorHandlers {
             } else if (failure instanceof ValidationException) {
                 message = failure.getMessage();
                 statusCode = 400;
+            } else if (failure instanceof ForbiddenException) {
+                message = failure.getMessage();
+                statusCode = 403;
             } else {
                 log.error(message, failure);
             }

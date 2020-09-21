@@ -2,6 +2,8 @@ package nl.friendlymirror.top10.quiz;
 
 import static nl.friendlymirror.top10.quiz.QuizEntityVerticle.*;
 
+import java.time.Instant;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.random.RandomDataGenerator;
 
@@ -14,8 +16,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import nl.friendlymirror.top10.InternalServerErrorException;
-import nl.friendlymirror.top10.ValidationException;
+import nl.friendlymirror.top10.*;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -37,9 +38,9 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         router.route(HttpMethod.GET, "/private/quiz/:externalId").handler(this::handleGetOne);
 
-        router.route(HttpMethod.POST, "/private/quiz/:externalId/complete").handler(this::handleComplete);
+        router.route(HttpMethod.PUT, "/private/quiz/:externalId/complete").handler(this::handleComplete);
 
-        router.route(HttpMethod.POST, "/private/quiz/:externalId/participate").handler(this::handleParticipate);
+        router.route(HttpMethod.PUT, "/private/quiz/:externalId/participate").handler(this::handleParticipate);
     }
 
     private void handleGetAll(RoutingContext routingContext) {
@@ -85,7 +86,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
             throw new ValidationException("Request body is empty");
         }
 
-        var deadline = request.getInstant("deadline");
+        var deadline = getInstant(request, "deadline");
         if (deadline == null) {
             throw new ValidationException("Deadline is missing");
         }
@@ -96,10 +97,19 @@ public class QuizHttpVerticle extends AbstractVerticle {
         }
 
         return new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("deadline", deadline)
                 .put("externalId", randomDataGenerator.nextSecureHexString(32))
                 .put("name", name);
+    }
+
+    private Instant getInstant(JsonObject request, String key) {
+        try {
+            return request.getInstant(key);
+        } catch (Exception e) {
+            log.debug("Unable to parse \"{}\" as instant", request.getString(key), e);
+            throw new ValidationException(String.format("Invalid instant provided for property \"%s\"", key));
+        }
     }
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {
@@ -121,7 +131,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 throw new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause());
             }
 
-            var quiz = (JsonObject) quizReply.result();
+            var quiz = (JsonObject) quizReply.result().body();
             log.debug("Retrieved quiz \"{}\"", quiz);
 
             routingContext.response()
@@ -139,9 +149,15 @@ public class QuizHttpVerticle extends AbstractVerticle {
         var completeRequest = new JsonObject()
                 .put("accountId", accountId)
                 .put("externalId", externalId);
-        vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, externalId, completeQuizReply -> {
+        vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, completeRequest, completeQuizReply -> {
             if (completeQuizReply.failed()) {
                 throw new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause());
+            }
+
+            var didComplete = (Boolean) completeQuizReply.result().body();
+            if (didComplete == false) {
+                routingContext.fail(new ForbiddenException(String.format("Account \"%s\" is not allowed to complete quiz \"%s\"", accountId, externalId)));
+                return;
             }
 
             log.debug("Completed quiz with external ID \"{}\"", externalId);
@@ -166,7 +182,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 throw new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause());
             }
 
-            log.debug("Participating in quiz with external ID\"{}\"", externalId);
+            log.debug("Participating in quiz with external ID \"{}\"", externalId);
 
             routingContext.response()
                     .setStatusCode(201)

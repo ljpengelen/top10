@@ -76,7 +76,7 @@ class QuizEntityVerticleTest {
     @Test
     public void createsQuiz(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);
@@ -89,7 +89,7 @@ class QuizEntityVerticleTest {
     @Test
     public void returnsSingleQuiz(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);
@@ -112,7 +112,7 @@ class QuizEntityVerticleTest {
     @Test
     public void returnsQuizzesForAccount(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);
@@ -138,7 +138,7 @@ class QuizEntityVerticleTest {
     @Test
     public void completesQuizAsCreator(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);
@@ -168,7 +168,7 @@ class QuizEntityVerticleTest {
     @Test
     public void doesNotCompleteQuizAsNonCreator(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);
@@ -199,7 +199,7 @@ class QuizEntityVerticleTest {
     @Test
     public void letsAccountsParticipateInQuiz(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
-                .put("accountId", accountId)
+                .put("creatorId", accountId)
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);

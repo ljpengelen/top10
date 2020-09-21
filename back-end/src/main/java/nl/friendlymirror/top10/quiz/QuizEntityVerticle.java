@@ -94,14 +94,14 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleCreate(Message<JsonObject> createRequest) {
         var body = createRequest.body();
-        var accountId = body.getInteger("accountId");
+        var creatorId = body.getInteger("creatorId");
         var name = body.getString("name");
         var deadline = body.getInstant("deadline");
         var externalId = body.getString("externalId");
 
         withTransaction(connection ->
-                createQuiz(connection, name, accountId, deadline, externalId)
-                        .compose(quizId -> participateInQuiz(connection, accountId, externalId))
+                createQuiz(connection, name, creatorId, deadline, externalId)
+                        .compose(quizId -> participateInQuiz(connection, creatorId, externalId))
         ).onSuccess(nothing -> {
             log.debug("Created quiz");
             createRequest.reply(null);
@@ -124,9 +124,9 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 return;
             }
 
-            var accountId = asyncResult.result().getKeys().getInteger(0);
-            log.debug("Query \"{}\" produced result \"{}\"", CREATE_QUIZ_TEMPLATE, accountId);
-            promise.complete(accountId);
+            var quizId = asyncResult.result().getKeys().getInteger(0);
+            log.debug("Query \"{}\" produced result \"{}\"", CREATE_QUIZ_TEMPLATE, quizId);
+            promise.complete(quizId);
         });
 
         return promise.future();
