@@ -25,12 +25,12 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     public static final String PARTICIPATE_IN_QUIZ_ADDRESS = "entity.quiz.participate";
 
     private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
-                                                           + "JOIN participant p ON q.creator_id = p.account_id "
+                                                           + "NATURAL JOIN participant p "
                                                            + "WHERE p.account_id = ?";
     private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
                                                         + "WHERE q.external_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
-    private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET active = false WHERE creator_id = ? AND external_id = ?";
+    private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET is_active = false WHERE creator_id = ? AND external_id = ?";
     private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (account_id, quiz_id) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?)) ON CONFLICT DO NOTHING";
 
     private final JsonObject jdbcOptions;
@@ -56,6 +56,8 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 getAllQuizzesRequest.fail(500, "Unable to retrieve all quizzes");
                 return;
             }
+
+            log.debug("Retrieved all quizzes for account");
 
             var quizzes = asyncQuizzes.result().getResults().stream()
                     .map(this::toJsonObject)
@@ -83,6 +85,8 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 getOneQuizRequest.fail(500, "Unable to retrieve quiz");
                 return;
             }
+
+            log.debug("Retrieved quiz by external ID");
 
             getOneQuizRequest.reply(toJsonObject(asyncQuiz.result()));
         });
@@ -133,14 +137,21 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
         var externalId = body.getString("externalId");
 
-        sqlClient.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncQuiz -> {
-            if (asyncQuiz.failed()) {
-                log.error("Unable to let account \"{}\" complete quiz with external ID \"{}\"", accountId, externalId, asyncQuiz.cause());
+        sqlClient.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncComplete -> {
+            if (asyncComplete.failed()) {
+                log.error("Unable to let account \"{}\" complete quiz with external ID \"{}\"", accountId, externalId, asyncComplete.cause());
                 completeRequest.fail(500, "Unable to let account complete quiz");
                 return;
             }
 
-            completeRequest.reply(null);
+            var numberOfAffectedRows = asyncComplete.result().getUpdated();
+            if (numberOfAffectedRows > 0) {
+                log.debug("Completed quiz by external ID");
+            } else {
+                log.debug("Account is not authorized to complete quiz by external ID");
+            }
+
+            completeRequest.reply(numberOfAffectedRows > 0);
         });
     }
 
@@ -150,25 +161,31 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
 
         withConnection(connection -> participateInQuiz(connection, accountId, externalId))
-                .onSuccess(nothing -> participateRequest.reply(null))
+                .onSuccess(nothing -> {
+                    log.debug("Let account participate in quiz");
+                    participateRequest.reply(null);
+                })
                 .onFailure(throwable -> {
                     log.error("Unable to let account \"{}\" participate in quiz with external ID \"{}\"", accountId, externalId, throwable);
                     participateRequest.fail(500, "Unable to let account participate in quiz");
                 });
     }
 
-    private Future<Void> participateInQuiz(SQLConnection connection, Integer accountId, String externalId) {
-        var promise = Promise.<Void> promise();
+    private Future<Boolean> participateInQuiz(SQLConnection connection, Integer accountId, String externalId) {
+        var promise = Promise.<Boolean> promise();
 
-        connection.updateWithParams(PARTICIPATE_IN_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncQuiz -> {
-            if (asyncQuiz.failed()) {
-                var cause = asyncQuiz.cause();
+        connection.updateWithParams(PARTICIPATE_IN_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncUpdate -> {
+            if (asyncUpdate.failed()) {
+                var cause = asyncUpdate.cause();
                 log.error("Unable to execute query \"{}\"", PARTICIPATE_IN_QUIZ_TEMPLATE, cause);
                 promise.fail(cause);
                 return;
             }
 
-            promise.complete();
+            var numberOfAffectedRows = asyncUpdate.result().getUpdated();
+            log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, PARTICIPATE_IN_QUIZ_TEMPLATE);
+
+            promise.complete(numberOfAffectedRows > 0);
         });
 
         return promise.future();
