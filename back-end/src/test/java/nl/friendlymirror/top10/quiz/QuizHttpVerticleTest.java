@@ -237,4 +237,24 @@ class QuizHttpVerticleTest {
         assertThat(response.statusCode()).isEqualTo(201);
         vertxTestContext.completeNow();
     }
+
+    @Test
+    public void returnsParticipants(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var participants = new JsonArray().add(1).add(2);
+        vertx.eventBus().consumer("entity.quiz.participants", request -> {
+            vertxTestContext.verify(() -> assertThat(request.body()).isEqualTo(EXTERNAL_ID));
+            request.reply(participants);
+        });
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID + "/participants"))
+                .build();
+        var response = httpClient.send(request, new JsonArrayBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isEqualTo(participants);
+        vertxTestContext.completeNow();
+    }
 }

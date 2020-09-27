@@ -37,6 +37,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .handler(this::handleCreate);
 
         router.route(HttpMethod.GET, "/private/quiz/:externalId").handler(this::handleGetOne);
+        router.route(HttpMethod.GET, "/private/quiz/:externalId/participants").handler(this::handleGetParticipants);
 
         router.route(HttpMethod.PUT, "/private/quiz/:externalId/complete").handler(this::handleComplete);
 
@@ -139,6 +140,26 @@ public class QuizHttpVerticle extends AbstractVerticle {
             routingContext.response()
                     .putHeader("content-type", "application/json")
                     .end(quiz.toBuffer());
+        });
+    }
+
+    private void handleGetParticipants(RoutingContext routingContext) {
+        var externalId = routingContext.request().getParam("externalId");
+
+        log.debug("Get participants for quiz \"{}\"", externalId);
+
+        vertx.eventBus().request(GET_PARTICIPANTS_ADDRESS, externalId, participantsReply -> {
+            if (participantsReply.failed()) {
+                routingContext.fail(new InternalServerErrorException(String.format("Unable to get participants for quiz \"%s\"", externalId), participantsReply.cause()));
+                return;
+            }
+
+            var participants = (JsonArray) participantsReply.result().body();
+            log.debug("Retrieved {} participants", participants.size());
+
+            routingContext.response()
+                    .putHeader("content-type", "application/json")
+                    .end(participants.toBuffer());
         });
     }
 
