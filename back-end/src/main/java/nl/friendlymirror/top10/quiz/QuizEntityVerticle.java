@@ -23,6 +23,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     public static final String CREATE_QUIZ_ADDRESS = "entity.quiz.create";
     public static final String COMPLETE_QUIZ_ADDRESS = "entity.quiz.complete";
     public static final String PARTICIPATE_IN_QUIZ_ADDRESS = "entity.quiz.participate";
+    public static final String GET_PARTICIPANTS_ADDRESS = "entity.quiz.participants";
 
     private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
                                                            + "NATURAL JOIN participant p "
@@ -32,6 +33,10 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
     private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET is_active = false WHERE creator_id = ? AND external_id = ?";
     private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (account_id, quiz_id) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?)) ON CONFLICT DO NOTHING";
+    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.account_id, a.name FROM account a "
+                                                            + "NATURAL JOIN participant p "
+                                                            + "JOIN quiz q ON p.quiz_id = q.quiz_id "
+                                                            + "WHERE q.external_id = ?";
 
     private final JsonObject jdbcOptions;
 
@@ -46,6 +51,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         vertx.eventBus().consumer(CREATE_QUIZ_ADDRESS, this::handleCreate);
         vertx.eventBus().consumer(COMPLETE_QUIZ_ADDRESS, this::handleComplete);
         vertx.eventBus().consumer(PARTICIPATE_IN_QUIZ_ADDRESS, this::handleParticipate);
+        vertx.eventBus().consumer(GET_PARTICIPANTS_ADDRESS, this::handleGetAllParticipants);
     }
 
     private void handleGetAll(Message<Integer> getAllQuizzesRequest) {
@@ -60,14 +66,14 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
             log.debug("Retrieved all quizzes for account");
 
             var quizzes = asyncQuizzes.result().getResults().stream()
-                    .map(this::toJsonObject)
+                    .map(this::quizArrayToJsonObject)
                     .collect(Collectors.toList());
 
             getAllQuizzesRequest.reply(new JsonArray(quizzes));
         });
     }
 
-    private JsonObject toJsonObject(JsonArray array) {
+    private JsonObject quizArrayToJsonObject(JsonArray array) {
         return new JsonObject()
                 .put("id", array.getInteger(0))
                 .put("name", array.getString(1))
@@ -88,7 +94,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
             log.debug("Retrieved quiz by external ID");
 
-            getOneQuizRequest.reply(toJsonObject(asyncQuiz.result()));
+            getOneQuizRequest.reply(quizArrayToJsonObject(asyncQuiz.result()));
         });
     }
 
@@ -189,5 +195,30 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         });
 
         return promise.future();
+    }
+
+    private void handleGetAllParticipants(Message<String> getAllParticipantsRequest) {
+        var externalId = getAllParticipantsRequest.body();
+        sqlClient.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(externalId), asyncParticipants -> {
+            if (asyncParticipants.failed()) {
+                log.error("Unable to retrieve all participants for external ID \"{}\"", externalId, asyncParticipants.cause());
+                getAllParticipantsRequest.fail(500, "Unable to retrieve all participants");
+                return;
+            }
+
+            log.debug("Retrieved all participants for quiz");
+
+            var quizzes = asyncParticipants.result().getResults().stream()
+                    .map(this::participantArrayToJsonObject)
+                    .collect(Collectors.toList());
+
+            getAllParticipantsRequest.reply(new JsonArray(quizzes));
+        });
+    }
+
+    private JsonObject participantArrayToJsonObject(JsonArray array) {
+        return new JsonObject()
+                .put("id", array.getInteger(0))
+                .put("name", array.getString(1));
     }
 }

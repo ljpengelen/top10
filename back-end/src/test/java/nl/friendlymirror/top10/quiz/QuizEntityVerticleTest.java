@@ -27,6 +27,8 @@ class QuizEntityVerticleTest {
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant DEADLINE = Instant.now();
     private static final String EXTERNAL_ID = "abcdefg";
+    private static final String NAME = "John Doe";
+    private static final String ALTERNATIVE_NAME = "Jane Doe";
 
     private int accountId;
     private int alternativeAccountId;
@@ -52,14 +54,14 @@ class QuizEntityVerticleTest {
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
-        statement = connection.prepareStatement("INSERT INTO account (name) VALUES ('John Doe')", Statement.RETURN_GENERATED_KEYS);
+        statement = connection.prepareStatement("INSERT INTO account (name) VALUES ('" + NAME + "')", Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         var generatedKeys = statement.getGeneratedKeys();
         generatedKeys.next();
         accountId = generatedKeys.getInt(1);
 
-        statement = connection.prepareStatement("INSERT INTO account (name) VALUES ('Jane Doe')", Statement.RETURN_GENERATED_KEYS);
+        statement = connection.prepareStatement("INSERT INTO account (name) VALUES ('" + ALTERNATIVE_NAME + "')", Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         generatedKeys = statement.getGeneratedKeys();
@@ -104,6 +106,28 @@ class QuizEntityVerticleTest {
                         assertThat(quiz.getBoolean("isActive")).isTrue();
                         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
                         assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID);
+                    });
+                    vertxTestContext.completeNow();
+                }));
+    }
+
+    @Test
+    public void returnsParticipants(VertxTestContext vertxTestContext) {
+        var createRequest = new JsonObject()
+                .put("creatorId", accountId)
+                .put("name", QUIZ_NAME)
+                .put("deadline", DEADLINE)
+                .put("externalId", EXTERNAL_ID);
+        eventBus.request(CREATE_QUIZ_ADDRESS, createRequest, asyncCreate ->
+                eventBus.request(GET_PARTICIPANTS_ADDRESS, EXTERNAL_ID, asyncParticipants -> {
+                    vertxTestContext.verify(() -> {
+                        assertThat(asyncParticipants.succeeded()).isTrue();
+
+                        var participants = (JsonArray) asyncParticipants.result().body();
+                        assertThat(participants).hasSize(1);
+                        var participant = participants.getJsonObject(0);
+                        assertThat(participant.getInteger("id")).isEqualTo(accountId);
+                        assertThat(participant.getString("name")).isEqualTo(NAME);
                     });
                     vertxTestContext.completeNow();
                 }));
