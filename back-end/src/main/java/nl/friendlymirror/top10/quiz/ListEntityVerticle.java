@@ -29,7 +29,10 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                                      + "WHERE l.account_id = ?";
     private static final String GET_ONE_LIST_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, l.has_draft_status FROM video v "
                                                         + "NATURAL JOIN list l "
-                                                        + "WHERE l.list_id = ?";
+                                                        + "WHERE l.list_id = ? AND EXISTS "
+                                                        + "(SELECT list_id FROM list l "
+                                                        + "JOIN participant p ON l.quiz_id = p.quiz_id"
+                                                        + "WHERE list_id = ? AND p.account_id = ?)";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video SET (list_id, url) VALUES (?, ?) "
                                                      + "WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND has_draft_status)";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ? and account_id = ?";
@@ -99,9 +102,12 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         });
     }
 
-    private void handleGetOne(Message<String> getOneListRequest) {
-        var listId = getOneListRequest.body();
-        sqlClient.querySingleWithParams(GET_ONE_LIST_TEMPLATE, new JsonArray().add(listId), asyncList -> {
+    private void handleGetOne(Message<JsonObject> getOneListRequest) {
+        var body = getOneListRequest.body();
+        var listId = body.getInteger("listId");
+        var accountId = body.getInteger("accountId");
+        var getListRequest = new JsonArray().add(listId).add(listId).add(accountId);
+        sqlClient.querySingleWithParams(GET_ONE_LIST_TEMPLATE, getListRequest, asyncList -> {
             if (asyncList.failed()) {
                 log.error("Unable to retrieve list with ID \"{}\"", listId, asyncList.cause());
                 getOneListRequest.fail(500, "Unable to retrieve list");
