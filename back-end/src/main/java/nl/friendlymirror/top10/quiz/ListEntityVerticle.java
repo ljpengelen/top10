@@ -31,8 +31,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                         + "NATURAL JOIN list l "
                                                         + "WHERE l.list_id = ?";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video SET (list_id, url) VALUES (?, ?) "
-                                                     + "WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND NOT has_draft_status)";
-    private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status=false WHERE list_id = ? and account_id = ?";
+                                                     + "WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND has_draft_status)";
+    private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ? and account_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
                                                        + "ON CONFLICT DO "
                                                        + "UPDATE SET (assignee_id) = (EXCLUDED.assignee_id)";
