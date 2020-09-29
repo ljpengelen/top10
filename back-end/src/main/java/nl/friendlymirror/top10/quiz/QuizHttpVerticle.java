@@ -124,7 +124,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetOne(RoutingContext routingContext) {
-        var externalId = routingContext.request().getParam("externalId");
+        var externalId = routingContext.pathParam("externalId");
 
         log.debug(String.format("Get quiz \"%s\"", externalId));
 
@@ -144,7 +144,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetParticipants(RoutingContext routingContext) {
-        var externalId = routingContext.request().getParam("externalId");
+        var externalId = routingContext.pathParam("externalId");
 
         log.debug("Get participants for quiz \"{}\"", externalId);
 
@@ -164,7 +164,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
     }
 
     private void handleComplete(RoutingContext routingContext) {
-        var externalId = routingContext.request().getParam("externalId");
+        var externalId = routingContext.pathParam("externalId");
 
         log.debug(String.format("Complete quiz with external ID \"%s\"", externalId));
 
@@ -193,7 +193,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
     }
 
     private void handleParticipate(RoutingContext routingContext) {
-        var externalId = routingContext.request().getParam("externalId");
+        var externalId = routingContext.pathParam("externalId");
 
         log.debug("Participate in quiz with external ID \"{}\"", externalId);
 
