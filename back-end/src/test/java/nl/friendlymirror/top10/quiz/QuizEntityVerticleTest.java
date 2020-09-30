@@ -43,14 +43,18 @@ class QuizEntityVerticleTest {
 
     @BeforeEach
     public void cleanUp() throws SQLException {
-        var connection = DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
+        var connection = getConnection();
         var statement = connection.prepareStatement("TRUNCATE TABLE quiz CASCADE");
         statement.execute();
     }
 
+    private Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
+    }
+
     @BeforeEach
     public void setUpAccounts() throws SQLException {
-        var connection = DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
+        var connection = getConnection();
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
@@ -83,7 +87,44 @@ class QuizEntityVerticleTest {
                 .put("deadline", DEADLINE)
                 .put("externalId", EXTERNAL_ID);
         eventBus.request(CREATE_QUIZ_ADDRESS, createRequest, asyncResult -> {
-            vertxTestContext.verify(() -> assertThat(asyncResult.succeeded()).isTrue());
+            vertxTestContext.verify(() -> {
+                assertThat(asyncResult.succeeded()).isTrue();
+
+                var connection = getConnection();
+                var statement = connection.prepareStatement("SELECT quiz_id, name, is_active, creator_id, deadline FROM quiz WHERE external_id = ?");
+                statement.setString(1, EXTERNAL_ID);
+                statement.execute();
+                var resultSet = statement.getResultSet();
+
+                assertThat(resultSet.next()).isTrue();
+                assertThat(resultSet.getString(2)).isEqualTo(QUIZ_NAME);
+                assertThat(resultSet.getBoolean(3)).isTrue();
+                assertThat(resultSet.getInt(4)).isEqualTo(accountId);
+                assertThat(resultSet.getTimestamp(5)).isEqualTo(Timestamp.from(DEADLINE));
+
+                var quizId = resultSet.getInt(1);
+
+                statement = connection.prepareStatement("SELECT quiz_id, account_id FROM participant WHERE quiz_id = ? AND account_id = ?");
+                statement.setInt(1, quizId);
+                statement.setInt(2, accountId);
+                statement.execute();
+                resultSet = statement.getResultSet();
+
+                assertThat(resultSet.next()).isTrue();
+                assertThat(resultSet.getInt(1)).isEqualTo(quizId);
+                assertThat(resultSet.getInt(2)).isEqualTo(accountId);
+
+                statement = connection.prepareStatement("SELECT account_id, quiz_id, has_draft_status FROM list WHERE quiz_id = ? AND account_id = ?");
+                statement.setInt(1, quizId);
+                statement.setInt(2, accountId);
+                statement.execute();
+                resultSet = statement.getResultSet();
+
+                assertThat(resultSet.next()).isTrue();
+                assertThat(resultSet.getInt(1)).isEqualTo(accountId);
+                assertThat(resultSet.getInt(2)).isEqualTo(quizId);
+                assertThat(resultSet.getBoolean(3)).isTrue();
+            });
             vertxTestContext.completeNow();
         });
     }
