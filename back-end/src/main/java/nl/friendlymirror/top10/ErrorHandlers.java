@@ -32,6 +32,9 @@ public class ErrorHandlers {
             } else if (failure instanceof ForbiddenException) {
                 message = failure.getMessage();
                 statusCode = 403;
+            } else if (failure instanceof NotFoundException) {
+                message = failure.getMessage();
+                statusCode = 404;
             } else {
                 log.error(message, failure);
             }

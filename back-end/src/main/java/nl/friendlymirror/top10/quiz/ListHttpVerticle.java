@@ -157,6 +157,11 @@ public class ListHttpVerticle extends AbstractVerticle {
             }
 
             var list = (JsonObject) listReply.result().body();
+            if (list == null) {
+                routingContext.fail(new NotFoundException(String.format("List with ID \"%d\" could not be found", listId)));
+                return;
+            }
+
             log.debug("Retrieved list \"{}\"", list);
 
             routingContext.response()

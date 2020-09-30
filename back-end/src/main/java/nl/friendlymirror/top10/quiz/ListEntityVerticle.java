@@ -30,11 +30,11 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT v.video_id, l.list_id, v.url, l.has_draft_status FROM video v "
                                                                      + "NATURAL RIGHT JOIN list l "
                                                                      + "WHERE l.account_id = ?";
-    private static final String GET_ONE_LIST_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, l.has_draft_status FROM video v "
-                                                        + "NATURAL JOIN list l "
+    private static final String GET_ONE_LIST_TEMPLATE = "SELECT v.video_id, l.list_id, v.url, l.has_draft_status FROM video v "
+                                                        + "NATURAL RIGHT JOIN list l "
                                                         + "WHERE l.list_id = ? AND EXISTS "
                                                         + "(SELECT list_id FROM list l "
-                                                        + "JOIN participant p ON l.quiz_id = p.quiz_id"
+                                                        + "JOIN participant p ON l.quiz_id = p.quiz_id "
                                                         + "WHERE list_id = ? AND p.account_id = ?)";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) "
                                                      + "SELECT ?, ? WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND has_draft_status)";
@@ -104,12 +104,26 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         return new JsonArray(lists);
     }
 
-    private JsonObject listArrayToJsonObject(JsonArray array) {
+    private JsonObject listRowsToJsonObject(List<JsonArray> listRows) {
+        if (listRows.isEmpty()) {
+            return null;
+        }
+
+        var firstVideo = listRows.get(0);
+        var listId = firstVideo.getInteger(1);
+        var hasDraftStatus = firstVideo.getBoolean(3);
+
+        var videos = listRows.stream()
+                .filter(video -> video.getInteger(0) != null)
+                .map(video -> new JsonObject()
+                        .put("videoId", video.getInteger(0))
+                        .put("url", video.getString(2)))
+                .collect(Collectors.toList());
+
         return new JsonObject()
-                .put("videoId", array.getInteger(0))
-                .put("listId", array.getInteger(1))
-                .put("url", array.getString(2))
-                .put("hasDraftStatus", array.getBoolean(3));
+                .put("listId", listId)
+                .put("hasDraftStatus", hasDraftStatus)
+                .put("videos", new JsonArray(videos));
     }
 
     private void handleGetAllForAccount(Message<Integer> getAllListsForAccountRequest) {
@@ -132,7 +146,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getInteger("listId");
         var accountId = body.getInteger("accountId");
         var getListRequest = new JsonArray().add(listId).add(listId).add(accountId);
-        sqlClient.querySingleWithParams(GET_ONE_LIST_TEMPLATE, getListRequest, asyncList -> {
+        sqlClient.queryWithParams(GET_ONE_LIST_TEMPLATE, getListRequest, asyncList -> {
             if (asyncList.failed()) {
                 log.error("Unable to retrieve list with ID \"{}\"", listId, asyncList.cause());
                 getOneListRequest.fail(500, "Unable to retrieve list");
@@ -141,7 +155,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
             log.debug("Retrieved list");
 
-            getOneListRequest.reply(listArrayToJsonObject(asyncList.result()));
+            getOneListRequest.reply(listRowsToJsonObject(asyncList.result().getResults()));
         });
     }
 

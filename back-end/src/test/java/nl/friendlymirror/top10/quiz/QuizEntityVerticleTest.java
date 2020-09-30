@@ -44,7 +44,13 @@ class QuizEntityVerticleTest {
     }
 
     @BeforeEach
-    public void cleanUp() throws SQLException {
+    public void setUp(Vertx vertx, VertxTestContext vertxTestContext) throws SQLException {
+        cleanUp();
+        setUpAccounts();
+        deployVerticle(vertx, vertxTestContext);
+    }
+
+    private void cleanUp() throws SQLException {
         var connection = getConnection();
         var statement = connection.prepareStatement("TRUNCATE TABLE quiz CASCADE");
         statement.execute();
@@ -54,8 +60,7 @@ class QuizEntityVerticleTest {
         return DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
     }
 
-    @BeforeEach
-    public void setUpAccounts() throws SQLException {
+    private void setUpAccounts() throws SQLException {
         var connection = getConnection();
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
@@ -78,8 +83,7 @@ class QuizEntityVerticleTest {
         alternativeAccountId = generatedKeys.getInt(1);
     }
 
-    @BeforeEach
-    public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
+    private void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         eventBus = vertx.eventBus();
         vertx.deployVerticle(new QuizEntityVerticle(TEST_CONFIG.getJdbcOptions()), vertxTestContext.completing());
     }
