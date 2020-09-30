@@ -27,7 +27,7 @@ public class ListHttpVerticle extends AbstractVerticle {
         log.info("Starting");
 
         router.route(HttpMethod.GET, "/private/quiz/:externalId/list").handler(this::handleGetAllForQuiz);
-        router.route(HttpMethod.GET, "/private/account/:accountId/list").handler(this::handleGetAllForAccount);
+        router.route(HttpMethod.GET, "/private/list").handler(this::handleGetAllForAccount);
 
         router.route(HttpMethod.GET, "/private/list/:listId").handler(this::handleGetOne);
 
@@ -63,14 +63,9 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetAllForAccount(RoutingContext routingContext) {
-        var accountId = toInteger(routingContext.pathParam("accountId"));
+        var accountId = routingContext.user().principal().getInteger("accountId");
 
         log.debug("Get all lists for account \"{}\"", accountId);
-
-        var loggedInAccountId = routingContext.user().principal().getInteger("accountId");
-        if (!accountId.equals(loggedInAccountId)) {
-            throw new ForbiddenException(String.format("Account \"%s\" is not allowed to access lists of account \"%s\"", loggedInAccountId, accountId));
-        }
 
         vertx.eventBus().request(GET_ALL_LISTS_FOR_ACCOUNT_ADDRESS, accountId, allListsReply -> {
             if (allListsReply.failed()) {
@@ -92,7 +87,7 @@ public class ListHttpVerticle extends AbstractVerticle {
             return Integer.parseInt(string);
         } catch (NumberFormatException e) {
             log.debug("\"{}\" is not an integer", string, e);
-            throw new ValidationException(String.format("\"\" is not an integer", string));
+            throw new ValidationException(String.format("\"%s\" is not an integer", string));
         }
     }
 

@@ -1,5 +1,7 @@
 package nl.friendlymirror.top10.quiz;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import io.vertx.core.eventbus.Message;
@@ -25,8 +27,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                                   + "NATURAL JOIN list l "
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                                   + "WHERE q.external_id = ? AND NOT l.has_draft_status";
-    private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, l.has_draft_status FROM video v "
-                                                                     + "NATURAL JOIN list l "
+    private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT v.video_id, l.list_id, v.url, l.has_draft_status FROM video v "
+                                                                     + "NATURAL RIGHT JOIN list l "
                                                                      + "WHERE l.account_id = ?";
     private static final String GET_ONE_LIST_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, l.has_draft_status FROM video v "
                                                         + "NATURAL JOIN list l "
@@ -68,12 +70,38 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
             log.debug("Retrieved all lists for quiz");
 
-            var lists = asyncLists.result().getResults().stream()
-                    .map(this::listArrayToJsonObject)
-                    .collect(Collectors.toList());
-
-            getAllListsRequest.reply(new JsonArray(lists));
+            getAllListsRequest.reply(listsRowsToJsonArray(asyncLists.result().getResults()));
         });
+    }
+
+    private JsonArray listsRowsToJsonArray(List<JsonArray> listsRows) {
+        var videoMap = new HashMap<Integer, JsonArray>();
+        var hasDraftStatusMap = new HashMap<Integer, Boolean>();
+        listsRows.forEach(listRow -> {
+            videoMap.put(listRow.getInteger(1), new JsonArray());
+            hasDraftStatusMap.put(listRow.getInteger(1), listRow.getBoolean(3));
+        });
+
+        listsRows.forEach(listRow -> {
+            var videoId = listRow.getInteger(0);
+            if (videoId != null) {
+                var video = new JsonObject()
+                        .put("videoId", videoId)
+                        .put("url", listRow.getString(2));
+                videoMap.get(listRow.getInteger(1)).add(video);
+            }
+        });
+
+        var lists = videoMap.entrySet().stream()
+                .map(entry -> {
+                    var listId = entry.getKey();
+                    return new JsonObject()
+                            .put("listId", listId)
+                            .put("hasDraftStatus", hasDraftStatusMap.get(listId))
+                            .put("videos", entry.getValue());
+                }).collect(Collectors.toList());
+
+        return new JsonArray(lists);
     }
 
     private JsonObject listArrayToJsonObject(JsonArray array) {
@@ -95,11 +123,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
             log.debug("Retrieved all lists for account");
 
-            var lists = asyncLists.result().getResults().stream()
-                    .map(this::listArrayToJsonObject)
-                    .collect(Collectors.toList());
-
-            getAllListsForAccountRequest.reply(new JsonArray(lists));
+            getAllListsForAccountRequest.reply(listsRowsToJsonArray(asyncLists.result().getResults()));
         });
     }
 

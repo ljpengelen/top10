@@ -166,11 +166,14 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         assertThat(listResponse.body()).isNotNull();
         assertThat(listResponse.body()).hasSize(1);
-        var video = listResponse.body().getJsonObject(0);
+        var list = listResponse.body().getJsonObject(0);
+        assertThat(list.getInteger("listId")).isEqualTo(listId);
+        assertThat(list.getBoolean("hasDraftStatus")).isFalse();
+        var videos = list.getJsonArray("videos");
+        assertThat(videos).hasSize(1);
+        var video = videos.getJsonObject(0);
         assertThat(video.getInteger("videoId")).isNotNull();
-        assertThat(video.getInteger("listId")).isEqualTo(listId);
         assertThat(video.getString("url")).isEqualTo(URL);
-        assertThat(video.getBoolean("hasDraftStatus")).isFalse();
 
         vertxTestContext.completeNow();
     }
@@ -180,12 +183,16 @@ class ListVerticlesIntegrationTest {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID + "/list"))
+                .uri(URI.create("http://localhost:" + port + "/private/list"))
                 .build();
         var response = httpClient.send(request, new JsonArrayBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).isEqualTo(new JsonArray());
+        assertThat(response.body()).hasSize(1);
+        var list = response.body().getJsonObject(0);
+        assertThat(list.getInteger("listId")).isEqualTo(listId);
+        assertThat(list.getBoolean("hasDraftStatus")).isTrue();
+        assertThat(list.getJsonArray("videos")).isEmpty();
         vertxTestContext.completeNow();
     }
 }
