@@ -27,8 +27,10 @@ class QuizEntityVerticleTest {
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant DEADLINE = Instant.now();
     private static final String EXTERNAL_ID = "abcdefg";
-    private static final String NAME = "John Doe";
-    private static final String ALTERNATIVE_NAME = "Jane Doe";
+    private static final String USERNAME = "John Doe";
+    private static final String ALTERNATIVE_USERNAME = "Jane Doe";
+    private static final String EMAIL_ADDRESS = "john.doe@example.com";
+    private static final String ALTERNATIVE_EMAIL_ADDRESS = "jane.doe@example.org";
 
     private int accountId;
     private int alternativeAccountId;
@@ -58,14 +60,17 @@ class QuizEntityVerticleTest {
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
-        statement = connection.prepareStatement("INSERT INTO account (name) VALUES ('" + NAME + "')", Statement.RETURN_GENERATED_KEYS);
+        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at) VALUES ('%s', '%s', NOW(), NOW())";
+        var query = String.format(accountQueryTemplate, USERNAME, EMAIL_ADDRESS);
+        statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         var generatedKeys = statement.getGeneratedKeys();
         generatedKeys.next();
         accountId = generatedKeys.getInt(1);
 
-        statement = connection.prepareStatement("INSERT INTO account (name) VALUES ('" + ALTERNATIVE_NAME + "')", Statement.RETURN_GENERATED_KEYS);
+        query = String.format(accountQueryTemplate, ALTERNATIVE_USERNAME, ALTERNATIVE_EMAIL_ADDRESS);
+        statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         generatedKeys = statement.getGeneratedKeys();
@@ -91,7 +96,7 @@ class QuizEntityVerticleTest {
                 assertThat(asyncResult.succeeded()).isTrue();
 
                 var connection = getConnection();
-                var statement = connection.prepareStatement("SELECT quiz_id, name, is_active, creator_id, deadline FROM quiz WHERE external_id = ?");
+                var statement = connection.prepareStatement("SELECT quiz_id, name, is_active, creator_id, deadline, external_id FROM quiz WHERE external_id = ?");
                 statement.setString(1, EXTERNAL_ID);
                 statement.execute();
                 var resultSet = statement.getResultSet();
@@ -101,6 +106,7 @@ class QuizEntityVerticleTest {
                 assertThat(resultSet.getBoolean(3)).isTrue();
                 assertThat(resultSet.getInt(4)).isEqualTo(accountId);
                 assertThat(resultSet.getTimestamp(5)).isEqualTo(Timestamp.from(DEADLINE));
+                assertThat(resultSet.getString(6)).isEqualTo(EXTERNAL_ID);
 
                 var quizId = resultSet.getInt(1);
 
@@ -168,7 +174,7 @@ class QuizEntityVerticleTest {
                         assertThat(participants).hasSize(1);
                         var participant = participants.getJsonObject(0);
                         assertThat(participant.getInteger("id")).isEqualTo(accountId);
-                        assertThat(participant.getString("name")).isEqualTo(NAME);
+                        assertThat(participant.getString("name")).isEqualTo(USERNAME);
                     });
                     vertxTestContext.completeNow();
                 }));
