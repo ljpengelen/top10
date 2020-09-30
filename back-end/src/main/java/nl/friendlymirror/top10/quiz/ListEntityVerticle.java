@@ -37,7 +37,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                         + "JOIN participant p ON l.quiz_id = p.quiz_id "
                                                         + "WHERE list_id = ? AND p.account_id = ?)";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) "
-                                                     + "SELECT ?, ? WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND has_draft_status)";
+                                                     + "SELECT ?, ? WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND list_id = ? AND has_draft_status)";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ? and account_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
                                                        + "ON CONFLICT DO "
@@ -165,7 +165,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var url = body.getString("url");
         var accountId = body.getInteger("accountId");
 
-        var addVideoParameters = new JsonArray().add(listId).add(url).add(accountId);
+        var addVideoParameters = new JsonArray().add(listId).add(url).add(accountId).add(listId);
         sqlClient.updateWithParams(ADD_VIDEO_TEMPLATE, addVideoParameters, asyncAddVideo -> {
             if (asyncAddVideo.failed()) {
                 log.error("Unable to add video: \"{}\"", addVideoRequest, asyncAddVideo.cause());
@@ -173,9 +173,14 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                 return;
             }
 
-            log.debug("Added video");
+            var numberOfAffectedRows = asyncAddVideo.result().getUpdated();
+            if (numberOfAffectedRows > 0) {
+                log.debug("Added video");
+            } else {
+                log.debug("Unable to add video");
+            }
 
-            addVideoRequest.reply(null);
+            addVideoRequest.reply(numberOfAffectedRows > 0);
         });
     }
 
@@ -195,7 +200,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
             if (numberOfAffectedRows > 0) {
                 log.debug("Finalized list");
             } else {
-                log.debug("Account is not authorized to finalize list");
+                log.debug("Unable to finalize list");
             }
 
             finalizeListRequest.reply(numberOfAffectedRows > 0);
@@ -216,7 +221,12 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                 return;
             }
 
-            log.debug("Assigned list");
+            var numberOfAffectedRows = asyncAssignment.result().getUpdated();
+            if (numberOfAffectedRows > 0) {
+                log.debug("Assigned list");
+            } else {
+                log.debug("Unable to assign list");
+            }
 
             assignListRequest.reply(null);
         });

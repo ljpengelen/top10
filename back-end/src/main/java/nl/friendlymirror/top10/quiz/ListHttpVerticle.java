@@ -95,10 +95,17 @@ public class ListHttpVerticle extends AbstractVerticle {
         log.debug("Add video");
 
         var accountId = routingContext.user().principal().getInteger("accountId");
-        var addRequest = toAddRequest(accountId, routingContext);
+        var listId = toInteger(routingContext.pathParam("listId"));
+        var addRequest = toAddRequest(accountId, listId, routingContext);
         vertx.eventBus().request(ADD_VIDEO_ADDRESS, addRequest, addVideoReply -> {
             if (addVideoReply.failed()) {
                 routingContext.fail(new InternalServerErrorException(String.format("Unable to add video \"%s\"", addRequest), addVideoReply.cause()));
+                return;
+            }
+
+            var didAdd = (Boolean) addVideoReply.result().body();
+            if (didAdd == false) {
+                routingContext.fail(new ForbiddenException(String.format("Account \"%d\" is not allowed to add videos to list \"%d\"", accountId, listId)));
                 return;
             }
 
@@ -112,7 +119,7 @@ public class ListHttpVerticle extends AbstractVerticle {
         });
     }
 
-    private JsonObject toAddRequest(Integer accountId, RoutingContext routingContext) {
+    private JsonObject toAddRequest(Integer accountId, Integer listId, RoutingContext routingContext) {
         var request = getRequestBodyAsJson(routingContext);
         if (request == null) {
             throw new ValidationException("Request body is empty");
@@ -122,8 +129,6 @@ public class ListHttpVerticle extends AbstractVerticle {
         if (StringUtils.isBlank(url)) {
             throw new ValidationException("URL is blank");
         }
-
-        var listId = toInteger(routingContext.pathParam("listId"));
 
         return new JsonObject()
                 .put("accountId", accountId)
@@ -187,7 +192,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
             var didFinalize = (Boolean) finalizeListReply.result().body();
             if (didFinalize == false) {
-                routingContext.fail(new ForbiddenException(String.format("Account \"%s\" is not allowed to finalize list \"%s\"", accountId, listId)));
+                routingContext.fail(new ForbiddenException(String.format("Account \"%d\" is not allowed to finalize list \"%d\"", accountId, listId)));
                 return;
             }
 

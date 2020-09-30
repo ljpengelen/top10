@@ -43,7 +43,8 @@ class ListVerticlesIntegrationTest {
     private static final Instant DEADLINE = Instant.now();
     private static final String EXTERNAL_ID_1 = "abcdefg";
     private static final String EXTERNAL_ID_2 = "pqrstuvw";
-    private static final String URL = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
+    private static final String URL_1 = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
+    private static final String URL_2 = "https://www.youtube.com/watch?v=FAkj8KiHxjg";
 
     private final int port = RandomPort.get();
 
@@ -173,7 +174,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.body()).isEqualTo(new JsonArray());
 
         request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL)))
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
                 .build();
         var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
@@ -204,7 +205,7 @@ class ListVerticlesIntegrationTest {
         assertThat(videos).hasSize(1);
         var video = videos.getJsonObject(0);
         assertThat(video.getInteger("videoId")).isNotNull();
-        assertThat(video.getString("url")).isEqualTo(URL);
+        assertThat(video.getString("url")).isEqualTo(URL_1);
 
         vertxTestContext.completeNow();
     }
@@ -273,6 +274,102 @@ class ListVerticlesIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(404);
         var body = response.body();
         assertThat(body.getString("error")).isEqualTo(String.format("List with ID \"%d\" could not be found", listId3));
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void addsVideoToOwnList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
+                .build();
+        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+
+        request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_2)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
+                .build();
+        addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1))
+                .build();
+        var listResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(listResponse.statusCode()).isEqualTo(200);
+        var list = listResponse.body();
+        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        var videos = list.getJsonArray("videos");
+        assertThat(videos).hasSize(2);
+        var video = videos.getJsonObject(0);
+        assertThat(video.getInteger("videoId")).isNotNull();
+        assertThat(video.getString("url")).isEqualTo(URL_1);
+        video = videos.getJsonObject(1);
+        assertThat(video.getInteger("videoId")).isNotNull();
+        assertThat(video.getString("url")).isEqualTo(URL_2);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotAddVideoToListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId3 + "/video"))
+                .build();
+        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(403);
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" is not allowed to add videos to list \"%d\"", accountId1, listId3));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void finalizesListForOwnAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/finalize"))
+                .build();
+        var finalizeResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(finalizeResponse.statusCode()).isEqualTo(201);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1))
+                .build();
+        var listResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(listResponse.statusCode()).isEqualTo(200);
+        var list = listResponse.body();
+        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getJsonArray("videos")).isEmpty();
+        assertThat(list.getBoolean("hasDraftStatus")).isFalse();
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotFinalizeListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId3 + "/finalize"))
+                .build();
+        var finalizeResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(finalizeResponse.statusCode()).isEqualTo(403);
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" is not allowed to finalize list \"%d\"", accountId1, listId3));
+
         vertxTestContext.completeNow();
     }
 }
