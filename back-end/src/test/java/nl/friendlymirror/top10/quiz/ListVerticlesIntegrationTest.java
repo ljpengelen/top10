@@ -245,6 +245,23 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
+    public void returnsSingleListForSameQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        var body = response.body();
+        assertThat(body.getInteger("listId")).isEqualTo(listId2);
+        assertThat(body.getBoolean("hasDraftStatus")).isTrue();
+        assertThat(body.getJsonArray("videos")).isEmpty();
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void doesNotReturnListForOtherQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
