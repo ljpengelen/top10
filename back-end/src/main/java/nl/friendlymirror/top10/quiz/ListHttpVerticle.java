@@ -31,7 +31,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         router.route(HttpMethod.GET, "/private/list/:listId").handler(this::handleGetOne);
 
-        router.route(HttpMethod.POST, "/private/list/:listId")
+        router.route(HttpMethod.POST, "/private/list/:listId/video")
                 .handler(BodyHandler.create())
                 .handler(this::handleAddVideo);
 

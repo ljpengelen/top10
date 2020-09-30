@@ -34,8 +34,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                         + "(SELECT list_id FROM list l "
                                                         + "JOIN participant p ON l.quiz_id = p.quiz_id"
                                                         + "WHERE list_id = ? AND p.account_id = ?)";
-    private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video SET (list_id, url) VALUES (?, ?) "
-                                                     + "WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND has_draft_status)";
+    private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) "
+                                                     + "SELECT ?, ? WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND has_draft_status)";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ? and account_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
                                                        + "ON CONFLICT DO "
@@ -144,7 +144,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
     private void handleFinalizeList(Message<JsonObject> finalizeListRequest) {
         var body = finalizeListRequest.body();
         var accountId = body.getInteger("accountId");
-        var listId = body.getString("listId");
+        var listId = body.getInteger("listId");
 
         sqlClient.updateWithParams(FINALIZE_LIST_TEMPLATE, new JsonArray().add(listId).add(accountId), asyncFinalize -> {
             if (asyncFinalize.failed()) {
