@@ -23,7 +23,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, l.has_draft_status FROM video v "
                                                                   + "NATURAL JOIN list l "
-                                                                  + "WHERE l.quiz_id = ? AND NOT l.has_draft_status";
+                                                                  + "JOIN quiz q ON l.quiz_id = q.quiz_id "
+                                                                  + "WHERE q.external_id = ? AND NOT l.has_draft_status";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, l.has_draft_status FROM video v "
                                                                      + "NATURAL JOIN list l "
                                                                      + "WHERE l.account_id = ?";
