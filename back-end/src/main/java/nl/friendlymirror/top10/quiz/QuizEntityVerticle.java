@@ -11,6 +11,8 @@ import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import nl.friendlymirror.top10.ForbiddenException;
+import nl.friendlymirror.top10.NotFoundException;
 import nl.friendlymirror.top10.entity.AbstractEntityVerticle;
 
 @Log4j2
@@ -46,12 +48,13 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
         sqlClient = JDBCClient.createShared(vertx, jdbcOptions);
 
-        vertx.eventBus().consumer(GET_ALL_QUIZZES_ADDRESS, this::handleGetAll);
-        vertx.eventBus().consumer(GET_ONE_QUIZ_ADDRESS, this::handleGetOne);
-        vertx.eventBus().consumer(CREATE_QUIZ_ADDRESS, this::handleCreate);
-        vertx.eventBus().consumer(COMPLETE_QUIZ_ADDRESS, this::handleComplete);
-        vertx.eventBus().consumer(PARTICIPATE_IN_QUIZ_ADDRESS, this::handleParticipate);
-        vertx.eventBus().consumer(GET_PARTICIPANTS_ADDRESS, this::handleGetAllParticipants);
+        var eventBus = vertx.eventBus();
+        eventBus.consumer(GET_ALL_QUIZZES_ADDRESS, this::handleGetAll);
+        eventBus.consumer(GET_ONE_QUIZ_ADDRESS, this::handleGetOne);
+        eventBus.consumer(CREATE_QUIZ_ADDRESS, this::handleCreate);
+        eventBus.consumer(COMPLETE_QUIZ_ADDRESS, this::handleComplete);
+        eventBus.consumer(PARTICIPATE_IN_QUIZ_ADDRESS, this::handleParticipate);
+        eventBus.consumer(GET_PARTICIPANTS_ADDRESS, this::handleGetAllParticipants);
     }
 
     private void handleGetAll(Message<Integer> getAllQuizzesRequest) {
@@ -85,17 +88,39 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetOne(Message<String> getOneQuizRequest) {
         var externalId = getOneQuizRequest.body();
-        sqlClient.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(externalId), asyncQuiz -> {
+        withConnection(connection -> getQuiz(connection, externalId))
+                .onSuccess(getOneQuizRequest::reply)
+                .onFailure(cause -> {
+                    if (cause instanceof NotFoundException) {
+                        getOneQuizRequest.fail(404, cause.getMessage());
+                    } else {
+                        getOneQuizRequest.fail(500, String.format("Unable to retrieve quiz with external ID \"%s\"", externalId));
+                    }
+                });
+    }
+
+    private Future<JsonObject> getQuiz(SQLConnection connection, String externalId) {
+        var promise = Promise.<JsonObject> promise();
+
+        connection.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(externalId), asyncQuiz -> {
             if (asyncQuiz.failed()) {
-                log.error("Unable to retrieve quiz with external ID \"{}\"", externalId, asyncQuiz.cause());
-                getOneQuizRequest.fail(500, "Unable to retrieve quiz");
+                var cause = asyncQuiz.cause();
+                log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_ONE_QUIZ_TEMPLATE, externalId, cause);
+                promise.fail(cause);
                 return;
             }
 
-            log.debug("Retrieved quiz by external ID");
-
-            getOneQuizRequest.reply(quizArrayToJsonObject(asyncQuiz.result()));
+            if (asyncQuiz.result() == null) {
+                log.debug("Quiz with external ID \"{}\" not found", externalId);
+                promise.fail(new NotFoundException(String.format("Quiz with external ID \"%s\" not found", externalId)));
+            } else {
+                var quiz = quizArrayToJsonObject(asyncQuiz.result());
+                log.debug("Retrieved quiz by external ID \"{}\": \"{}\"", externalId, quiz);
+                promise.complete(quiz);
+            }
         });
+
+        return promise.future();
     }
 
     private void handleCreate(Message<JsonObject> createRequest) {
@@ -106,11 +131,10 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
 
         withTransaction(connection ->
-                createQuiz(connection, name, creatorId, deadline, externalId)
-                        .compose(quizId ->
-                                CompositeFuture.all(
-                                        participateInQuiz(connection, creatorId, externalId),
-                                        createList(connection, creatorId, externalId)))
+                createQuiz(connection, name, creatorId, deadline, externalId).compose(quizId ->
+                        CompositeFuture.all(
+                                participateInQuiz(connection, creatorId, externalId),
+                                createList(connection, creatorId, externalId)))
         ).onSuccess(nothing -> {
             log.debug("Created quiz");
             createRequest.reply(null);
@@ -146,21 +170,26 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
         var externalId = body.getString("externalId");
 
-        sqlClient.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncComplete -> {
-            if (asyncComplete.failed()) {
-                log.error("Unable to let account \"{}\" complete quiz with external ID \"{}\"", accountId, externalId, asyncComplete.cause());
-                completeRequest.fail(500, "Unable to let account complete quiz");
-                return;
-            }
-
-            var numberOfAffectedRows = asyncComplete.result().getUpdated();
-            if (numberOfAffectedRows > 0) {
-                log.debug("Completed quiz by external ID");
+        withTransaction(connection -> getQuiz(connection, externalId).compose(quiz -> {
+            if (accountId.equals(quiz.getInteger("creatorId"))) {
+                log.debug("Account \"{}\" is creator of quiz with external ID \"{}\"", accountId, externalId);
+                return completeQuiz(connection, accountId, externalId);
             } else {
-                log.debug("Account is not authorized to complete quiz by external ID");
+                log.debug("Account \"{}\" is not creator of quiz with external ID \"{}\"", accountId, externalId);
+                return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" is not allowed to close quiz with external ID \"%s\"", accountId, externalId)));
             }
-
-            completeRequest.reply(numberOfAffectedRows > 0);
+        })).onSuccess(nothing -> {
+            log.debug("Successfully completed quiz");
+            completeRequest.reply(null);
+        }).onFailure(cause -> {
+            if (cause instanceof NotFoundException) {
+                completeRequest.fail(404, cause.getMessage());
+            } else if (cause instanceof ForbiddenException) {
+                completeRequest.fail(403, cause.getMessage());
+            } else {
+                log.error("Unable to let account \"{}\" complete quiz with external ID \"{}\"", accountId, externalId, cause);
+                completeRequest.fail(500, "Unable to let account participate in quiz");
+            }
         });
     }
 
@@ -170,17 +199,42 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
 
         withTransaction(connection ->
-                CompositeFuture.all(
-                        participateInQuiz(connection, accountId, externalId),
-                        createList(connection, accountId, externalId)))
+                getQuiz(connection, externalId).compose(quiz ->
+                        CompositeFuture.all(
+                                participateInQuiz(connection, accountId, externalId),
+                                createList(connection, accountId, externalId))))
                 .onSuccess(nothing -> {
-                    log.debug("Let account participate in quiz");
+                    log.debug("Successfully let account participate in quiz");
                     participateRequest.reply(null);
                 })
-                .onFailure(throwable -> {
-                    log.error("Unable to let account \"{}\" participate in quiz with external ID \"{}\"", accountId, externalId, throwable);
-                    participateRequest.fail(500, "Unable to let account participate in quiz");
+                .onFailure(cause -> {
+                    if (cause instanceof NotFoundException) {
+                        participateRequest.fail(404, cause.getMessage());
+                    } else {
+                        log.error("Unable to let account \"{}\" participate in quiz with external ID \"{}\"", accountId, externalId, cause);
+                        participateRequest.fail(500, "Unable to let account participate in quiz");
+                    }
                 });
+    }
+
+    private Future<Void> completeQuiz(SQLConnection connection, Integer accountId, String externalId) {
+        var promise = Promise.<Void> promise();
+
+        connection.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncComplete -> {
+            if (asyncComplete.failed()) {
+                var cause = asyncComplete.cause();
+                log.error("Unable to execute query \"{}\" with parameters \"{}\" and \"{}\"", COMPLETE_QUIZ_TEMPLATE, accountId, externalId, cause);
+                promise.fail(cause);
+                return;
+            }
+
+            var numberOfAffectedRows = asyncComplete.result().getUpdated();
+            log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, COMPLETE_QUIZ_TEMPLATE);
+
+            promise.complete();
+        });
+
+        return promise.future();
     }
 
     private Future<Boolean> participateInQuiz(SQLConnection connection, Integer accountId, String externalId) {
@@ -225,10 +279,28 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetAllParticipants(Message<String> getAllParticipantsRequest) {
         var externalId = getAllParticipantsRequest.body();
-        sqlClient.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(externalId), asyncParticipants -> {
+        withTransaction(connection ->
+                getQuiz(connection, externalId)
+                        .compose(quiz -> getAllParticipants(connection, externalId)))
+                .onSuccess(getAllParticipantsRequest::reply)
+                .onFailure(cause -> {
+                    if (cause instanceof NotFoundException) {
+                        getAllParticipantsRequest.fail(404, cause.getMessage());
+                    } else {
+                        log.error("Unable to get participants of quiz with external ID \"{}\"", externalId, cause);
+                        getAllParticipantsRequest.fail(500, "Unable to get participants of quiz");
+                    }
+                });
+    }
+
+    private Future<JsonArray> getAllParticipants(SQLConnection connection, String externalId) {
+        var promise = Promise.<JsonArray> promise();
+
+        connection.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(externalId), asyncParticipants -> {
             if (asyncParticipants.failed()) {
-                log.error("Unable to retrieve all participants for external ID \"{}\"", externalId, asyncParticipants.cause());
-                getAllParticipantsRequest.fail(500, "Unable to retrieve all participants");
+                var cause = asyncParticipants.cause();
+                log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_PARTICIPANTS_TEMPLATE, externalId, cause);
+                promise.fail(cause);
                 return;
             }
 
@@ -238,8 +310,10 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                     .map(this::participantArrayToJsonObject)
                     .collect(Collectors.toList());
 
-            getAllParticipantsRequest.reply(new JsonArray(quizzes));
+            promise.complete(new JsonArray(quizzes));
         });
+
+        return promise.future();
     }
 
     private JsonObject participantArrayToJsonObject(JsonArray array) {

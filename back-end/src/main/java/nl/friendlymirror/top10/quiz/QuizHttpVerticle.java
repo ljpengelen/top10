@@ -8,6 +8,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.math3.random.RandomDataGenerator;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -130,7 +131,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, externalId, quizReply -> {
             if (quizReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause()));
+                var cause = (ReplyException) quizReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause()));
+                }
                 return;
             }
 
@@ -150,7 +156,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_PARTICIPANTS_ADDRESS, externalId, participantsReply -> {
             if (participantsReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to get participants for quiz \"%s\"", externalId), participantsReply.cause()));
+                var cause = (ReplyException) participantsReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(String.format("Unable to get participants for quiz \"%s\"", externalId), participantsReply.cause()));
+                }
                 return;
             }
 
@@ -174,13 +185,14 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, completeRequest, completeQuizReply -> {
             if (completeQuizReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause()));
-                return;
-            }
-
-            var didComplete = (Boolean) completeQuizReply.result().body();
-            if (didComplete == false) {
-                routingContext.fail(new ForbiddenException(String.format("Account \"%s\" is not allowed to complete quiz \"%s\"", accountId, externalId)));
+                var cause = (ReplyException) completeQuizReply.cause();
+                if (cause.failureCode() == 403) {
+                    routingContext.fail(new ForbiddenException(cause.getMessage()));
+                } else if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause()));
+                }
                 return;
             }
 
@@ -203,7 +215,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(PARTICIPATE_IN_QUIZ_ADDRESS, participateRequest, participateReply -> {
             if (participateReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause()));
+                var cause = (ReplyException) participateReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause()));
+                }
                 return;
             }
 

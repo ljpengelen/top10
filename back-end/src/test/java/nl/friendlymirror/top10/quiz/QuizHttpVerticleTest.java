@@ -100,6 +100,26 @@ class QuizHttpVerticleTest {
     }
 
     @Test
+    public void returns404GettingUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var errorMessage = "Quiz not found";
+        vertx.eventBus().consumer("entity.quiz.getOne", request -> {
+            vertxTestContext.verify(() -> assertThat(request.body()).isEqualTo(EXTERNAL_ID));
+            request.fail(404, errorMessage);
+        });
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo(errorMessage);
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void createsQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var quiz = new JsonObject()
                 .put("name", NAME)
@@ -195,14 +215,8 @@ class QuizHttpVerticleTest {
 
     @Test
     public void rejectsCompletionByNonCreator(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        vertx.eventBus().consumer("entity.quiz.complete", request -> {
-            vertxTestContext.verify(() -> {
-                var body = (JsonObject) request.body();
-                assertThat(body.getInteger("accountId")).isEqualTo(ACCOUNT_ID);
-                assertThat(body.getString("externalId")).isEqualTo(EXTERNAL_ID);
-            });
-            request.reply(false);
-        });
+        var errorMessage = "Forbidden to complete";
+        vertx.eventBus().consumer("entity.quiz.complete", request -> request.fail(403, errorMessage));
 
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
@@ -212,7 +226,24 @@ class QuizHttpVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body().getString("error")).isEqualTo("Account \"12345\" is not allowed to complete quiz \"abcdefg\"");
+        assertThat(response.body().getString("error")).isEqualTo(errorMessage);
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void rejectsCompletionOfUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var errorMessage = "Not found";
+        vertx.eventBus().consumer("entity.quiz.complete", request -> request.fail(404, errorMessage));
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID + "/complete"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo(errorMessage);
         vertxTestContext.completeNow();
     }
 
@@ -239,6 +270,23 @@ class QuizHttpVerticleTest {
     }
 
     @Test
+    public void rejectsParticipationInUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var errorMessage = "Not found";
+        vertx.eventBus().consumer("entity.quiz.participate", request -> request.fail(404, errorMessage));
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID + "/participate"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo(errorMessage);
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void returnsParticipants(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var participants = new JsonArray().add(1).add(2);
         vertx.eventBus().consumer("entity.quiz.participants", request -> {
@@ -255,6 +303,25 @@ class QuizHttpVerticleTest {
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isEqualTo(participants);
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returns404GettingParticipantsForUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var errorMessage = "Not found";
+        vertx.eventBus().consumer("entity.quiz.participants", request -> {
+            request.fail(404, errorMessage);
+        });
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID + "/participants"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo(errorMessage);
         vertxTestContext.completeNow();
     }
 }
