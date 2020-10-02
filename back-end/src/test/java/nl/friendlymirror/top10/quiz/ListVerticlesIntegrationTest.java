@@ -333,6 +333,22 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
+    public void doesNotAddVideoToNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var nonExistingListId = listId1 - 1;
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + nonExistingListId + "/video"))
+                .build();
+        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(404);
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void finalizesListForOwnAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
@@ -424,21 +440,26 @@ class ListVerticlesIntegrationTest {
                 .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId3)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
                 .build();
-        var assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        var assignResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
-        assertThat(assignResponse.statusCode()).isEqualTo(201);
+        assertThat(assignResponse.statusCode()).isEqualTo(404);
+        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" not found for quiz with external ID \"%s\"", accountId3, EXTERNAL_ID_1));
 
-        request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2))
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotAssignToNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var nonExistingListId = listId1 - 1;
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId3)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + nonExistingListId + "/assign"))
                 .build();
-        var listResponse = httpClient.send(request, new JsonObjectBodyHandler());
+        var assignResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
-        assertThat(listResponse.statusCode()).isEqualTo(200);
-        var list = listResponse.body();
-        assertThat(list.getInteger("listId")).isEqualTo(listId2);
-        var videos = list.getJsonArray("videos");
-        assertThat(videos).isEmpty();
+        assertThat(assignResponse.statusCode()).isEqualTo(404);
+        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
 
         vertxTestContext.completeNow();
     }
