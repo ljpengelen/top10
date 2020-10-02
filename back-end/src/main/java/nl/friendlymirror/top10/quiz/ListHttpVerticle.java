@@ -1,7 +1,6 @@
 package nl.friendlymirror.top10.quiz;
 
 import static nl.friendlymirror.top10.quiz.ListEntityVerticle.*;
-import static nl.friendlymirror.top10.quiz.QuizEntityVerticle.PARTICIPATE_IN_QUIZ_ADDRESS;
 
 import org.apache.commons.lang3.StringUtils;
 
@@ -210,7 +209,7 @@ public class ListHttpVerticle extends AbstractVerticle {
         var accountId = routingContext.user().principal().getInteger("accountId");
         var assignRequest = toAssignRequest(accountId, routingContext);
 
-        vertx.eventBus().request(PARTICIPATE_IN_QUIZ_ADDRESS, assignRequest, assignReply -> {
+        vertx.eventBus().request(ASSIGN_LIST_ADDRESS, assignRequest, assignReply -> {
             if (assignReply.failed()) {
                 routingContext.fail(new InternalServerErrorException(String.format("Unable to assign list: \"%s\"", assignRequest), assignReply.cause()));
                 return;

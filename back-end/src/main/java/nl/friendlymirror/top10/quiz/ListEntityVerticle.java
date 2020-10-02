@@ -30,18 +30,15 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT v.video_id, l.list_id, v.url, l.has_draft_status FROM video v "
                                                                      + "NATURAL RIGHT JOIN list l "
                                                                      + "WHERE l.account_id = ?";
-    private static final String GET_ONE_LIST_TEMPLATE = "SELECT v.video_id, l.list_id, v.url, l.has_draft_status FROM video v "
+    private static final String GET_ONE_LIST_TEMPLATE = "SELECT v.video_id, l.list_id, v.url, l.has_draft_status, a.assignee_id FROM video v "
                                                         + "NATURAL RIGHT JOIN list l "
-                                                        + "WHERE l.list_id = ? AND EXISTS "
-                                                        + "(SELECT list_id FROM list l "
-                                                        + "JOIN participant p ON l.quiz_id = p.quiz_id "
-                                                        + "WHERE list_id = ? AND p.account_id = ?)";
-    private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) "
-                                                     + "SELECT ?, ? WHERE EXISTS (SELECT list_id FROM list WHERE account_id = ? AND list_id = ? AND has_draft_status)";
+                                                        + "LEFT JOIN assignment a ON l.list_id = a.list_id "
+                                                        + "WHERE l.list_id = ?";
+    private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) VALUES (?, ?) ON CONFLICT DO NOTHING";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ? and account_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
-                                                       + "ON CONFLICT DO "
-                                                       + "UPDATE SET (assignee_id) = (EXCLUDED.assignee_id)";
+                                                       + "ON CONFLICT (list_id, account_id) DO "
+                                                       + "UPDATE SET assignee_id = EXCLUDED.assignee_id";
 
     private final JsonObject jdbcOptions;
 
@@ -112,6 +109,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var firstVideo = listRows.get(0);
         var listId = firstVideo.getInteger(1);
         var hasDraftStatus = firstVideo.getBoolean(3);
+        var assigneeId = firstVideo.getInteger(4);
 
         var videos = listRows.stream()
                 .filter(video -> video.getInteger(0) != null)
@@ -123,7 +121,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         return new JsonObject()
                 .put("listId", listId)
                 .put("hasDraftStatus", hasDraftStatus)
-                .put("videos", new JsonArray(videos));
+                .put("videos", new JsonArray(videos))
+                .put("assigneeId", assigneeId);
     }
 
     private void handleGetAllForAccount(Message<Integer> getAllListsForAccountRequest) {
@@ -145,7 +144,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var body = getOneListRequest.body();
         var listId = body.getInteger("listId");
         var accountId = body.getInteger("accountId");
-        var getListRequest = new JsonArray().add(listId).add(listId).add(accountId);
+        var getListRequest = new JsonArray().add(listId);
         sqlClient.queryWithParams(GET_ONE_LIST_TEMPLATE, getListRequest, asyncList -> {
             if (asyncList.failed()) {
                 log.error("Unable to retrieve list with ID \"{}\"", listId, asyncList.cause());
@@ -165,7 +164,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var url = body.getString("url");
         var accountId = body.getInteger("accountId");
 
-        var addVideoParameters = new JsonArray().add(listId).add(url).add(accountId).add(listId);
+        var addVideoParameters = new JsonArray().add(listId).add(url);
         sqlClient.updateWithParams(ADD_VIDEO_TEMPLATE, addVideoParameters, asyncAddVideo -> {
             if (asyncAddVideo.failed()) {
                 log.error("Unable to add video: \"{}\"", addVideoRequest, asyncAddVideo.cause());
@@ -210,8 +209,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
     private void handleAssignList(Message<JsonObject> assignListRequest) {
         var body = assignListRequest.body();
         var accountId = body.getInteger("accountId");
-        var listId = body.getString("listId");
-        var assigneeId = body.getString("assigneeId");
+        var listId = body.getInteger("listId");
+        var assigneeId = body.getInteger("assigneeId");
 
         var assignmentRequest = new JsonArray().add(listId).add(accountId).add(assigneeId);
         sqlClient.updateWithParams(ASSIGN_LIST_TEMPLATE, assignmentRequest, asyncAssignment -> {

@@ -372,4 +372,74 @@ class ListVerticlesIntegrationTest {
 
         vertxTestContext.completeNow();
     }
+
+    @Test
+    public void assignsList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId2)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
+                .build();
+        var assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(assignResponse.statusCode()).isEqualTo(201);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2))
+                .build();
+        var listResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(listResponse.statusCode()).isEqualTo(200);
+        var list = listResponse.body();
+        assertThat(list.getInteger("listId")).isEqualTo(listId2);
+        assertThat(list.getInteger("assigneeId")).isEqualTo(accountId2);
+
+        request = HttpRequest.newBuilder()
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId1)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
+                .build();
+        assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(assignResponse.statusCode()).isEqualTo(201);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2))
+                .build();
+        listResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(listResponse.statusCode()).isEqualTo(200);
+        list = listResponse.body();
+        assertThat(list.getInteger("listId")).isEqualTo(listId2);
+        assertThat(list.getInteger("assigneeId")).isEqualTo(accountId1);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotAssignListToAccountOutsideQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId3)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
+                .build();
+        var assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(assignResponse.statusCode()).isEqualTo(201);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2))
+                .build();
+        var listResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(listResponse.statusCode()).isEqualTo(200);
+        var list = listResponse.body();
+        assertThat(list.getInteger("listId")).isEqualTo(listId2);
+        var videos = list.getJsonArray("videos");
+        assertThat(videos).isEmpty();
+
+        vertxTestContext.completeNow();
+    }
 }
