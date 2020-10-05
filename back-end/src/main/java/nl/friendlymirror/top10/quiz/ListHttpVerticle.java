@@ -5,8 +5,8 @@ import static nl.friendlymirror.top10.quiz.ListEntityVerticle.*;
 import org.apache.commons.lang3.StringUtils;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -14,6 +14,8 @@ import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.*;
+import nl.friendlymirror.top10.quiz.dto.ListDto;
+import nl.friendlymirror.top10.quiz.dto.ListsDto;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -52,12 +54,12 @@ public class ListHttpVerticle extends AbstractVerticle {
                 return;
             }
 
-            var lists = (JsonArray) allListsReply.result().body();
-            log.debug("Retrieved {} lists", lists.size());
+            var listsDto = (ListsDto) allListsReply.result().body();
+            log.debug("Retrieved {} lists", listsDto.getLists().size());
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(lists.toBuffer());
+                    .end(listsDto.toJsonArray().toBuffer());
         });
     }
 
@@ -72,12 +74,12 @@ public class ListHttpVerticle extends AbstractVerticle {
                 return;
             }
 
-            var lists = (JsonArray) allListsReply.result().body();
-            log.debug("Retrieved {} lists", lists.size());
+            var listsDto = (ListsDto) allListsReply.result().body();
+            log.debug("Retrieved {} lists", listsDto.getLists().size());
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(lists.toBuffer());
+                    .end(listsDto.toJsonArray().toBuffer());
         });
     }
 
@@ -98,13 +100,12 @@ public class ListHttpVerticle extends AbstractVerticle {
         var addRequest = toAddRequest(accountId, listId, routingContext);
         vertx.eventBus().request(ADD_VIDEO_ADDRESS, addRequest, addVideoReply -> {
             if (addVideoReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to add video \"%s\"", addRequest), addVideoReply.cause()));
-                return;
-            }
-
-            var didAdd = (Boolean) addVideoReply.result().body();
-            if (didAdd == false) {
-                routingContext.fail(new ForbiddenException(String.format("Account \"%d\" is not allowed to add videos to list \"%d\"", accountId, listId)));
+                var cause = (ReplyException) addVideoReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
+                }
                 return;
             }
 
@@ -156,21 +157,21 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_ONE_LIST_ADDRESS, getListRequest, listReply -> {
             if (listReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to get list \"%s\"", listId), listReply.cause()));
+                var cause = (ReplyException) listReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
+                }
                 return;
             }
 
-            var list = (JsonObject) listReply.result().body();
-            if (list == null) {
-                routingContext.fail(new NotFoundException(String.format("List with ID \"%d\" could not be found", listId)));
-                return;
-            }
-
+            var list = (ListDto) listReply.result().body();
             log.debug("Retrieved list \"{}\"", list);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(list.toBuffer());
+                    .end(list.toJsonObject().toBuffer());
         });
     }
 
@@ -211,7 +212,12 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(ASSIGN_LIST_ADDRESS, assignRequest, assignReply -> {
             if (assignReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to assign list: \"%s\"", assignRequest), assignReply.cause()));
+                var cause = (ReplyException) assignReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
+                }
                 return;
             }
 

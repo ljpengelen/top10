@@ -13,6 +13,7 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.account.GoogleAccountVerticle;
 import nl.friendlymirror.top10.config.Config;
+import nl.friendlymirror.top10.eventbus.MessageCodecs;
 import nl.friendlymirror.top10.healthcheck.HealthCheckVerticle;
 import nl.friendlymirror.top10.heartbeat.HeartbeatVerticle;
 import nl.friendlymirror.top10.jwt.Jwt;
@@ -98,6 +99,10 @@ public class Application {
         log.info("Starting Top 10");
 
         var result = Promise.<Void> promise();
+
+        log.info("Registering message codecs");
+
+        MessageCodecs.register(vertx.eventBus());
 
         log.info("Setting up router");
 

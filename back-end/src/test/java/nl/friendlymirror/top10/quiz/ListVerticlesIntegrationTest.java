@@ -23,6 +23,7 @@ import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.ErrorHandlers;
 import nl.friendlymirror.top10.RandomPort;
 import nl.friendlymirror.top10.config.TestConfig;
+import nl.friendlymirror.top10.eventbus.MessageCodecs;
 import nl.friendlymirror.top10.http.*;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
 
@@ -62,6 +63,8 @@ class ListVerticlesIntegrationTest {
         var verticle = new MigrationVerticle(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
         var deploymentOptions = new DeploymentOptions().setWorker(true);
         vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.completing());
+
+        MessageCodecs.register(vertx.eventBus());
     }
 
     @BeforeEach
@@ -174,14 +177,6 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.body()).isEqualTo(new JsonArray());
 
         request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
-                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
-                .build();
-        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
-
-        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
-
-        request = HttpRequest.newBuilder()
                 .PUT(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/finalize"))
                 .build();
@@ -200,12 +195,28 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.body()).hasSize(1);
         var list = listResponse.body().getJsonObject(0);
         assertThat(list.getInteger("listId")).isEqualTo(listId1);
-        assertThat(list.getBoolean("hasDraftStatus")).isFalse();
-        var videos = list.getJsonArray("videos");
-        assertThat(videos).hasSize(1);
-        var video = videos.getJsonObject(0);
-        assertThat(video.getInteger("videoId")).isNotNull();
-        assertThat(video.getString("url")).isEqualTo(URL_1);
+        assertThat(list.getInteger("assigneeId")).isNull();
+
+        request = HttpRequest.newBuilder()
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId2)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/assign"))
+                .build();
+        var assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(assignResponse.statusCode()).isEqualTo(201);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_1 + "/list"))
+                .build();
+        listResponse = httpClient.send(request, new JsonArrayBodyHandler());
+
+        assertThat(listResponse.statusCode()).isEqualTo(200);
+        assertThat(listResponse.body()).isNotNull();
+        assertThat(listResponse.body()).hasSize(1);
+        list = listResponse.body().getJsonObject(0);
+        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getInteger("assigneeId")).isEqualTo(accountId2);
 
         vertxTestContext.completeNow();
     }
@@ -223,8 +234,6 @@ class ListVerticlesIntegrationTest {
         assertThat(response.body()).hasSize(1);
         var list = response.body().getJsonObject(0);
         assertThat(list.getInteger("listId")).isEqualTo(listId1);
-        assertThat(list.getBoolean("hasDraftStatus")).isTrue();
-        assertThat(list.getJsonArray("videos")).isEmpty();
         vertxTestContext.completeNow();
     }
 
@@ -232,16 +241,45 @@ class ListVerticlesIntegrationTest {
     public void returnsSingleList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
+                .build();
+        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+
+        request = HttpRequest.newBuilder()
                 .GET()
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1))
                 .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var getListResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
-        assertThat(response.statusCode()).isEqualTo(200);
-        var body = response.body();
+        assertThat(getListResponse.statusCode()).isEqualTo(200);
+        var body = getListResponse.body();
         assertThat(body.getInteger("listId")).isEqualTo(listId1);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
-        assertThat(body.getJsonArray("videos")).isEmpty();
+        var videos = body.getJsonArray("videos");
+        assertThat(videos).hasSize(1);
+        var video = videos.getJsonObject(0);
+        assertThat(video.getInteger("videoId")).isNotNull();
+        assertThat(video.getString("url")).isEqualTo(URL_1);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returns404GettingUnknownList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var nonExistingListId = listId1 - 1;
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + nonExistingListId))
+                .build();
+        var getListResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(getListResponse.statusCode()).isEqualTo(404);
+        assertThat(getListResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+
         vertxTestContext.completeNow();
     }
 
@@ -271,7 +309,7 @@ class ListVerticlesIntegrationTest {
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.statusCode()).isEqualTo(403);
         var body = response.body();
         assertThat(body.getString("error")).isEqualTo(String.format("List with ID \"%d\" could not be found", listId3));
         vertxTestContext.completeNow();
