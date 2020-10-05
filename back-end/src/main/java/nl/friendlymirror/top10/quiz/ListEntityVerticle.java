@@ -14,6 +14,7 @@ import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import nl.friendlymirror.top10.ForbiddenException;
 import nl.friendlymirror.top10.NotFoundException;
 import nl.friendlymirror.top10.entity.AbstractEntityVerticle;
 import nl.friendlymirror.top10.quiz.dto.*;
@@ -35,7 +36,13 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                                   + "WHERE q.external_id = ? AND NOT l.has_draft_status";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url FROM video v WHERE v.list_id = ANY (?)";
-    private static final String GET_ONE_LIST_TEMPLATE = "SELECT l.list_id, l.has_draft_status, a.assignee_id FROM video v "
+    private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l.list_id) from list l "
+                                                                   + "JOIN participant p ON l.quiz_id = p.quiz_id "
+                                                                   + "WHERE p.account_id = ? AND l.list_id = ?";
+    private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(p.account_id) FROM quiz q "
+                                                                        + "JOIN participant p ON q.quiz_id = p.quiz_id "
+                                                                        + "WHERE p.account_id = ? AND q.quiz_id = ?";
+    private static final String GET_ONE_LIST_TEMPLATE = "SELECT l.list_id, l.has_draft_status, a.assignee_id, l.quiz_id, l.account_id FROM video v "
                                                         + "NATURAL RIGHT JOIN list l "
                                                         + "LEFT JOIN assignment a ON l.list_id = a.list_id "
                                                         + "WHERE l.list_id = ?";
@@ -177,18 +184,18 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getInteger("listId");
         var accountId = body.getInteger("accountId");
 
-        withTransaction(connection -> getList(connection, listId)
-                .compose(list ->
+        withTransaction(connection -> getList(connection, listId).compose(list ->
+                validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
                         getVideosForLists(connection, list.getListId()).compose(videosForList ->
                                 Future.succeededFuture(list.toBuilder()
                                         .videos(videosForList.getOrDefault(listId, Collections.emptyList()))
-                                        .build())
-                        )
-                ))
+                                        .build())))))
                 .onSuccess(getOneListRequest::reply)
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {
                         getOneListRequest.fail(404, cause.getMessage());
+                    } else if (cause instanceof ForbiddenException) {
+                        getOneListRequest.fail(403, cause.getMessage());
                     } else {
                         getOneListRequest.fail(500, cause.getMessage());
                     }
@@ -217,6 +224,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                         .listId(row.getInteger(0))
                         .hasDraftStatus(row.getBoolean(1))
                         .assigneeId(row.getInteger(2))
+                        .quizId(row.getInteger(3))
+                        .accountId(row.getInteger(4))
                         .build();
                 log.debug("Retrieved list by ID \"{}\": \"{}\"", listId, listDto);
                 promise.complete(listDto);
@@ -233,12 +242,19 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
 
         withTransaction(connection ->
-                getList(connection, listId).compose(listDto ->
-                        addVideo(connection, listId, url)))
+                getList(connection, listId).compose(listDto -> {
+                    if (accountId.equals(listDto.getAccountId())) {
+                        return addVideo(connection, listId, url);
+                    } else {
+                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listId)));
+                    }
+                }))
                 .onSuccess(addVideoRequest::reply)
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {
                         addVideoRequest.fail(404, cause.getMessage());
+                    } else if (cause instanceof ForbiddenException) {
+                        addVideoRequest.fail(403, cause.getMessage());
                     } else {
                         addVideoRequest.fail(500, cause.getMessage());
                     }
@@ -300,11 +316,15 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 getList(connection, listId).compose(listDto ->
-                        assignList(connection, accountId, listId, assigneeId)))
+                        validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
+                                validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId()).compose(accountParticipatesInQuiz ->
+                                        assignList(connection, accountId, listId, assigneeId)))))
                 .onSuccess(assignListRequest::reply)
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {
                         assignListRequest.fail(404, cause.getMessage());
+                    } else if (cause instanceof ForbiddenException) {
+                        assignListRequest.fail(403, cause.getMessage());
                     } else {
                         assignListRequest.fail(500, cause.getMessage());
                     }
@@ -331,6 +351,56 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
             }
 
             promise.complete();
+        });
+
+        return promise.future();
+    }
+
+    private Future<Void> validateAccountCanAccessList(SQLConnection connection, Integer accountId, Integer listId) {
+        var promise = Promise.<Void> promise();
+
+        var parameters = new JsonArray().add(accountId).add(listId);
+        connection.querySingleWithParams(ACCOUNT_CAN_ACCESS_LIST_TEMPLATE, parameters, asyncCanAccess -> {
+            if (asyncCanAccess.failed()) {
+                var cause = asyncCanAccess.cause();
+                log.error("Unable to execute query \"{}\" with parameters \"{}\"", ACCOUNT_CAN_ACCESS_LIST_TEMPLATE, parameters, cause);
+                promise.fail(cause);
+                return;
+            }
+
+            var accountCanAccessList = asyncCanAccess.result().getInteger(0) > 0;
+            if (accountCanAccessList) {
+                log.debug("Account can access list");
+                promise.complete();
+            } else {
+                log.debug("Account cannot access list");
+                promise.fail(new ForbiddenException(String.format("Account \"%d\" cannot access list \"%d\"", accountId, listId)));
+            }
+        });
+
+        return promise.future();
+    }
+
+    private Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, Integer accountId, Integer quizId) {
+        var promise = Promise.<Void> promise();
+
+        var parameters = new JsonArray().add(accountId).add(quizId);
+        connection.querySingleWithParams(ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE, parameters, asyncCanAccess -> {
+            if (asyncCanAccess.failed()) {
+                var cause = asyncCanAccess.cause();
+                log.error("Unable to execute query \"{}\" with parameters \"{}\"", ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE, parameters, cause);
+                promise.fail(cause);
+                return;
+            }
+
+            var accountParticipatesInQuiz = asyncCanAccess.result().getInteger(0) > 0;
+            if (accountParticipatesInQuiz) {
+                log.debug("Account participates in quiz");
+                promise.complete();
+            } else {
+                log.debug("Account does not participate in quiz");
+                promise.fail(new ForbiddenException(String.format("Account \"%d\" does not participate in quiz with ID \"%d\"", accountId, quizId)));
+            }
         });
 
         return promise.future();

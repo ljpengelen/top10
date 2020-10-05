@@ -311,7 +311,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(403);
         var body = response.body();
-        assertThat(body.getString("error")).isEqualTo(String.format("List with ID \"%d\" could not be found", listId3));
+        assertThat(body.getString("error")).isEqualTo(String.format("Account \"%d\" cannot access list \"%d\"", accountId1, listId3));
         vertxTestContext.completeNow();
     }
 
@@ -365,7 +365,7 @@ class ListVerticlesIntegrationTest {
         var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(403);
-        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" is not allowed to add videos to list \"%d\"", accountId1, listId3));
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" did not create list \"%d\"", accountId1, listId3));
 
         vertxTestContext.completeNow();
     }
@@ -480,8 +480,9 @@ class ListVerticlesIntegrationTest {
                 .build();
         var assignResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
-        assertThat(assignResponse.statusCode()).isEqualTo(404);
-        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" not found for quiz with external ID \"%s\"", accountId3, EXTERNAL_ID_1));
+        assertThat(assignResponse.statusCode()).isEqualTo(403);
+        var expectedMessage = String.format("Account \"%d\" does not participate in quiz with ID \"%s\"", accountId3, quizId1);
+        assertThat(assignResponse.body().getString("error")).isEqualTo(expectedMessage);
 
         vertxTestContext.completeNow();
     }

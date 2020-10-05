@@ -103,6 +103,8 @@ public class ListHttpVerticle extends AbstractVerticle {
                 var cause = (ReplyException) addVideoReply.cause();
                 if (cause.failureCode() == 404) {
                     routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else if (cause.failureCode() == 403) {
+                    routingContext.fail(new ForbiddenException(cause.getMessage()));
                 } else {
                     routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
                 }
@@ -160,6 +162,8 @@ public class ListHttpVerticle extends AbstractVerticle {
                 var cause = (ReplyException) listReply.cause();
                 if (cause.failureCode() == 404) {
                     routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else if (cause.failureCode() == 403) {
+                    routingContext.fail(new ForbiddenException(cause.getMessage()));
                 } else {
                     routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
                 }
@@ -215,6 +219,8 @@ public class ListHttpVerticle extends AbstractVerticle {
                 var cause = (ReplyException) assignReply.cause();
                 if (cause.failureCode() == 404) {
                     routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else if (cause.failureCode() == 403) {
+                    routingContext.fail(new ForbiddenException(cause.getMessage()));
                 } else {
                     routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
                 }
