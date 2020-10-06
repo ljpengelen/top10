@@ -417,12 +417,12 @@ class ListVerticlesIntegrationTest {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .PUT(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId3 + "/finalize"))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/finalize"))
                 .build();
         var finalizeResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(finalizeResponse.statusCode()).isEqualTo(403);
-        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" cannot access list \"%d\"", accountId1, listId3));
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" did not create list \"%d\"", accountId1, listId2));
 
         vertxTestContext.completeNow();
     }

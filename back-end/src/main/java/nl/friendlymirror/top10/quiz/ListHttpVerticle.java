@@ -50,7 +50,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_ALL_LISTS_FOR_QUIZ_ADDRESS, externalId, allListsReply -> {
             if (allListsReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to get all lists for quiz with external ID \"%s\"", externalId), allListsReply.cause()));
+                handleFailure(allListsReply.cause(), routingContext);
                 return;
             }
 
@@ -70,7 +70,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_ALL_LISTS_FOR_ACCOUNT_ADDRESS, accountId, allListsReply -> {
             if (allListsReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to get all lists for account \"%s\"", accountId), allListsReply.cause()));
+                handleFailure(allListsReply.cause(), routingContext);
                 return;
             }
 
@@ -100,14 +100,7 @@ public class ListHttpVerticle extends AbstractVerticle {
         var addRequest = toAddRequest(accountId, listId, routingContext);
         vertx.eventBus().request(ADD_VIDEO_ADDRESS, addRequest, addVideoReply -> {
             if (addVideoReply.failed()) {
-                var cause = (ReplyException) addVideoReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else if (cause.failureCode() == 403) {
-                    routingContext.fail(new ForbiddenException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
-                }
+                handleFailure(addVideoReply.cause(), routingContext);
                 return;
             }
 
@@ -159,14 +152,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(GET_ONE_LIST_ADDRESS, getListRequest, listReply -> {
             if (listReply.failed()) {
-                var cause = (ReplyException) listReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else if (cause.failureCode() == 403) {
-                    routingContext.fail(new ForbiddenException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
-                }
+                handleFailure(listReply.cause(), routingContext);
                 return;
             }
 
@@ -190,14 +176,7 @@ public class ListHttpVerticle extends AbstractVerticle {
                 .put("listId", listId);
         vertx.eventBus().request(FINALIZE_LIST_ADDRESS, finalizeRequest, finalizeListReply -> {
             if (finalizeListReply.failed()) {
-                var cause = (ReplyException) finalizeListReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else if (cause.failureCode() == 403) {
-                    routingContext.fail(new ForbiddenException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
-                }
+                handleFailure(finalizeListReply.cause(), routingContext);
                 return;
             }
 
@@ -217,14 +196,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
         vertx.eventBus().request(ASSIGN_LIST_ADDRESS, assignRequest, assignReply -> {
             if (assignReply.failed()) {
-                var cause = (ReplyException) assignReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else if (cause.failureCode() == 403) {
-                    routingContext.fail(new ForbiddenException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
-                }
+                handleFailure(assignReply.cause(), routingContext);
                 return;
             }
 
@@ -249,5 +221,16 @@ public class ListHttpVerticle extends AbstractVerticle {
                 .put("accountId", accountId)
                 .put("listId", listId)
                 .put("assigneeId", assigneeId);
+    }
+
+    private void handleFailure(Throwable cause, RoutingContext routingContext) {
+        var replyException = (ReplyException) cause;
+        if (replyException.failureCode() == 404) {
+            routingContext.fail(new NotFoundException(replyException.getMessage()));
+        } else if (replyException.failureCode() == 403) {
+            routingContext.fail(new ForbiddenException(replyException.getMessage()));
+        } else {
+            routingContext.fail(new InternalServerErrorException(replyException.getMessage(), replyException));
+        }
     }
 }
