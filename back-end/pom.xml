@@ -309,7 +309,7 @@
                                         </limit>
                                         <limit>
                                             <counter>BRANCH</counter>
-                                            <minimum>70%</minimum>
+                                            <minimum>60%</minimum>
                                         </limit>
                                     </limits>
                                 </rule>
