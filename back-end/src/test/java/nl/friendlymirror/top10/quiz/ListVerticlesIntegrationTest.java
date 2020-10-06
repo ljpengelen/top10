@@ -422,7 +422,23 @@ class ListVerticlesIntegrationTest {
         var finalizeResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(finalizeResponse.statusCode()).isEqualTo(403);
-        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" is not allowed to finalize list \"%d\"", accountId1, listId3));
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" cannot access list \"%d\"", accountId1, listId3));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotFinalizeListNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var nonExistingListId = listId1 - 1;
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + nonExistingListId + "/finalize"))
+                .build();
+        var finalizeResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(finalizeResponse.statusCode()).isEqualTo(404);
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
 
         vertxTestContext.completeNow();
     }

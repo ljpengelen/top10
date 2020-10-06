@@ -190,13 +190,14 @@ public class ListHttpVerticle extends AbstractVerticle {
                 .put("listId", listId);
         vertx.eventBus().request(FINALIZE_LIST_ADDRESS, finalizeRequest, finalizeListReply -> {
             if (finalizeListReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to finalize list: \"%s\"", finalizeRequest), finalizeListReply.cause()));
-                return;
-            }
-
-            var didFinalize = (Boolean) finalizeListReply.result().body();
-            if (didFinalize == false) {
-                routingContext.fail(new ForbiddenException(String.format("Account \"%d\" is not allowed to finalize list \"%d\"", accountId, listId)));
+                var cause = (ReplyException) finalizeListReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else if (cause.failureCode() == 403) {
+                    routingContext.fail(new ForbiddenException(cause.getMessage()));
+                } else {
+                    routingContext.fail(new InternalServerErrorException(cause.getMessage(), cause));
+                }
                 return;
             }
 

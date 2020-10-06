@@ -47,7 +47,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                                         + "LEFT JOIN assignment a ON l.list_id = a.list_id "
                                                         + "WHERE l.list_id = ?";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) VALUES (?, ?) ON CONFLICT DO NOTHING";
-    private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ? and account_id = ?";
+    private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
                                                        + "ON CONFLICT (list_id, account_id) DO "
                                                        + "UPDATE SET assignee_id = EXCLUDED.assignee_id";
@@ -290,10 +290,31 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
         var listId = body.getInteger("listId");
 
-        sqlClient.updateWithParams(FINALIZE_LIST_TEMPLATE, new JsonArray().add(listId).add(accountId), asyncFinalize -> {
+        withTransaction(connection ->
+                getList(connection, listId).compose(listDto ->
+                        validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
+                                finalizeList(connection, listId))))
+                .onSuccess(finalizeListRequest::reply)
+                .onFailure(cause -> {
+                    if (cause instanceof ForbiddenException) {
+                        finalizeListRequest.fail(403, cause.getMessage());
+                    } else if (cause instanceof NotFoundException) {
+                        finalizeListRequest.fail(404, cause.getMessage());
+                    } else {
+                        finalizeListRequest.fail(500, cause.getMessage());
+                    }
+                });
+    }
+
+    private Future<Void> finalizeList(SQLConnection connection, Integer listId) {
+        var promise = Promise.<Void> promise();
+
+        var parameters = new JsonArray().add(listId);
+        connection.updateWithParams(FINALIZE_LIST_TEMPLATE, parameters, asyncFinalize -> {
             if (asyncFinalize.failed()) {
-                log.error("Unable to finalize list \"{}\"", listId, asyncFinalize.cause());
-                finalizeListRequest.fail(500, "Unable to finalize list");
+                var cause = asyncFinalize.cause();
+                log.error("Unable to execute query \"{}\" with parameter \"{}\"", FINALIZE_LIST_TEMPLATE, parameters, cause);
+                promise.fail(cause);
                 return;
             }
 
@@ -304,8 +325,10 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                 log.debug("Unable to finalize list");
             }
 
-            finalizeListRequest.reply(numberOfAffectedRows > 0);
+            promise.complete();
         });
+
+        return promise.future();
     }
 
     private void handleAssignList(Message<JsonObject> assignListRequest) {
