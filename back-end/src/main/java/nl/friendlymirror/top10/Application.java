@@ -2,8 +2,7 @@ package nl.friendlymirror.top10;
 
 import static nl.friendlymirror.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -110,16 +109,19 @@ public class Application {
         log.info("Setting up router");
 
         var router = Router.router(vertx);
+
+        var corsHandler = CorsHandler.create(config.getCsrfTarget())
+                .allowCredentials(true)
+                .allowedHeaders(Set.of(CSRF_TOKEN_HEADER_NAME, "content-type"))
+                .exposedHeader(CSRF_TOKEN_HEADER_NAME);
+        router.route().handler(corsHandler);
+
         ErrorHandlers.configure(router);
+
         router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
         var jwt = new Jwt(config.getJwtSecretKey());
         router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
         router.route("/private/*").handler(new JwtSessionHandler(jwt));
-
-        var corsHandler = CorsHandler.create(config.getCsrfTarget())
-                .allowCredentials(true)
-                .exposedHeader(CSRF_TOKEN_HEADER_NAME);
-        router.route().handler(corsHandler);
 
         log.info("Setting up HTTP server");
 
