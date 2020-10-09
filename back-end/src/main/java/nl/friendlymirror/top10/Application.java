@@ -1,5 +1,7 @@
 package nl.friendlymirror.top10;
 
+import static nl.friendlymirror.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
+
 import java.util.Collections;
 import java.util.List;
 
@@ -9,6 +11,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 
 import io.vertx.core.*;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.CorsHandler;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.account.GoogleAccountVerticle;
@@ -112,6 +115,11 @@ public class Application {
         var jwt = new Jwt(config.getJwtSecretKey());
         router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
         router.route("/private/*").handler(new JwtSessionHandler(jwt));
+
+        var corsHandler = CorsHandler.create(config.getCsrfTarget())
+                .allowCredentials(true)
+                .exposedHeader(CSRF_TOKEN_HEADER_NAME);
+        router.route().handler(corsHandler);
 
         log.info("Setting up HTTP server");
 

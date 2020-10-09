@@ -7,6 +7,7 @@ import nl.friendlymirror.top10.RandomPort;
 @Getter
 public class TestConfig extends Config {
 
+    private final String csrfTarget = fetchMandatoryString("TEST_CSRF_TARGET");
     private final int httpPort = RandomPort.get();
     private final String jdbcUrl = fetchMandatoryString("TEST_JDBC_POSTGRES_URL");
     private final String jdbcUsername = fetchMandatoryString("TEST_JDBC_POSTGRES_USERNAME");

@@ -21,13 +21,14 @@ import nl.friendlymirror.top10.jwt.Jwt;
 @RequiredArgsConstructor
 public class CsrfTokenHandler implements Handler<RoutingContext> {
 
+    public static final String CSRF_TOKEN_HEADER_NAME = "X-CSRF-Token";
+
     private static final Set<HttpMethod> METHODS_TO_IGNORE = Set.of(HttpMethod.GET, HttpMethod.OPTIONS);
 
     private static final Buffer INVALID_CSRF_TOKEN_RESPONSE = new JsonObject()
             .put("error", "Invalid CSRF token")
             .toBuffer();
 
-    private static final String CSRF_TOKEN_HEADER_NAME = "X-CSRF-Token";
     private static final String CSRF_TOKEN_COOKIE_NAME = "csrf-token";
     private static final String CSRF_TOKEN_CLAIM_NAME = "csrfToken";
 
