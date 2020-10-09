@@ -105,7 +105,7 @@ public class LogInVerticle extends AbstractVerticle {
         try {
             return routingContext.getBodyAsJson();
         } catch (Exception e) {
-            log.warn("Unable to parse request body as JSON", e);
+            log.debug("Unable to parse request body as JSON");
             return null;
         }
     }
