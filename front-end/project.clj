@@ -6,6 +6,7 @@
   :min-lein-version "2.7.1"
 
   :dependencies [[clj-commons/secretary "1.2.4"]
+                 [cljs-http "0.1.46"]
                  [org.clojure/clojure "1.10.1"]
                  [org.clojure/clojurescript "1.10.764"]
                  [reagent "1.0.0-alpha2"]]
