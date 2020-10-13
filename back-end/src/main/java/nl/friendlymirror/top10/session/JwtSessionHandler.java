@@ -11,12 +11,14 @@ import nl.friendlymirror.top10.jwt.Jwt;
 @RequiredArgsConstructor
 public class JwtSessionHandler implements Handler<RoutingContext> {
 
+    public static final String AUTHORIZATION_HEADER_NAME = "Authorization";
+
     private final Jwt jwt;
 
     public void handle(RoutingContext routingContext) {
         var response = routingContext.response();
 
-        var token = routingContext.request().getHeader("Authorization");
+        var token = routingContext.request().getHeader(AUTHORIZATION_HEADER_NAME);
         if (token == null) {
             badRequest(response, "Missing authorization header");
             return;

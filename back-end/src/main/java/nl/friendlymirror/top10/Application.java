@@ -1,5 +1,6 @@
 package nl.friendlymirror.top10;
 
+import static nl.friendlymirror.top10.session.JwtSessionHandler.AUTHORIZATION_HEADER_NAME;
 import static nl.friendlymirror.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
 
 import java.util.*;
@@ -112,7 +113,7 @@ public class Application {
 
         var corsHandler = CorsHandler.create(config.getCsrfTarget())
                 .allowCredentials(true)
-                .allowedHeaders(Set.of(CSRF_TOKEN_HEADER_NAME, "content-type"))
+                .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
                 .exposedHeader(CSRF_TOKEN_HEADER_NAME);
         router.route().handler(corsHandler);
 
