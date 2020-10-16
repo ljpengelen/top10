@@ -1,5 +1,5 @@
 (ns top10.quizzes)
 
-(defn quizzes []
+(defn quizzes-page [quizzes]
   [:div [:h1 "Quizzes"]
-   [:a {:href "#/"} "home page"]])
+   [:div quizzes]])

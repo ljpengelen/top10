@@ -1,6 +1,8 @@
 (ns top10.home
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [top10.navigation :refer [nav!]]
+  (:require [top10.config :refer [base-url]]
+            [top10.navigation :refer [nav!]]
+            [top10.rest :refer [access-token]]
             [reagent.core :as r]
             [cljs-http.client :as http]
             [cljs.core.async :refer [<!]]))
@@ -8,7 +10,6 @@
 (def checking-status (r/atom true))
 (def logged-in (r/atom false))
 (def csrf-token (r/atom nil))
-(def access-token (r/atom nil))
 
 (def error-message (r/atom nil))
 
@@ -18,7 +19,7 @@
     (let
      [headers {"X-CSRF-Token" @csrf-token}
       request {:token id-token :type "GOOGLE"}
-      log-in-response (<! (http/post "http://localhost:8080/session/logIn" {:json-params request :headers headers}))
+      log-in-response (<! (http/post (str base-url "/session/logIn") {:json-params request :headers headers}))
       new-csrf-token (get-in log-in-response [:headers, "x-csrf-token"])
       new-access-token (get-in log-in-response [:body, :token])]
       (reset! logged-in true)
@@ -47,7 +48,7 @@
     [:li [:a {:href "#/quiz/1234"} "quiz page"]]]
    (when @error-message [:div @error-message])])
 
-(defn check-status []
+(defn check-status [cb]
   (go
     (let
       [status-response (<! (http/get "http://localhost:8080/session/status"))
@@ -56,4 +57,5 @@
        new-csrf-token (get-in status-response [:headers, "x-csrf-token"])]
       (reset! logged-in has-session)
       (reset! checking-status false)
-      (reset! csrf-token new-csrf-token))))
+      (reset! csrf-token new-csrf-token)
+      (cb))))
