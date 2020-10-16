@@ -17,17 +17,23 @@
 
 (rf/reg-event-db
  ::session-check-succeeded
- (fn [db [_ { :keys [status]}]]
-   (-> db
-       (assoc-in [:session :logged-in] (= "VALID_SESSION" status))
-       (assoc-in [:session :checking-status] false))))
+ (fn [db [_ response]]
+   (let [status (get-in response [:body :status])
+         csrf-token (get-in response [:headers "x-csrf-token"])]
+     (js/console.log response)
+     (js/console.log status)
+     (js/console.log csrf-token)
+     (-> db
+         (assoc-in [:session :logged-in] (= "VALID_SESSION" status))
+         (assoc-in [:session :checking-status] false)
+         (assoc-in [:session :csrf-token] csrf-token)))))
 
 (rf/reg-event-fx
  ::check-status
  (fn [_ _]
    {:http-xhrio {:method :get
                  :uri (str config/base-url "/session/status")
-                 :response-format (ajax/json-response-format {:keywords? true})
+                 :response-format (ajax/ring-response-format {:format (ajax/json-response-format {:keywords? true})})
                  :on-success [::session-check-succeeded]
                  :on-failure [::session-check-failed]}}))
 
