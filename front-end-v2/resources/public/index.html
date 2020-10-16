@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="google-signin-client_id" content="442497309318-72n7detrn1ne7bprs59fv8lsm6hsfivh.apps.googleusercontent.com">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="css/screen.css" rel="stylesheet" type="text/css">
+    <title>top10</title>
+  </head>
+  <body>
+    <noscript>
+      Greatest Hits is a JavaScript app. Please enable JavaScript to continue.
+    </noscript>
+    <div id="app"></div>
+    <script src="https://apis.google.com/js/platform.js"></script>
+    <script>
+      gapi.load('auth2', function () {
+        gapi.auth2.init().then(function () {}, function () {
+          console.error("Initialization of auth2 failed");
+        });
+      });
+
+      function getIdToken(googleUser) {
+        return googleUser.getAuthResponse().id_token;
+      }
+
+      function signIn(success, failure) {
+        var googleAuth = gapi.auth2.getAuthInstance();
+
+        if (googleAuth.isSignedIn.get()) {
+          success(getIdToken(googleAuth.currentUser.get()));
+          return;
+        }
+
+        googleAuth.signIn().then(function (googleUser) {
+          success(getIdToken(googleUser));
+        }, failure);
+      }
+
+      function signOut(success, failure) {
+        var googleAuth = gapi.auth2.getAuthInstance();
+        googleAuth.signOut().then(success, failure);
+      }
+    </script>
+    <script src="js/compiled/app.js"></script>
+  </body>
+</html>

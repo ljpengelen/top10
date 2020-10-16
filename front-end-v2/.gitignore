@@ -1,0 +1,16 @@
+/out/
+/resources/public/css
+/resources/public/js/compiled/
+/target/
+/*-init.clj
+/*.log
+
+.clj-kondo/.cache
+
+/.lein-*
+/.nrepl-port
+
+/node_modules/
+
+/shadow-cljs.edn
+/.shadow-cljs/

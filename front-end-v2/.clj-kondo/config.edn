@@ -1,0 +1,2 @@
+{:lint-as {garden.def/defstyles clojure.core/def}
+ :linters {:unused-namespace {:exclude [top10.effects]}}}
