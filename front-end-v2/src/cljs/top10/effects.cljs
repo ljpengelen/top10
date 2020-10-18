@@ -6,15 +6,15 @@
  :log-in-with-google
  (fn [{:keys [on-success on-failure]}]
    (js/window.signIn 
-    (fn [id-token] (rf/dispatch [on-success id-token])) 
-    #(rf/dispatch [on-failure]))))
+    (fn [id-token] (rf/dispatch (conj on-success id-token))) 
+    #(rf/dispatch on-failure))))
 
 (rf/reg-fx
  :log-out-with-google
  (fn [{:keys [on-success on-failure]}]
    (js/window.signOut
-    #(rf/dispatch [on-success])
-    #(rf/dispatch [on-failure]))))
+    (if on-success #(rf/dispatch on-success) #())
+    #(rf/dispatch on-failure))))
 
 (def access-token (atom nil))
 

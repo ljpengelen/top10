@@ -64,18 +64,32 @@
 (rf/reg-event-fx
  ::log-in
  (fn [_ _]
-   {:log-in-with-google {:on-success ::log-in-with-back-end
-                         :on-failure ::log-in-failed}}))
+   {:log-in-with-google {:on-success [::log-in-with-back-end]
+                         :on-failure [::log-in-failed]}}))
+
+(rf/reg-event-fx
+ ::log-out-with-back-end-succeeded
+ (fn [{:keys [db]} [_ response]]
+   (let [new-csrf-token (get-in response [:headers "x-csrf-token"])]
+     {:set-csrf-token new-csrf-token
+      :db (assoc-in db [:session :logged-in] false)})))
 
 (rf/reg-event-db
- ::log-out-succeeded
- (fn [db _]
-   (assoc-in db [:session :logged-in] false)))
-
+ ::log-out-failed
+ (fn [_ event]
+   (js/console.log event)))
 
 (rf/reg-event-fx
  ::log-out
- (fn [_ _]
-   {:log-out-with-google {:on-success ::log-out-succeeded
-                          :on-failure ::log-out-failed}
-    :set-access-token nil}))
+ [(rf/inject-cofx :csrf-token)]
+ (fn [{:keys [csrf-token]} _]
+   {:log-out-with-google {:on-failure [::log-out-failed]}
+    :set-access-token nil
+    :http-xhrio {:method :post
+                 :uri (str config/base-url "/session/logOut")
+                 :headers {"X-CSRF-Token" csrf-token}
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/ring-response-format)
+                 :with-credentials true
+                 :on-success [::log-out-with-back-end-succeeded]
+                 :on-failure [::log-out-failed]}}))

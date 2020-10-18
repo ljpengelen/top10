@@ -86,7 +86,7 @@ public class Application {
                                 deploy(new HeartbeatVerticle()),
                                 deploy(new HealthCheckVerticle(router)),
                                 deploy(new GoogleAccountVerticle(config.getJdbcOptions())),
-                                deploy(new LogInVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
+                                deploy(new SessionVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
                                 deploy(new SessionStatusVerticle(jwt, router, config.getJwtSecretKey())),
                                 deploy(new QuizHttpVerticle(router)),
                                 deploy(new QuizEntityVerticle(config.getJdbcOptions())))).onComplete(ar -> {

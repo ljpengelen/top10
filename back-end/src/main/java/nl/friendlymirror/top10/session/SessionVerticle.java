@@ -27,7 +27,7 @@ import nl.friendlymirror.top10.*;
 
 @Log4j2
 @RequiredArgsConstructor
-public class LogInVerticle extends AbstractVerticle {
+public class SessionVerticle extends AbstractVerticle {
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final Router router;
@@ -38,10 +38,11 @@ public class LogInVerticle extends AbstractVerticle {
         log.info("Starting");
 
         router.route(HttpMethod.POST, "/session/logIn").handler(BodyHandler.create());
-        router.route(HttpMethod.POST, "/session/logIn").handler(this::handle);
+        router.route(HttpMethod.POST, "/session/logIn").handler(this::handleLogIn);
+        router.route(HttpMethod.POST, "/session/logOut").handler(this::handleLogOut);
     }
 
-    private void handle(RoutingContext routingContext) {
+    private void handleLogIn(RoutingContext routingContext) {
         log.debug("Logging in");
 
         var requestBody = getRequestBodyAsJson(routingContext);
@@ -78,6 +79,20 @@ public class LogInVerticle extends AbstractVerticle {
                     .addCookie(cookie)
                     .end(sessionCreated(jwt));
         });
+    }
+
+    private void handleLogOut(RoutingContext routingContext) {
+        log.debug("Logging out");
+
+        var cookie = Cookie.cookie(JWT_COOKIE_NAME, "")
+                .setHttpOnly(true)
+                .setMaxAge(0)
+                .setPath("/");
+
+        routingContext.response()
+                .setStatusCode(201)
+                .addCookie(cookie)
+                .end();
     }
 
     private JsonObject getGoogleUserData(String idTokenString) {

@@ -26,7 +26,7 @@ import nl.friendlymirror.top10.http.BodyPublisher;
 import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
 
 @Log4j2
-class LogInVerticleTest extends AbstractVerticleTest {
+class SessionVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/logIn";
     private static final int INTERNAL_ID = 1234;
@@ -41,7 +41,7 @@ class LogInVerticleTest extends AbstractVerticleTest {
         var router = Router.router(vertx);
         ErrorHandlers.configure(router);
         server.requestHandler(router);
-        vertx.deployVerticle(new LogInVerticle(googleIdTokenVerifier, router, SECRET_KEY), deploymentResult -> {
+        vertx.deployVerticle(new SessionVerticle(googleIdTokenVerifier, router, SECRET_KEY), deploymentResult -> {
             if (deploymentResult.succeeded()) {
                 server.listen(port, vertxTestContext.completing());
             } else {

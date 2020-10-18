@@ -6,8 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.*;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
+import java.net.http.*;
 import java.security.GeneralSecurityException;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -98,7 +97,7 @@ public class SessionIntegrationTest {
                 .build();
         var allQuizzesRequest = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/quiz"))
                 .build();
         var allQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonObjectBodyHandler());
 
@@ -107,7 +106,7 @@ public class SessionIntegrationTest {
 
         allQuizzesRequest = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/echo"))
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/private/quiz"))
                 .header("Authorization", "Bearer invalidAccessToken")
                 .build();
         allQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonObjectBodyHandler());
@@ -153,5 +152,66 @@ public class SessionIntegrationTest {
         var successfulAllQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonArrayBodyHandler());
 
         assertThat(successfulAllQuizzesResponse.statusCode()).isEqualTo(200);
+    }
+
+    @Test
+    public void handlesLogout() throws GeneralSecurityException, IOException, InterruptedException {
+        var payload = mock(GoogleIdToken.Payload.class);
+        when(payload.getSubject()).thenReturn("googleId");
+        when(payload.getEmail()).thenReturn("jane.doe@example.org");
+        when(payload.get("name")).thenReturn("Jane Doe");
+        var googleIdToken = mock(GoogleIdToken.class);
+        when(googleIdToken.getPayload()).thenReturn(payload);
+        var validGoogleIdToken = "validGoogleIdToken";
+        when(googleIdTokenVerifier.verify(validGoogleIdToken)).thenReturn(googleIdToken);
+
+        var httpClient = HttpClient.newBuilder()
+                .cookieHandler(CookieHandler.getDefault())
+                .build();
+        var getStatusRequest = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/status"))
+                .header("Origin", config.getCsrfTarget())
+                .build();
+        var getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
+
+        var optionalCsrfToken = getStatusResponse.headers().firstValue("X-CSRF-Token");
+        assertThat(optionalCsrfToken).isNotEmpty();
+        var csrfToken = optionalCsrfToken.get();
+
+        var logInRequest = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject()
+                        .put("type", "GOOGLE")
+                        .put("token", validGoogleIdToken)))
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
+                .header("Origin", config.getCsrfTarget())
+                .header("X-CSRF-Token", csrfToken)
+                .build();
+        var logInResponse = httpClient.send(logInRequest, new JsonObjectBodyHandler());
+
+        assertThat(logInResponse.statusCode()).isEqualTo(200);
+        assertThat(logInResponse.body().getString("status")).isEqualTo("SESSION_CREATED");
+        var accessToken = logInResponse.body().getString("token");
+        assertThat(accessToken).isNotBlank();
+
+        getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
+        assertThat(getStatusResponse.body().getString("status")).isEqualTo("VALID_SESSION");
+
+        optionalCsrfToken = getStatusResponse.headers().firstValue("X-CSRF-Token");
+        assertThat(optionalCsrfToken).isNotEmpty();
+        csrfToken = optionalCsrfToken.get();
+
+        var logOutRequest = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logOut"))
+                .header("Origin", config.getCsrfTarget())
+                .header("X-CSRF-Token", csrfToken)
+                .build();
+        var logOutResponse = httpClient.send(logOutRequest, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(logOutResponse.statusCode()).isEqualTo(201);
+
+        getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
+        assertThat(getStatusResponse.body().getString("status")).isEqualTo("NO_SESSION");
     }
 }
