@@ -13,28 +13,12 @@
    (:session db)))
 
 (rf/reg-sub
- ::access-token
- 
- :<- [::session]
- 
- (fn [session _]
-   (:access-token session)))
-
-(rf/reg-sub
  ::checking-status
 
  :<- [::session]
 
  (fn [session _]
    (:checking-status session)))
-
-(rf/reg-sub
- ::csrf-token
-
- :<- [::session]
-
- (fn [session _]
-   (:csrf-token session)))
 
 (rf/reg-sub
  ::logged-in

@@ -15,47 +15,67 @@
  (fn [db [_ active-panel]]
    (assoc db :active-panel active-panel)))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::session-check-succeeded
- (fn [db [_ response]]
+ (fn [{:keys [db]} [_ response]]
    (let [status (get-in response [:body :status])
-         csrf-token (get-in response [:headers "x-csrf-token"])]
-     (js/console.log response)
-     (js/console.log status)
-     (js/console.log csrf-token)
-     (-> db
-         (assoc-in [:session :logged-in] (= "VALID_SESSION" status))
-         (assoc-in [:session :checking-status] false)
-         (assoc-in [:session :csrf-token] csrf-token)))))
+         new-csrf-token (get-in response [:headers "x-csrf-token"])]
+     {:set-csrf-token new-csrf-token
+      :db (-> db
+              (assoc-in [:session :logged-in] (= "VALID_SESSION" status))
+              (assoc-in [:session :checking-status] false))})))
+
+(def ring-json-response-format (ajax/ring-response-format {:format (ajax/json-response-format {:keywords? true})}))
 
 (rf/reg-event-fx
  ::check-status
  (fn [_ _]
    {:http-xhrio {:method :get
                  :uri (str config/base-url "/session/status")
-                 :response-format (ajax/ring-response-format {:format (ajax/json-response-format {:keywords? true})})
+                 :response-format ring-json-response-format
+                 :with-credentials true
                  :on-success [::session-check-succeeded]
                  :on-failure [::session-check-failed]}}))
 
-(rf/reg-event-db
- ::log-in-succeeded
- (fn [db [_ id-token]]
-   (js/console.log id-token)
-   (assoc-in db [:session :logged-in] true)))
+(rf/reg-event-fx
+ ::log-in-with-back-end-succeeded
+ (fn [{:keys [db]} [_ response]]
+   (let [status (get-in response [:body :status])
+         new-access-token (get-in response [:body :token])
+         new-csrf-token (get-in response [:headers "x-csrf-token"])]
+     {:set-access-token new-access-token
+      :set-csrf-token new-csrf-token
+      :db (assoc-in db [:session :logged-in] (= "SESSION_CREATED" status))})))
+
+(rf/reg-event-fx
+ ::log-in-with-back-end
+ [(rf/inject-cofx :csrf-token)]
+ (fn [{:keys [csrf-token]} [_ id-token]]
+   {:http-xhrio {:method :post
+                 :uri (str config/base-url "/session/logIn")
+                 :headers {"X-CSRF-Token" csrf-token}
+                 :params {:token id-token :type "GOOGLE"}
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :with-credentials true
+                 :on-success [::log-in-with-back-end-succeeded]
+                 :on-failure [::log-in-failed]}}))
 
 (rf/reg-event-fx
  ::log-in
  (fn [_ _]
-   {:log-in {:on-success ::log-in-succeeded
-             :on-failure ::log-in-failed}}))
+   {:log-in-with-google {:on-success ::log-in-with-back-end
+                         :on-failure ::log-in-failed}}))
 
 (rf/reg-event-db
  ::log-out-succeeded
  (fn [db _]
    (assoc-in db [:session :logged-in] false)))
 
+
 (rf/reg-event-fx
  ::log-out
  (fn [_ _]
-   {:log-out {:on-success ::log-out-succeeded
-             :on-failure ::log-out-failed}}))
+   {:log-out-with-google {:on-success ::log-out-succeeded
+                          :on-failure ::log-out-failed}
+    :set-access-token nil}))

@@ -2,7 +2,5 @@
 
 (def default-db
   {:active-panel :home-panel
-   :session {:access-token nil
-             :checking-status true
-             :csrf-token nil
+   :session {:checking-status true
              :logged-in false}})
