@@ -1,6 +1,6 @@
 (ns top10.db)
 
 (def default-db
-  {:active-panel :home-panel
+  {:active-page :home-page
    :session {:checking-status true
              :logged-in false}})
