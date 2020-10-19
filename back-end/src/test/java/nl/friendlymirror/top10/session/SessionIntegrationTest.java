@@ -29,6 +29,8 @@ import nl.friendlymirror.top10.http.*;
 @ExtendWith(VertxExtension.class)
 public class SessionIntegrationTest {
 
+    private static final String CSRF_TOKEN_HEADER_NAME = "x-csrf-token";
+
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
     private final TestConfig config = new TestConfig();
 
@@ -121,7 +123,7 @@ public class SessionIntegrationTest {
                 .build();
         var getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
 
-        var optionalCsrfToken = getStatusResponse.headers().firstValue("X-CSRF-Token");
+        var optionalCsrfToken = getStatusResponse.headers().firstValue(CSRF_TOKEN_HEADER_NAME);
         assertThat(optionalCsrfToken).isNotEmpty();
         var csrfToken = optionalCsrfToken.get();
 
@@ -131,7 +133,7 @@ public class SessionIntegrationTest {
                         .put("token", validGoogleIdToken)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
-                .header("X-CSRF-Token", csrfToken)
+                .header(CSRF_TOKEN_HEADER_NAME, csrfToken)
                 .build();
         var logInResponse = httpClient.send(logInRequest, new JsonObjectBodyHandler());
 
@@ -175,7 +177,7 @@ public class SessionIntegrationTest {
                 .build();
         var getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
 
-        var optionalCsrfToken = getStatusResponse.headers().firstValue("X-CSRF-Token");
+        var optionalCsrfToken = getStatusResponse.headers().firstValue(CSRF_TOKEN_HEADER_NAME);
         assertThat(optionalCsrfToken).isNotEmpty();
         var csrfToken = optionalCsrfToken.get();
 
@@ -185,7 +187,7 @@ public class SessionIntegrationTest {
                         .put("token", validGoogleIdToken)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
-                .header("X-CSRF-Token", csrfToken)
+                .header(CSRF_TOKEN_HEADER_NAME, csrfToken)
                 .build();
         var logInResponse = httpClient.send(logInRequest, new JsonObjectBodyHandler());
 
@@ -197,7 +199,7 @@ public class SessionIntegrationTest {
         getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
         assertThat(getStatusResponse.body().getString("status")).isEqualTo("VALID_SESSION");
 
-        optionalCsrfToken = getStatusResponse.headers().firstValue("X-CSRF-Token");
+        optionalCsrfToken = getStatusResponse.headers().firstValue(CSRF_TOKEN_HEADER_NAME);
         assertThat(optionalCsrfToken).isNotEmpty();
         csrfToken = optionalCsrfToken.get();
 
@@ -205,7 +207,7 @@ public class SessionIntegrationTest {
                 .POST(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logOut"))
                 .header("Origin", config.getCsrfTarget())
-                .header("X-CSRF-Token", csrfToken)
+                .header(CSRF_TOKEN_HEADER_NAME, csrfToken)
                 .build();
         var logOutResponse = httpClient.send(logOutRequest, HttpResponse.BodyHandlers.discarding());
 

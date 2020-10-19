@@ -27,7 +27,7 @@ class CsrfTokenHandlerTest {
 
     private static final String ENCODED_SECRET_KEY = "FsJtRGG84NM7BNewGo5AXvg6GJ1DKedDJjkirpDEAOtVgdi6j3f+THdeEika6v3dB8N4DO0fywkd+JK2A5eKLQ==";
     private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ENCODED_SECRET_KEY));
-    private static final String TOKEN_HEADER_NAME = "X-CSRF-Token";
+    private static final String TOKEN_HEADER_NAME = "x-csrf-token";
     private static final String CSRF_COOKIE_NAME = "csrf-token";
     private static final String CSRF_TOKEN_CLAIM_NAME = "csrfToken";
 
