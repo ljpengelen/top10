@@ -4,7 +4,7 @@
    [top10.events :as events]
    [top10.subs :as subs]))
 
-(defn home-panel []
+(defn home-page []
   (let [checking-status (rf/subscribe [::subs/checking-status])
         logged-in (rf/subscribe [::subs/logged-in])]
     [:div
@@ -14,23 +14,30 @@
         [:li [:a {:href "#" :onClick #(rf/dispatch [::events/log-out])} "Log out"]])
       (when (and (not @checking-status) (not @logged-in))
         [:li [:a {:href "#" :onClick #(rf/dispatch [::events/log-in])} "Log in"]])
-      [:li [:a {:href "#/quiz/1234"} "quiz page"]]]]))
+      [:li [:a {:href "#/quizzes"} "all quizzes page"]]
+      [:li [:a {:href "#/quiz/1234"} "single quiz page"]]]]))
 
-(defn about-panel []
+(defn quizzes-page []
   [:div
-   [:h1 "This is the About Page."]
+   [:h1 "All quizzes"]
    [:div
-    [:a {:href "#/"}
-     "go to Home Page"]]])
+    [:a {:href "#/"} "go to Home Page"]]])
 
-(defn- panels [panel-name]
-  (case panel-name
-    :home-panel [home-panel]
-    :about-panel [about-panel]
+(defn quiz-page []
+  [:div
+   [:h1 "Single quiz"]
+   [:div
+    [:a {:href "#/"} "go to Home Page"]]])
+
+(defn- pages [page-name]
+  (case page-name
+    :home-page [home-page]
+    :quizzes-page [quizzes-page]
+    :quiz-page [quiz-page]
     [:div]))
 
-(defn- show-panel [panel-name] [panels panel-name])
+(defn- show-page [page-name] [pages page-name])
 
 (defn main-panel []
-  (let [active-panel (rf/subscribe [::subs/active-panel])]
-    [show-panel @active-panel]))
+  (let [active-page (rf/subscribe [::subs/active-page])]
+    [show-page @active-page]))

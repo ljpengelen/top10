@@ -7,6 +7,7 @@
                  [thheller/shadow-cljs "2.11.4"]
                  [reagent "0.10.0"]
                  [re-frame "1.1.1"]
+                 [day8.re-frame/async-flow-fx "0.1.0"]
                  [day8.re-frame/http-fx "0.2.1"]
                  [clj-commons/secretary "1.2.4"]
                  [garden "1.3.10"]

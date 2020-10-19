@@ -1,6 +1,11 @@
 (ns top10.effects
   (:require
-   [re-frame.core :as rf]))
+   [re-frame.core :as rf]
+   [top10.routes :as routes]))
+
+(rf/reg-fx
+ :enable-browser-navigation
+ routes/enable-browser-navigation)
 
 (rf/reg-fx
  :log-in-with-google

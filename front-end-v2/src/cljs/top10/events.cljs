@@ -2,25 +2,46 @@
   (:require
    [ajax.core :as ajax]
    [re-frame.core :as rf]
-   [top10.config :as config]
+   [top10.config :refer [base-url csrf-token-header]]
    [top10.db :as db]))
 
-(rf/reg-event-db
- ::initialize-db
+(rf/reg-event-fx
+ ::enable-browser-navigation
  (fn [_ _]
-   db/default-db))
+   {:enable-browser-navigation nil}))
+
+(rf/reg-event-fx
+ ::initialize
+ (fn [_ _]
+   {:db db/default-db
+    :async-flow {:first-dispatch [::check-status]
+                 :rules [{:when :seen? :events ::session-check-succeeded :dispatch [::enable-browser-navigation]}]}}))
+
+(rf/reg-event-fx
+ ::set-active-page
+ (fn [{:keys [db]} [_ {:keys [page quiz-id]} ]]
+   (let [db-with-page (assoc db :active-page page)
+         logged-in? (get-in db [:session :logged-in])]
+     (case page
+       :quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
+                    logged-in? (assoc :dispatch [::get-quiz quiz-id]))
+       (:home-page :quizzes-page) {:db db-with-page}))))
 
 (rf/reg-event-db
- ::set-active-panel
- (fn [db [_ active-panel]]
-   (assoc db :active-panel active-panel)))
+ ::set-query
+ (fn [db [_ [query params]]]
+   (-> db
+       (assoc :query query)
+       (assoc :query-params params))))
 
 (rf/reg-event-fx
  ::session-check-succeeded
  (fn [{:keys [db]} [_ response]]
    (let [status (get-in response [:body :status])
-         new-csrf-token (get-in response [:headers "x-csrf-token"])]
-     {:set-csrf-token new-csrf-token
+         new-access-token (get-in response [:body :token])
+         new-csrf-token (get-in response [:headers csrf-token-header])]
+     {:set-access-token new-access-token
+      :set-csrf-token new-csrf-token
       :db (-> db
               (assoc-in [:session :logged-in] (= "VALID_SESSION" status))
               (assoc-in [:session :checking-status] false))})))
@@ -31,7 +52,7 @@
  ::check-status
  (fn [_ _]
    {:http-xhrio {:method :get
-                 :uri (str config/base-url "/session/status")
+                 :uri (str base-url "/session/status")
                  :response-format ring-json-response-format
                  :with-credentials true
                  :on-success [::session-check-succeeded]
@@ -42,7 +63,8 @@
  (fn [{:keys [db]} [_ response]]
    (let [status (get-in response [:body :status])
          new-access-token (get-in response [:body :token])
-         new-csrf-token (get-in response [:headers "x-csrf-token"])]
+         new-csrf-token (get-in response [:headers csrf-token-header])]
+     (js/console.log new-access-token)
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
       :db (assoc-in db [:session :logged-in] (= "SESSION_CREATED" status))})))
@@ -52,8 +74,8 @@
  [(rf/inject-cofx :csrf-token)]
  (fn [{:keys [csrf-token]} [_ id-token]]
    {:http-xhrio {:method :post
-                 :uri (str config/base-url "/session/logIn")
-                 :headers {"X-CSRF-Token" csrf-token}
+                 :uri (str base-url "/session/logIn")
+                 :headers {csrf-token-header csrf-token}
                  :params {:token id-token :type "GOOGLE"}
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
@@ -70,7 +92,7 @@
 (rf/reg-event-fx
  ::log-out-with-back-end-succeeded
  (fn [{:keys [db]} [_ response]]
-   (let [new-csrf-token (get-in response [:headers "x-csrf-token"])]
+   (let [new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-csrf-token new-csrf-token
       :db (assoc-in db [:session :logged-in] false)})))
 
@@ -86,10 +108,32 @@
    {:log-out-with-google {:on-failure [::log-out-failed]}
     :set-access-token nil
     :http-xhrio {:method :post
-                 :uri (str config/base-url "/session/logOut")
-                 :headers {"X-CSRF-Token" csrf-token}
+                 :uri (str base-url "/session/logOut")
+                 :headers {csrf-token-header csrf-token}
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
                  :with-credentials true
                  :on-success [::log-out-with-back-end-succeeded]
                  :on-failure [::log-out-failed]}}))
+
+(rf/reg-event-db
+ ::get-quiz-succeeded
+ (fn [db event]
+   (js/console.log db event)))
+
+(rf/reg-event-db
+ ::request-failed
+ (fn [_ event]
+   (js/console.log event)))
+
+(rf/reg-event-fx
+ ::get-quiz
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id]]
+   {:http-xhrio {:method :get
+                 :uri (str base-url "/private/quiz/" quiz-id)
+                 :headers {"Authorization" (str "Bearer " access-token)}
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :on-success [::get-quiz-succeeded]
+                 :on-failure [::request-failed]}}))

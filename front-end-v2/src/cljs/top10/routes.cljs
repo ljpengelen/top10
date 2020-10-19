@@ -4,20 +4,21 @@
   (:require
    [secretary.core :as secretary]
    [goog.events :as gevents]
-   [re-frame.core :as re-frame]
+   [re-frame.core :as rf]
    [top10.events :as events]))
 
 (def history (Html5History.))
 
 (defn nav! [token] (.setToken history token))
 
-(defn hook-browser-navigation! []
-  (doto history
-    (gevents/listen EventType/NAVIGATE (fn [event] (secretary/dispatch! (.-token ^js event))))
-    (.setEnabled true)))
+(defn set-up-browser-navigation! []
+  (gevents/listen history EventType/NAVIGATE (fn [event] (secretary/dispatch! (.-token ^js event)))))
+
+(defn enable-browser-navigation [] (.setEnabled history true))
 
 (defn app-routes []
   (secretary/set-config! :prefix "#")
-  (defroute "/" [] (re-frame/dispatch [::events/set-active-panel :home-panel]))
-  (defroute "/about" [] (re-frame/dispatch [::events/set-active-panel :about-panel]))
-  (hook-browser-navigation!))
+  (defroute "/" [] (rf/dispatch [::events/set-active-page {:page :home-page}]))
+  (defroute "/quizzes" [] (rf/dispatch [::events/set-active-page {:page :quizzes-page}]))
+  (defroute "/quiz/:id" [id] (js/console.log "single quiz")(rf/dispatch [::events/set-active-page {:page :quiz-page :quiz-id id}]))
+  (set-up-browser-navigation!))
