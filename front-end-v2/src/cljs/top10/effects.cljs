@@ -21,7 +21,7 @@
     (if on-success #(rf/dispatch on-success) #())
     #(rf/dispatch on-failure))))
 
-(def access-token (atom nil))
+(defonce access-token (atom nil))
 
 (rf/reg-fx
  :set-access-token
@@ -33,7 +33,7 @@
  (fn [cofx]
    (assoc cofx :access-token @access-token)))
 
-(def csrf-token (atom nil))
+(defonce csrf-token (atom nil))
 
 (rf/reg-fx
  :set-csrf-token
@@ -44,3 +44,8 @@
  :csrf-token
  (fn [cofx]
    (assoc cofx :csrf-token @csrf-token)))
+
+(rf/reg-fx
+ :redirect
+ (fn [url]
+   (routes/nav! url)))

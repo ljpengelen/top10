@@ -20,5 +20,6 @@
   (secretary/set-config! :prefix "#")
   (defroute "/" [] (rf/dispatch [::events/set-active-page {:page :home-page}]))
   (defroute "/quizzes" [] (rf/dispatch [::events/set-active-page {:page :quizzes-page}]))
-  (defroute "/quiz/:id" [id] (js/console.log "single quiz")(rf/dispatch [::events/set-active-page {:page :quiz-page :quiz-id id}]))
+  (defroute "/quiz/:id" [id] (rf/dispatch [::events/set-active-page {:page :quiz-page :quiz-id id}]))
+  (defroute "/create-quiz" [] (rf/dispatch [::events/set-active-page {:page :create-quiz-page}]))
   (set-up-browser-navigation!))

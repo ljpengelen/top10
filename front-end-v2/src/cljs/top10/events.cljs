@@ -25,7 +25,9 @@
      (case page
        :quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
                     logged-in? (assoc :dispatch [::get-quiz quiz-id]))
-       (:home-page :quizzes-page) {:db db-with-page}))))
+       :quizzes-page (cond-> {:db db-with-page}
+                       logged-in? (assoc :dispatch [::get-quizzes]))
+       (:home-page :create-quiz-page) {:db db-with-page}))))
 
 (rf/reg-event-db
  ::set-query
@@ -137,3 +139,43 @@
                  :response-format ring-json-response-format
                  :on-success [::get-quiz-succeeded]
                  :on-failure [::request-failed]}}))
+
+(rf/reg-event-db
+ ::get-quizzes-succeeded
+ (fn [db event]
+   (js/console.log db event)))
+
+(rf/reg-event-fx
+ ::get-quizzes
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} _]
+   {:http-xhrio {:method :get
+                 :uri (str base-url "/private/quiz/")
+                 :headers {"Authorization" (str "Bearer " access-token)}
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :on-success [::get-quizzes-succeeded]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-db
+ ::create-quiz-succeeded
+ (fn [db event]
+   (js/console.log db event)))
+
+(rf/reg-event-fx
+ ::create-quiz
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ {:keys [name deadline]}]]
+   {:http-xhrio {:method :post
+                 :uri (str base-url "/private/quiz")
+                 :headers {"Authorization" (str "Bearer " access-token)}
+                 :params {:name name :deadline (.-date deadline)}
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/ring-response-format)
+                 :on-success [::create-quiz-succeeded]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-fx
+ ::redirect
+ (fn [_ [_ url]]
+   {:redirect url}))

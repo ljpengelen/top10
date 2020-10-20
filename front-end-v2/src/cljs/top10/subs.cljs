@@ -8,6 +8,11 @@
    (:active-page db)))
 
 (rf/reg-sub
+ ::quizzes
+ (fn [db _]
+   (:quizzes db)))
+
+(rf/reg-sub
  ::session
  (fn [db _]
    (:session db)))
