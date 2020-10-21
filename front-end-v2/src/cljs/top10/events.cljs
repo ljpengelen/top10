@@ -120,8 +120,9 @@
 
 (rf/reg-event-db
  ::get-quiz-succeeded
- (fn [db event]
-   (js/console.log db event)))
+ (fn [db [_ response]]
+   (let [quiz (:body response)]
+     (assoc db :quiz quiz))))
 
 (rf/reg-event-db
  ::request-failed
@@ -142,8 +143,9 @@
 
 (rf/reg-event-db
  ::get-quizzes-succeeded
- (fn [db event]
-   (js/console.log db event)))
+ (fn [db [_ response]]
+   (let [quizzes (:body response)]
+     (assoc db :quizzes quizzes))))
 
 (rf/reg-event-fx
  ::get-quizzes

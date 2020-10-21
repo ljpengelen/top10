@@ -6,7 +6,12 @@
    [reagent-material-ui.core.button :refer [button]]
    [reagent-material-ui.pickers.date-picker :refer [date-picker]]
    [reagent-material-ui.core.grid :refer [grid]]
-   [reagent-material-ui.core.link :refer [link]]
+   [reagent-material-ui.core.table :refer [table]]
+   [reagent-material-ui.core.table-body :refer [table-body]]
+   [reagent-material-ui.core.table-cell :refer [table-cell]]
+   [reagent-material-ui.core.table-container :refer [table-container]]
+   [reagent-material-ui.core.table-head :refer [table-head]]
+   [reagent-material-ui.core.table-row :refer [table-row]]
    [reagent-material-ui.pickers.mui-pickers-utils-provider :refer [mui-pickers-utils-provider]]
    [reagent-material-ui.core.text-field :refer [text-field]]
    [re-frame.core :as rf]
@@ -29,21 +34,36 @@
 (defn quizzes-page [quizzes]
   [:div
    [:h1 "All quizzes"]
-   [:ul
-    (for [quiz quizzes]
-      ^{:key (:id quiz)} [:li (:name quiz)])]
-   [:ul
-    [:li [:a {:href "#/"} "Go home"]]
-    [:li [:a {:href "#/create-quiz"} "Create quiz"]]]])
+   [grid {:container true :direction "column" :spacing 2}
+    [grid {:item true}
+     [table-container
+      [table
+       [table-head
+        [table-row
+         [table-cell "Name"]
+         [table-cell "Deadline"]
+         [table-cell "Action"]]]
+       [table-body
+        (for [{:keys [id name deadline externalId]} quizzes]
+          ^{:key id}
+          [table-row
+           [table-cell name]
+           [table-cell deadline]
+           [table-cell [button {:href (str "#/quiz/" externalId) :color "secondary" :variant "contained"} "Show quiz"]]])]]]]
+    [grid {:item true}
+     [button {:href "#/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]]])
 
 (defn quizzes-page-container []
   [quizzes-page @(rf/subscribe [::subs/quizzes])])
 
-(defn quiz-page []
+(defn quiz-page [{:keys [name] :as quiz}]
   [:div
-   [:h1 "Single quiz"]
+   [:h1 name]
    [:div
     [:a {:href "#/"} "go to Home Page"]]])
+
+(defn quiz-page-container []
+  [quiz-page @(rf/subscribe [::subs/quiz])])
 
 (defn submit-quiz [event] (js/console.log event)(.preventDefault event))
 
@@ -93,7 +113,7 @@
   (case page-name
     :home-page [home-page]
     :quizzes-page [quizzes-page-container]
-    :quiz-page [quiz-page]
+    :quiz-page [quiz-page-container]
     :create-quiz-page [create-quiz-page]
     [:div]))
 

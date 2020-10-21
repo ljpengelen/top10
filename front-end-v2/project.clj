@@ -5,6 +5,7 @@
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
                  [thheller/shadow-cljs "2.11.4"]
+                 [com.andrewmcveigh/cljs-time "0.5.2"]
                  [arttuka/reagent-material-ui "4.11.0-3"]
                  [reagent "0.10.0"]
                  [re-frame "1.1.1"]
