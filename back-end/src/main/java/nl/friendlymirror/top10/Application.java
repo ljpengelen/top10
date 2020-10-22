@@ -21,8 +21,7 @@ import nl.friendlymirror.top10.healthcheck.HealthCheckVerticle;
 import nl.friendlymirror.top10.heartbeat.HeartbeatVerticle;
 import nl.friendlymirror.top10.jwt.Jwt;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
-import nl.friendlymirror.top10.quiz.QuizEntityVerticle;
-import nl.friendlymirror.top10.quiz.QuizHttpVerticle;
+import nl.friendlymirror.top10.quiz.*;
 import nl.friendlymirror.top10.session.*;
 import nl.friendlymirror.top10.session.csrf.CsrfHeaderChecker;
 import nl.friendlymirror.top10.session.csrf.CsrfTokenHandler;
@@ -89,7 +88,9 @@ public class Application {
                                 deploy(new SessionVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
                                 deploy(new SessionStatusVerticle(jwt, router, config.getJwtSecretKey())),
                                 deploy(new QuizHttpVerticle(router)),
-                                deploy(new QuizEntityVerticle(config.getJdbcOptions())))).onComplete(ar -> {
+                                deploy(new QuizEntityVerticle(config.getJdbcOptions())),
+                                deploy(new ListHttpVerticle(router)),
+                                deploy(new ListEntityVerticle(config.getJdbcOptions())))).onComplete(ar -> {
                             if (ar.succeeded()) {
                                 result.complete();
                             } else {
