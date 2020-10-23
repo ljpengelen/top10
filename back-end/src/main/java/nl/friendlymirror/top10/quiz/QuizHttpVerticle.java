@@ -129,7 +129,11 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         log.debug(String.format("Get quiz \"%s\"", externalId));
 
-        vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, externalId, quizReply -> {
+        var accountId = routingContext.user().principal().getInteger("accountId");
+        var getQuizRequest = new JsonObject()
+                .put("accountId", accountId)
+                .put("externalId", externalId);
+        vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, getQuizRequest, quizReply -> {
             if (quizReply.failed()) {
                 var cause = (ReplyException) quizReply.cause();
                 if (cause.failureCode() == 404) {
@@ -154,7 +158,11 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         log.debug("Get participants for quiz \"{}\"", externalId);
 
-        vertx.eventBus().request(GET_PARTICIPANTS_ADDRESS, externalId, participantsReply -> {
+        var accountId = routingContext.user().principal().getInteger("accountId");
+        var getParticipantsRequest = new JsonObject()
+                .put("accountId", accountId)
+                .put("externalId", externalId);
+        vertx.eventBus().request(GET_PARTICIPANTS_ADDRESS, getParticipantsRequest, participantsReply -> {
             if (participantsReply.failed()) {
                 var cause = (ReplyException) participantsReply.cause();
                 if (cause.failureCode() == 404) {

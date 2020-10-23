@@ -26,10 +26,12 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     public static final String PARTICIPATE_IN_QUIZ_ADDRESS = "entity.quiz.participate";
     public static final String GET_PARTICIPANTS_ADDRESS = "entity.quiz.participants";
 
-    private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
+    private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id FROM quiz q "
                                                            + "NATURAL JOIN participant p "
+                                                           + "JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
                                                            + "WHERE p.account_id = ?";
-    private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id FROM quiz q "
+    private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id FROM quiz q "
+                                                        + "LEFT JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
                                                         + "WHERE q.external_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
     private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET is_active = false WHERE creator_id = ? AND external_id = ?";
@@ -59,7 +61,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetAll(Message<Integer> getAllQuizzesRequest) {
         var accountId = getAllQuizzesRequest.body();
-        sqlClient.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(accountId), asyncQuizzes -> {
+        sqlClient.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(accountId).add(accountId), asyncQuizzes -> {
             if (asyncQuizzes.failed()) {
                 log.error("Unable to retrieve all quizzes for account ID \"{}\"", accountId, asyncQuizzes.cause());
                 getAllQuizzesRequest.fail(500, "Unable to retrieve all quizzes");
@@ -83,12 +85,15 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 .put("isActive", array.getBoolean(2))
                 .put("creatorId", array.getInteger(3))
                 .put("deadline", array.getInstant(4))
-                .put("externalId", array.getString(5));
+                .put("externalId", array.getString(5))
+                .put("listId", array.getInteger(6));
     }
 
-    private void handleGetOne(Message<String> getOneQuizRequest) {
-        var externalId = getOneQuizRequest.body();
-        withConnection(connection -> getQuiz(connection, externalId))
+    private void handleGetOne(Message<JsonObject> getOneQuizRequest) {
+        var body = getOneQuizRequest.body();
+        var externalId = body.getString("externalId");
+        var accountId = body.getInteger("accountId");
+        withConnection(connection -> getQuiz(connection, externalId, accountId))
                 .onSuccess(getOneQuizRequest::reply)
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {
@@ -99,10 +104,10 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 });
     }
 
-    private Future<JsonObject> getQuiz(SQLConnection connection, String externalId) {
+    private Future<JsonObject> getQuiz(SQLConnection connection, String externalId, Integer accountId) {
         var promise = Promise.<JsonObject> promise();
 
-        connection.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(externalId), asyncQuiz -> {
+        connection.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncQuiz -> {
             if (asyncQuiz.failed()) {
                 var cause = asyncQuiz.cause();
                 log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_ONE_QUIZ_TEMPLATE, externalId, cause);
@@ -170,7 +175,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
         var externalId = body.getString("externalId");
 
-        withTransaction(connection -> getQuiz(connection, externalId).compose(quiz -> {
+        withTransaction(connection -> getQuiz(connection, externalId, accountId).compose(quiz -> {
             if (accountId.equals(quiz.getInteger("creatorId"))) {
                 log.debug("Account \"{}\" is creator of quiz with external ID \"{}\"", accountId, externalId);
                 return completeQuiz(connection, accountId, externalId);
@@ -199,7 +204,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
 
         withTransaction(connection ->
-                getQuiz(connection, externalId).compose(quiz ->
+                getQuiz(connection, externalId, accountId).compose(quiz ->
                         CompositeFuture.all(
                                 participateInQuiz(connection, accountId, externalId),
                                 createList(connection, accountId, externalId))))
@@ -277,10 +282,12 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         return promise.future();
     }
 
-    private void handleGetAllParticipants(Message<String> getAllParticipantsRequest) {
-        var externalId = getAllParticipantsRequest.body();
+    private void handleGetAllParticipants(Message<JsonObject> getAllParticipantsRequest) {
+        var body = getAllParticipantsRequest.body();
+        var externalId = body.getString("externalId");
+        var accountId = body.getInteger("accountId");
         withTransaction(connection ->
-                getQuiz(connection, externalId)
+                getQuiz(connection, externalId, accountId)
                         .compose(quiz -> getAllParticipants(connection, externalId)))
                 .onSuccess(getAllParticipantsRequest::reply)
                 .onFailure(cause -> {

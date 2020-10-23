@@ -83,7 +83,11 @@ class QuizHttpVerticleTest {
     public void returnsSingleQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var quiz = new JsonObject().put("externalId", EXTERNAL_ID);
         vertx.eventBus().consumer("entity.quiz.getOne", request -> {
-            vertxTestContext.verify(() -> assertThat(request.body()).isEqualTo(EXTERNAL_ID));
+            vertxTestContext.verify(() -> {
+                var body = (JsonObject) request.body();
+                assertThat(body.getInteger("accountId")).isEqualTo(ACCOUNT_ID);
+                assertThat(body.getString("externalId")).isEqualTo(EXTERNAL_ID);
+            });
             request.reply(quiz);
         });
 
@@ -103,7 +107,11 @@ class QuizHttpVerticleTest {
     public void returns404GettingUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var errorMessage = "Quiz not found";
         vertx.eventBus().consumer("entity.quiz.getOne", request -> {
-            vertxTestContext.verify(() -> assertThat(request.body()).isEqualTo(EXTERNAL_ID));
+            vertxTestContext.verify(() -> {
+                var body = (JsonObject) request.body();
+                assertThat(body.getInteger("accountId")).isEqualTo(ACCOUNT_ID);
+                assertThat(body.getString("externalId")).isEqualTo(EXTERNAL_ID);
+            });
             request.fail(404, errorMessage);
         });
 
@@ -290,7 +298,11 @@ class QuizHttpVerticleTest {
     public void returnsParticipants(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var participants = new JsonArray().add(1).add(2);
         vertx.eventBus().consumer("entity.quiz.participants", request -> {
-            vertxTestContext.verify(() -> assertThat(request.body()).isEqualTo(EXTERNAL_ID));
+            vertxTestContext.verify(() -> {
+                var body = (JsonObject) request.body();
+                assertThat(body.getInteger("accountId")).isEqualTo(ACCOUNT_ID);
+                assertThat(body.getString("externalId")).isEqualTo(EXTERNAL_ID);
+            });
             request.reply(participants);
         });
 
@@ -309,9 +321,7 @@ class QuizHttpVerticleTest {
     @Test
     public void returns404GettingParticipantsForUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var errorMessage = "Not found";
-        vertx.eventBus().consumer("entity.quiz.participants", request -> {
-            request.fail(404, errorMessage);
-        });
+        vertx.eventBus().consumer("entity.quiz.participants", request -> request.fail(404, errorMessage));
 
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
