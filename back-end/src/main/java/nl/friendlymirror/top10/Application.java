@@ -10,6 +10,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 
 import io.vertx.core.*;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
 import lombok.SneakyThrows;
@@ -115,6 +116,7 @@ public class Application {
         var corsHandler = CorsHandler.create(config.getCsrfTarget())
                 .allowCredentials(true)
                 .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
+                .allowedMethod(HttpMethod.PUT)
                 .exposedHeader(CSRF_TOKEN_HEADER_NAME);
         router.route().handler(corsHandler);
 
