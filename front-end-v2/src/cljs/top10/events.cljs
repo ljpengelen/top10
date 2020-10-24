@@ -19,7 +19,7 @@
 
 (rf/reg-event-fx
  ::set-active-page
- (fn [{:keys [db]} [_ {:keys [page quiz-id]} ]]
+ (fn [{:keys [db]} [_ {:keys [page quiz-id list-id]} ]]
    (let [db-with-page (assoc db :active-page page)
          logged-in? (get-in db [:session :logged-in])]
      (case page
@@ -27,6 +27,8 @@
                     logged-in? (assoc :dispatch [::get-quiz quiz-id]))
        :quizzes-page (cond-> {:db db-with-page}
                        logged-in? (assoc :dispatch [::get-quizzes]))
+       :create-list-page (cond-> {:db (assoc db-with-page :active-list list-id)}
+                           logged-in? (assoc :dispatch [::get-list list-id]))
        (:home-page :create-quiz-page) {:db db-with-page}))))
 
 (rf/reg-event-db
@@ -66,7 +68,6 @@
    (let [status (get-in response [:body :status])
          new-access-token (get-in response [:body :token])
          new-csrf-token (get-in response [:headers csrf-token-header])]
-     (js/console.log new-access-token)
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
       :db (assoc-in db [:session :logged-in] (= "SESSION_CREATED" status))})))
@@ -125,21 +126,36 @@
      (assoc db :quiz quiz))))
 
 (rf/reg-event-db
+ ::get-quiz-lists-succeeded
+ (fn [db [_ response]]
+   (let [lists (:body response)]
+     (assoc db :quiz-lists lists))))
+
+(rf/reg-event-db
  ::request-failed
  (fn [_ event]
    (js/console.log event)))
+
+(defn authorization-header [access-token] {"Authorization" (str "Bearer " access-token)})
 
 (rf/reg-event-fx
  ::get-quiz
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
-   {:http-xhrio {:method :get
-                 :uri (str base-url "/private/quiz/" quiz-id)
-                 :headers {"Authorization" (str "Bearer " access-token)}
-                 :format (ajax/json-request-format)
-                 :response-format ring-json-response-format
-                 :on-success [::get-quiz-succeeded]
-                 :on-failure [::request-failed]}}))
+   {:http-xhrio [{:method :get
+                  :uri (str base-url "/private/quiz/" quiz-id)
+                  :headers (authorization-header access-token)
+                  :format (ajax/json-request-format)
+                  :response-format ring-json-response-format
+                  :on-success [::get-quiz-succeeded]
+                  :on-failure [::request-failed]}
+                 {:method :get
+                  :uri (str base-url "/private/quiz/" quiz-id "/list")
+                  :headers (authorization-header access-token)
+                  :format (ajax/json-request-format)
+                  :response-format ring-json-response-format
+                  :on-success [::get-quiz-lists-succeeded]
+                  :on-failure [::request-failed]}]}))
 
 (rf/reg-event-db
  ::get-quizzes-succeeded
@@ -153,7 +169,7 @@
  (fn [{:keys [access-token]} _]
    {:http-xhrio {:method :get
                  :uri (str base-url "/private/quiz/")
-                 :headers {"Authorization" (str "Bearer " access-token)}
+                 :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
                  :on-success [::get-quizzes-succeeded]
@@ -181,3 +197,77 @@
  ::redirect
  (fn [_ [_ url]]
    {:redirect url}))
+
+(rf/reg-event-db
+ ::add-video-succeeded
+ (fn [db [_ response]]
+   (let [video (:body response)]
+     (update-in db [:list :videos] conj video))))
+
+(rf/reg-event-fx
+ ::add-video
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ list-id url]]
+   {:http-xhrio {:method :post
+                 :uri (str base-url "/private/list/" list-id "/video")
+                 :headers (authorization-header access-token)
+                 :params {:url url}
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :on-success [::add-video-succeeded]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-db
+ ::remove-video-succeeded
+ (fn [db [_ video-id _]]
+   (let [old-videos (get-in db [:list :videos])
+         new-videos (remove (fn [video] (= video-id (:id video))) old-videos)]
+     (assoc-in db [:list :videos] new-videos))))
+
+(rf/reg-event-fx
+ ::remove-video
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ video-id]]
+   {:http-xhrio {:method :delete
+                 :uri (str base-url "/private/video/" video-id)
+                 :headers (authorization-header access-token)
+                 :params nil
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/ring-response-format)
+                 :on-success [::remove-video-succeeded video-id]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-db
+ ::get-list-succeeded
+ (fn [db [_ response]]
+   (let [list (:body response)]
+     (assoc db :list list))))
+
+(rf/reg-event-fx
+ ::get-list
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ list-id]]
+   {:http-xhrio {:method :get
+                 :uri (str base-url "/private/list/" list-id)
+                 :headers (authorization-header access-token)
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :on-success [::get-list-succeeded]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-fx
+ ::finalize-list-succeeded
+ (fn [_ _]
+   {:redirect "/quizzes"}))
+
+(rf/reg-event-fx
+ ::finalize-list
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ list-id]]
+   {:http-xhrio {:method :put
+                 :uri (str base-url "/private/list/" list-id "/finalize")
+                 :headers (authorization-header access-token)
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/ring-response-format)
+                 :on-success [::finalize-list-succeeded]
+                 :on-failure [::request-failed]}}))

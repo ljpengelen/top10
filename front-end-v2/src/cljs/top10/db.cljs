@@ -4,4 +4,5 @@
   {:active-page :home-page
    :session {:checking-status true
              :logged-in false}
-   :quizzes []})
+   :quizzes []
+   :quiz-lists []})

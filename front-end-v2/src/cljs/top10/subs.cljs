@@ -8,6 +8,11 @@
  (fn [db _]
    (:active-page db)))
 
+(rf/reg-sub
+ ::active-quiz
+ (fn [db _]
+   (:active-quiz db)))
+
 (defn format-date [date-string]
   (->> date-string
       (tf/parse)
@@ -23,7 +28,29 @@
  ::quiz
  (fn [db _]
    (let [quiz (:quiz db)]
-     (update quiz :deadline format-date))))
+     (if quiz (update quiz :deadline format-date) nil))))
+
+(rf/reg-sub
+ ::list
+ (fn [db _]
+   (:list db)))
+
+(rf/reg-sub
+ ::active-list
+ (fn [db _]
+   (:active-list db)))
+
+(rf/reg-sub
+ ::videos
+ :<- [::list]
+ (fn [list _]
+   (:videos list)))
+
+(rf/reg-sub
+ ::has-draft-status
+ :<- [::list]
+ (fn [list _]
+   (:hasDraftStatus list)))
 
 (rf/reg-sub
  ::session
