@@ -16,6 +16,7 @@ import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.*;
 import nl.friendlymirror.top10.quiz.dto.ListDto;
 import nl.friendlymirror.top10.quiz.dto.ListsDto;
+import nl.friendlymirror.top10.url.YouTubeUrl;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -146,10 +147,12 @@ public class ListHttpVerticle extends AbstractVerticle {
             throw new ValidationException("Request body is empty");
         }
 
-        var url = request.getString("url");
-        if (StringUtils.isBlank(url)) {
+        var submittedUrl = request.getString("url");
+        if (StringUtils.isBlank(submittedUrl)) {
             throw new ValidationException("URL is blank");
         }
+
+        var url = YouTubeUrl.toEmbeddableUrl(submittedUrl);
 
         return new JsonObject()
                 .put("accountId", accountId)
