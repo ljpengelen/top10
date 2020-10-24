@@ -21,7 +21,7 @@ class ListsDtoMessageCodecTest {
                 .quizId(321)
                 .hasDraftStatus(true)
                 .videos(List.of(VideoDto.builder()
-                        .videoId(654)
+                        .id(654)
                         .url("http://www.example.org")
                         .build()))
                 .build();

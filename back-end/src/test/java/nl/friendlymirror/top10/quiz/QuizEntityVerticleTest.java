@@ -161,7 +161,8 @@ class QuizEntityVerticleTest {
                     assertThat(quiz.getBoolean("isActive")).isTrue();
                     assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
                     assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID);
-                    assertThat(quiz.getInteger("listId")).isNotNull();
+                    assertThat(quiz.getInteger("personalListId")).isNotNull();
+                    assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
                 });
                 vertxTestContext.completeNow();
             });
@@ -263,7 +264,8 @@ class QuizEntityVerticleTest {
                         assertThat(quiz.getBoolean("isActive")).isTrue();
                         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
                         assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID);
-                        assertThat(quiz.getInteger("listId")).isNotNull();
+                        assertThat(quiz.getInteger("personalListId")).isNotNull();
+                        assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
                     });
                     vertxTestContext.completeNow();
                 }));

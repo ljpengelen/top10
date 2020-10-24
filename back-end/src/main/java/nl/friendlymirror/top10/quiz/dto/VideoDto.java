@@ -13,12 +13,12 @@ import lombok.Value;
 @Builder
 public class VideoDto {
 
-    Integer videoId;
+    Integer id;
     String url;
 
     public static VideoDto fromJsonObject(JsonObject jsonObject) {
         return VideoDto.builder()
-                .videoId(jsonObject.getInteger("videoId"))
+                .id(jsonObject.getInteger("id"))
                 .url(jsonObject.getString("url"))
                 .build();
     }
@@ -36,7 +36,7 @@ public class VideoDto {
 
     public JsonObject toJsonObject() {
         return new JsonObject()
-                .put("videoId", videoId)
+                .put("id", id)
                 .put("url", url);
     }
 

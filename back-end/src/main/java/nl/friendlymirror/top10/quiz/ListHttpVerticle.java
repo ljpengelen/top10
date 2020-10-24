@@ -112,7 +112,7 @@ public class ListHttpVerticle extends AbstractVerticle {
             routingContext.response()
                     .putHeader("content-type", "application/json")
                     .end(new JsonObject()
-                            .put("videoId", videoId)
+                            .put("id", videoId)
                             .put("url", addRequest.getString("url"))
                             .toBuffer());
         });

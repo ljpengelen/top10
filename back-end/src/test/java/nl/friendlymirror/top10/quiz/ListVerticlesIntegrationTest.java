@@ -277,7 +277,7 @@ class ListVerticlesIntegrationTest {
         var videos = body.getJsonArray("videos");
         assertThat(videos).hasSize(1);
         var video = videos.getJsonObject(0);
-        assertThat(video.getInteger("videoId")).isNotNull();
+        assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(URL_1);
 
         vertxTestContext.completeNow();
@@ -342,7 +342,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(URL_1);
 
         request = HttpRequest.newBuilder()
@@ -353,7 +353,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         body = addVideoResponse.body();
-        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(URL_2);
 
         request = HttpRequest.newBuilder()
@@ -368,10 +368,10 @@ class ListVerticlesIntegrationTest {
         var videos = list.getJsonArray("videos");
         assertThat(videos).hasSize(2);
         var video = videos.getJsonObject(0);
-        assertThat(video.getInteger("videoId")).isNotNull();
+        assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(URL_1);
         video = videos.getJsonObject(1);
-        assertThat(video.getInteger("videoId")).isNotNull();
+        assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(URL_2);
 
         vertxTestContext.completeNow();
@@ -419,7 +419,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(URL_1);
 
         request = HttpRequest.newBuilder()
@@ -430,10 +430,10 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         body = addVideoResponse.body();
-        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(URL_2);
 
-        var videoId = body.getInteger("videoId");
+        var videoId = body.getInteger("id");
 
         request = HttpRequest.newBuilder()
                 .DELETE()

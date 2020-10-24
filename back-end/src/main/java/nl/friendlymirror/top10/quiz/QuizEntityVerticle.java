@@ -26,11 +26,12 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     public static final String PARTICIPATE_IN_QUIZ_ADDRESS = "entity.quiz.participate";
     public static final String GET_PARTICIPANTS_ADDRESS = "entity.quiz.participants";
 
-    private static final String GET_ALL_QUIZZES_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id FROM quiz q "
-                                                           + "NATURAL JOIN participant p "
-                                                           + "JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
-                                                           + "WHERE p.account_id = ?";
-    private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id FROM quiz q "
+    private static final String GET_ALL_QUIZZES_TEMPLATE =
+            "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id, l.has_draft_status FROM quiz q "
+            + "NATURAL JOIN participant p "
+            + "JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
+            + "WHERE p.account_id = ?";
+    private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id, l.has_draft_status FROM quiz q "
                                                         + "LEFT JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
                                                         + "WHERE q.external_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
@@ -86,7 +87,8 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 .put("creatorId", array.getInteger(3))
                 .put("deadline", array.getInstant(4))
                 .put("externalId", array.getString(5))
-                .put("listId", array.getInteger(6));
+                .put("personalListId", array.getInteger(6))
+                .put("personalListHasDraftStatus", array.getBoolean(7));
     }
 
     private void handleGetOne(Message<JsonObject> getOneQuizRequest) {

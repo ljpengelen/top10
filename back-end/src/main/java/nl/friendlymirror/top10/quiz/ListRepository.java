@@ -117,7 +117,7 @@ public class ListRepository {
             asyncVideos.result().getRows().forEach(row -> {
                 var listId = row.getInteger("list_id");
                 var videoDto = VideoDto.builder()
-                        .videoId(row.getInteger("video_id"))
+                        .id(row.getInteger("video_id"))
                         .url(row.getString("url"))
                         .build();
                 videosForLists.get(listId).add(videoDto);
