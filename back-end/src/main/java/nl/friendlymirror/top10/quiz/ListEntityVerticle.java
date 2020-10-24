@@ -23,6 +23,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
     public static final String GET_ALL_LISTS_FOR_ACCOUNT_ADDRESS = "entity.list.getAllForAccount";
     public static final String GET_ONE_LIST_ADDRESS = "entity.list.getOne";
     public static final String ADD_VIDEO_ADDRESS = "entity.list.addVideo";
+    public static final String DELETE_VIDEO_ADDRESS = "entity.list.deleteVideo";
     public static final String FINALIZE_LIST_ADDRESS = "entity.list.finalize";
     public static final String ASSIGN_LIST_ADDRESS = "entity.list.assign";
 
@@ -40,6 +41,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         vertx.eventBus().consumer(GET_ALL_LISTS_FOR_ACCOUNT_ADDRESS, this::handleGetAllForAccount);
         vertx.eventBus().consumer(GET_ONE_LIST_ADDRESS, this::handleGetOne);
         vertx.eventBus().consumer(ADD_VIDEO_ADDRESS, this::handleAddVideo);
+        vertx.eventBus().consumer(DELETE_VIDEO_ADDRESS, this::handleDeleteVideo);
         vertx.eventBus().consumer(FINALIZE_LIST_ADDRESS, this::handleFinalizeList);
         vertx.eventBus().consumer(ASSIGN_LIST_ADDRESS, this::handleAssignList);
     }
@@ -102,6 +104,23 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                 }))
                 .onSuccess(addVideoRequest::reply)
                 .onFailure(cause -> handleFailure(cause, addVideoRequest));
+    }
+
+    private void handleDeleteVideo(Message<JsonObject> deleteVideoRequest) {
+        var body = deleteVideoRequest.body();
+        var videoId = body.getInteger("videoId");
+        var accountId = body.getInteger("accountId");
+
+        withTransaction(connection ->
+                listRepository.getListByVideoId(connection, videoId).compose(listDto -> {
+                    if (accountId.equals(listDto.getAccountId())) {
+                        return listRepository.deleteVideo(connection, videoId);
+                    } else {
+                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listDto.getListId())));
+                    }
+                }))
+                .onSuccess(deleteVideoRequest::reply)
+                .onFailure(cause -> handleFailure(cause, deleteVideoRequest));
     }
 
     private void handleFinalizeList(Message<JsonObject> finalizeListRequest) {

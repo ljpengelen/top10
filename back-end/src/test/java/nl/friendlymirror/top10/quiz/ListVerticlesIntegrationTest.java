@@ -46,6 +46,7 @@ class ListVerticlesIntegrationTest {
     private static final String EXTERNAL_ID_2 = "pqrstuvw";
     private static final String URL_1 = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
     private static final String URL_2 = "https://www.youtube.com/watch?v=FAkj8KiHxjg";
+    private static final String URL_3 = "https://www.youtube.com/watch?v=66H4uoJkQ9g&t=2826s";
 
     private final int port = RandomPort.get();
 
@@ -57,6 +58,7 @@ class ListVerticlesIntegrationTest {
     private int listId1;
     private int listId2;
     private int listId3;
+    private int videoId;
 
     @BeforeAll
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -114,6 +116,8 @@ class ListVerticlesIntegrationTest {
         listId1 = createList(connection, accountId1, quizId1);
         listId2 = createList(connection, accountId2, quizId1);
         listId3 = createList(connection, accountId3, quizId2);
+
+        videoId = createVideo(connection, listId3, URL_3);
     }
 
     private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
@@ -137,6 +141,18 @@ class ListVerticlesIntegrationTest {
     private int createList(Connection connection, int accountId, int quizId) throws SQLException {
         var listTemplate = "INSERT INTO list (account_id, quiz_id, has_draft_status) VALUES (%d, %d, true)";
         var query = String.format(listTemplate, accountId, quizId);
+        var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+        statement.execute();
+
+        var generatedKeys = statement.getGeneratedKeys();
+        generatedKeys.next();
+
+        return generatedKeys.getInt(1);
+    }
+
+    private int createVideo(Connection connection, int listId, String url) throws SQLException {
+        var listTemplate = "INSERT INTO video (list_id, url) VALUES (%d, '%s')";
+        var query = String.format(listTemplate, listId, url);
         var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
@@ -325,6 +341,9 @@ class ListVerticlesIntegrationTest {
         var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+        var body = addVideoResponse.body();
+        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getString("url")).isEqualTo(URL_1);
 
         request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_2)))
@@ -333,6 +352,9 @@ class ListVerticlesIntegrationTest {
         addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+        body = addVideoResponse.body();
+        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getString("url")).isEqualTo(URL_2);
 
         request = HttpRequest.newBuilder()
                 .GET()
@@ -382,6 +404,75 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(404);
         assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void deletesVideoFromOwnList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_1)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
+                .build();
+        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+        var body = addVideoResponse.body();
+        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getString("url")).isEqualTo(URL_1);
+
+        request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", URL_2)))
+                .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/video"))
+                .build();
+        addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+        body = addVideoResponse.body();
+        assertThat(body.getInteger("videoId")).isNotNull();
+        assertThat(body.getString("url")).isEqualTo(URL_2);
+
+        var videoId = body.getInteger("videoId");
+
+        request = HttpRequest.newBuilder()
+                .DELETE()
+                .uri(URI.create("http://localhost:" + port + "/private/video/" + videoId))
+                .build();
+        var deleteResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(deleteResponse.statusCode()).isEqualTo(201);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotDeleteVideoFromListOfOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .DELETE()
+                .uri(URI.create("http://localhost:" + port + "/private/video/" + videoId))
+                .build();
+        var deleteVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(deleteVideoResponse.statusCode()).isEqualTo(403);
+        assertThat(deleteVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" did not create list \"%d\"", accountId1, listId3));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotDeleteNonExistingVideo(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var nonExistingVideoId = 0;
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .DELETE()
+                .uri(URI.create("http://localhost:" + port + "/private/video/" + nonExistingVideoId))
+                .build();
+        var addVideoResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(404);
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List for video ID \"%d\" not found", nonExistingVideoId));
 
         vertxTestContext.completeNow();
     }

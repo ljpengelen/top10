@@ -35,6 +35,7 @@ public class ListHttpVerticle extends AbstractVerticle {
         router.route(HttpMethod.POST, "/private/list/:listId/video")
                 .handler(BodyHandler.create())
                 .handler(this::handleAddVideo);
+        router.route(HttpMethod.DELETE, "/private/video/:videoId").handler(this::handleDeleteVideo);
 
         router.route(HttpMethod.PUT, "/private/list/:listId/finalize").handler(this::handleFinalize);
 
@@ -106,11 +107,36 @@ public class ListHttpVerticle extends AbstractVerticle {
 
             log.debug("Added video");
 
+            var videoId = (Integer) addVideoReply.result().body();
+
             routingContext.response()
                     .putHeader("content-type", "application/json")
                     .end(new JsonObject()
+                            .put("videoId", videoId)
                             .put("url", addRequest.getString("url"))
                             .toBuffer());
+        });
+    }
+
+    private void handleDeleteVideo(RoutingContext routingContext) {
+        log.debug("Delete video");
+
+        var accountId = routingContext.user().principal().getInteger("accountId");
+        var videoId = toInteger(routingContext.pathParam("videoId"));
+        var deleteRequest = new JsonObject()
+                .put("accountId", accountId)
+                .put("videoId", videoId);
+        vertx.eventBus().request(DELETE_VIDEO_ADDRESS, deleteRequest, deleteVideoReply -> {
+            if (deleteVideoReply.failed()) {
+                handleFailure(deleteVideoReply.cause(), routingContext);
+                return;
+            }
+
+            log.debug("Deleted video");
+
+            routingContext.response()
+                    .setStatusCode(201)
+                    .end();
         });
     }
 

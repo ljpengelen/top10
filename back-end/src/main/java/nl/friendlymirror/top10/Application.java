@@ -116,7 +116,7 @@ public class Application {
         var corsHandler = CorsHandler.create(config.getCsrfTarget())
                 .allowCredentials(true)
                 .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
-                .allowedMethod(HttpMethod.PUT)
+                .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT))
                 .exposedHeader(CSRF_TOKEN_HEADER_NAME);
         router.route().handler(corsHandler);
 

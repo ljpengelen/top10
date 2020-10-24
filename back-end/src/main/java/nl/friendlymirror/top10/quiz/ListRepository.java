@@ -9,8 +9,7 @@ import io.vertx.core.*;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.extern.log4j.Log4j2;
-import nl.friendlymirror.top10.ForbiddenException;
-import nl.friendlymirror.top10.NotFoundException;
+import nl.friendlymirror.top10.*;
 import nl.friendlymirror.top10.quiz.dto.*;
 
 @Log4j2
@@ -32,7 +31,12 @@ public class ListRepository {
                                                         + "NATURAL RIGHT JOIN list l "
                                                         + "LEFT JOIN assignment a ON l.list_id = a.list_id "
                                                         + "WHERE l.list_id = ?";
+    private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE = "SELECT l.list_id, l.has_draft_status, a.assignee_id, l.quiz_id, l.account_id FROM video v "
+                                                                + "NATURAL RIGHT JOIN list l "
+                                                                + "LEFT JOIN assignment a ON l.list_id = a.list_id "
+                                                                + "WHERE v.video_id = ?";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) VALUES (?, ?) ON CONFLICT DO NOTHING";
+    private static final String DELETE_VIDEO_TEMPLATE = "DELETE FROM video WHERE video_id = ?";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
                                                        + "ON CONFLICT (list_id, account_id) DO "
@@ -157,8 +161,40 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> addVideo(SQLConnection connection, Integer listId, String url) {
-        var promise = Promise.<Void> promise();
+    public Future<ListDto> getListByVideoId(SQLConnection connection, Integer videoId) {
+        var promise = Promise.<ListDto> promise();
+
+        var parameters = new JsonArray().add(videoId);
+        connection.querySingleWithParams(GET_LIST_BY_VIDEO_ID_TEMPLATE, parameters, asyncList -> {
+            if (asyncList.failed()) {
+                handleFailure(promise, GET_LIST_BY_VIDEO_ID_TEMPLATE, parameters, asyncList);
+                return;
+            }
+
+            log.debug("Retrieved list by video ID");
+
+            var row = asyncList.result();
+            if (row == null) {
+                log.debug("List for video ID \"{}\" not found", videoId);
+                promise.fail(new NotFoundException(String.format("List for video ID \"%d\" not found", videoId)));
+            } else {
+                var listDto = ListDto.builder()
+                        .listId(row.getInteger(0))
+                        .hasDraftStatus(row.getBoolean(1))
+                        .assigneeId(row.getInteger(2))
+                        .quizId(row.getInteger(3))
+                        .accountId(row.getInteger(4))
+                        .build();
+                log.debug("Retrieved list by video ID \"{}\": \"{}\"", videoId, listDto);
+                promise.complete(listDto);
+            }
+        });
+
+        return promise.future();
+    }
+
+    public Future<Integer> addVideo(SQLConnection connection, Integer listId, String url) {
+        var promise = Promise.<Integer> promise();
 
         var parameters = new JsonArray().add(listId).add(url);
         connection.updateWithParams(ADD_VIDEO_TEMPLATE, parameters, asyncAddVideo -> {
@@ -168,10 +204,33 @@ public class ListRepository {
             }
 
             var numberOfAffectedRows = asyncAddVideo.result().getUpdated();
-            if (numberOfAffectedRows > 0) {
+            if (numberOfAffectedRows == 1) {
                 log.debug("Added video");
+                promise.complete(asyncAddVideo.result().getKeys().getInteger(0));
             } else {
                 log.debug("Unable to add video");
+                promise.fail(new InternalServerErrorException(String.format("Updated \"%d\" rows when adding video", numberOfAffectedRows)));
+            }
+        });
+
+        return promise.future();
+    }
+
+    public Future<Void> deleteVideo(SQLConnection connection, Integer videoId) {
+        var promise = Promise.<Void> promise();
+
+        var parameters = new JsonArray().add(videoId);
+        connection.updateWithParams(DELETE_VIDEO_TEMPLATE, parameters, asyncDeleteVideo -> {
+            if (asyncDeleteVideo.failed()) {
+                handleFailure(promise, DELETE_VIDEO_TEMPLATE, parameters, asyncDeleteVideo);
+                return;
+            }
+
+            var numberOfAffectedRows = asyncDeleteVideo.result().getUpdated();
+            if (numberOfAffectedRows > 0) {
+                log.debug("Deleted video");
+            } else {
+                log.debug("Unable to delete video");
             }
 
             promise.complete();
