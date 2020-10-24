@@ -113,8 +113,19 @@
   (let [new-url (r/atom nil)]
     (fn [list-id has-draft-status? videos]
       [:div
-       [:h1 "New top 10"]
-       [:p "Pick 10 songs."]
+       [:h1 "Your top 10"]
+       (if has-draft-status?
+         [:<>
+          [:p (str
+               "Pick 10 songs that represent your taste in music. "
+               "Just copy any YouTube URL from the address bar of your browser and click the button to add a video to your list. "
+               "You can use the button below each video to remove it. ")]
+          [:p (str
+               "Once you've added 10 videos, you can submit the list. "
+               "You can't change your top 10 after submitting.")]]
+         [:p (str
+          "These are the 10 songs you picked for this quiz. "
+          "To keep things fair, you can't make any changes anymore.")])
        [grid {:container true :direction "column" :spacing 2}
         (for [video videos]
           ^{:key (:id video)}
@@ -130,7 +141,7 @@
                [button {:on-click #(rf/dispatch [::events/remove-video (:id video)])} "Remove video"]])]])
         (when has-draft-status?
           [grid {:item true}
-           (let [is-complete? (= 2 (count videos))]
+           (let [is-complete? (= 10 (count videos))]
              [:form {:on-submit (fn [event]
                                   (.preventDefault event)
                                   (when @new-url
@@ -152,7 +163,9 @@
                  (when is-complete? [grid {:item true}
                                      [button {:color "primary"
                                               :on-click #(rf/dispatch [::events/finalize-list list-id])
-                                              :variant "contained"} "Submit top 10"]])]]]])])]])))
+                                              :variant "contained"} "Submit top 10"]])]]]])])
+        [grid {:item true}
+         [button {:href "#/quizzes"} "Back to quiz overview"]]]])))
 
 (defn create-list-page-container []
   [create-list-page @(rf/subscribe [::subs/active-list]) @(rf/subscribe [::subs/has-draft-status]) @(rf/subscribe [::subs/videos])])
