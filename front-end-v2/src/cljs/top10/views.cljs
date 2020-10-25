@@ -41,20 +41,16 @@
         [table-row
          [table-cell "Name"]
          [table-cell "Deadline"]
-         [table-cell {:colSpan "3"} "Action"]]]
+         [table-cell "Personal list"]
+         [table-cell "Action"]]]
        [table-body
-        (for [{:keys [id name deadline deadline-has-passed? externalId personalListId personalListHasDraftStatus]} quizzes]
+        (for [{:keys [id name deadline deadline-has-passed? externalId personalListHasDraftStatus]} quizzes]
           ^{:key id}
           [table-row
            [table-cell name]
            [table-cell (if deadline-has-passed? "Closed for participation" deadline)]
-           [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]
-           [table-cell (if deadline-has-passed?
-                         "No list submitted before deadline"
-                         [link {:href (str "#/list/" personalListId) :color "primary"}
-                          (if personalListHasDraftStatus
-                            "Submit top 10"
-                            "View top 10")])]])]]]]
+           [table-cell (if personalListHasDraftStatus "No list submitted" "List submitted")]
+           [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]])]]]]
     [grid {:item true}
      [button {:href "#/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]]])
 
