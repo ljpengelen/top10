@@ -132,6 +132,12 @@
      (assoc db :quiz-lists lists))))
 
 (rf/reg-event-db
+ ::get-quiz-participants-succeeded
+ (fn [db [_ response]]
+   (let [participants (:body response)]
+     (assoc db :quiz-participants participants))))
+
+(rf/reg-event-db
  ::request-failed
  (fn [_ event]
    (js/console.log event)))
@@ -155,6 +161,13 @@
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
                   :on-success [::get-quiz-lists-succeeded]
+                  :on-failure [::request-failed]}
+                 {:method :get
+                  :uri (str base-url "/private/quiz/" quiz-id "/participants")
+                  :headers (authorization-header access-token)
+                  :format (ajax/json-request-format)
+                  :response-format ring-json-response-format
+                  :on-success [::get-quiz-participants-succeeded]
                   :on-failure [::request-failed]}]}))
 
 (rf/reg-event-db
