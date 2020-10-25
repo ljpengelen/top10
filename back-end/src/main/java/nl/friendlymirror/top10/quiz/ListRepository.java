@@ -56,7 +56,7 @@ public class ListRepository {
 
             var listDtos = asyncLists.result().getRows().stream()
                     .map(row -> ListDto.builder()
-                            .listId(row.getInteger("list_id"))
+                            .id(row.getInteger("list_id"))
                             .assigneeId(row.getInteger("assignee_id"))
                             .build())
                     .collect(Collectors.toList());
@@ -89,7 +89,7 @@ public class ListRepository {
 
             var listDtos = asyncLists.result().getRows().stream()
                     .map(row -> ListDto.builder()
-                            .listId(row.getInteger("list_id"))
+                            .id(row.getInteger("list_id"))
                             .build())
                     .collect(Collectors.toList());
 
@@ -147,7 +147,7 @@ public class ListRepository {
                 promise.fail(new NotFoundException(String.format("List \"%d\" not found", listId)));
             } else {
                 var listDto = ListDto.builder()
-                        .listId(row.getInteger(0))
+                        .id(row.getInteger(0))
                         .hasDraftStatus(row.getBoolean(1))
                         .assigneeId(row.getInteger(2))
                         .quizId(row.getInteger(3))
@@ -179,7 +179,7 @@ public class ListRepository {
                 promise.fail(new NotFoundException(String.format("List for video ID \"%d\" not found", videoId)));
             } else {
                 var listDto = ListDto.builder()
-                        .listId(row.getInteger(0))
+                        .id(row.getInteger(0))
                         .hasDraftStatus(row.getBoolean(1))
                         .assigneeId(row.getInteger(2))
                         .quizId(row.getInteger(3))

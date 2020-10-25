@@ -9,7 +9,7 @@ import lombok.*;
 @Builder(toBuilder = true)
 public class ListDto {
 
-    Integer listId;
+    Integer id;
     Integer accountId;
     Integer quizId;
     Integer assigneeId;
@@ -19,7 +19,7 @@ public class ListDto {
 
     public static ListDto fromJsonObject(JsonObject jsonObject) {
         return ListDto.builder()
-                .listId(jsonObject.getInteger("listId"))
+                .id(jsonObject.getInteger("id"))
                 .quizId(jsonObject.getInteger("quizId"))
                 .accountId(jsonObject.getInteger("accountId"))
                 .assigneeId(jsonObject.getInteger("assigneeId"))
@@ -29,8 +29,7 @@ public class ListDto {
     }
 
     public JsonObject toJsonObject() {
-        var jsonObject = new JsonObject()
-                .put("listId", listId);
+        var jsonObject = new JsonObject().put("id", id);
 
         if (accountId != null)
             jsonObject.put("accountId", accountId);

@@ -15,7 +15,7 @@ class ListDtoMessageCodecTest {
     @Test
     public void encodesListDto() {
         var listDto = ListDto.builder()
-                .listId(123)
+                .id(123)
                 .accountId(456)
                 .assigneeId(789)
                 .quizId(321)

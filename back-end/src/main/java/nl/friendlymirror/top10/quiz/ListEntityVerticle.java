@@ -59,13 +59,13 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         withTransaction(connection -> listRepository.getAllListsForAccount(connection, accountId)
                 .compose(listDtos -> {
                     var listIds = listDtos.stream()
-                            .map(ListDto::getListId)
+                            .map(ListDto::getId)
                             .mapToInt(i -> i)
                             .toArray();
                     return listRepository.getVideosForLists(connection, listIds)
                             .compose(videosForList -> Future.succeededFuture(listDtos.stream()
                                     .map(listDto -> listDto.toBuilder()
-                                            .videos(videosForList.get(listDto.getListId()))
+                                            .videos(videosForList.get(listDto.getId()))
                                             .build())
                                     .collect(Collectors.toList())));
                 }))
@@ -80,7 +80,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection -> listRepository.getList(connection, listId).compose(list ->
                 listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
-                        listRepository.getVideosForLists(connection, list.getListId()).compose(videosForList ->
+                        listRepository.getVideosForLists(connection, list.getId()).compose(videosForList ->
                                 Future.succeededFuture(list.toBuilder()
                                         .videos(videosForList.getOrDefault(listId, Collections.emptyList()))
                                         .build())))))
@@ -116,7 +116,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                     if (accountId.equals(listDto.getAccountId())) {
                         return listRepository.deleteVideo(connection, videoId);
                     } else {
-                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listDto.getListId())));
+                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listDto.getId())));
                     }
                 }))
                 .onSuccess(deleteVideoRequest::reply)

@@ -46,7 +46,6 @@ class ListVerticlesIntegrationTest {
     private static final String EXTERNAL_ID_2 = "pqrstuvw";
     private static final String URL_1 = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
     private static final String URL_2 = "https://www.youtube.com/watch?v=FAkj8KiHxjg";
-    private static final String URL_3 = "https://www.youtube.com/watch?v=66H4uoJkQ9g&t=2826s";
     private static final String EMBEDDABLE_URL_1 = "https://www.youtube-nocookie.com/embed/RBgcN9lrZ3g";
     private static final String EMBEDDABLE_URL_2 = "https://www.youtube-nocookie.com/embed/FAkj8KiHxjg";
     private static final String EMBEDDABLE_URL_3 = "https://www.youtube-nocookie.com/embed/66H4uoJkQ9g";
@@ -120,7 +119,7 @@ class ListVerticlesIntegrationTest {
         listId2 = createList(connection, accountId2, quizId1);
         listId3 = createList(connection, accountId3, quizId2);
 
-        videoId = createVideo(connection, listId3, URL_3);
+        videoId = createVideo(connection, listId3, EMBEDDABLE_URL_3);
     }
 
     private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
@@ -213,7 +212,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.body()).isNotNull();
         assertThat(listResponse.body()).hasSize(1);
         var list = listResponse.body().getJsonObject(0);
-        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getInteger("id")).isEqualTo(listId1);
         assertThat(list.getInteger("assigneeId")).isNull();
 
         request = HttpRequest.newBuilder()
@@ -234,7 +233,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.body()).isNotNull();
         assertThat(listResponse.body()).hasSize(1);
         list = listResponse.body().getJsonObject(0);
-        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getInteger("id")).isEqualTo(listId1);
         assertThat(list.getInteger("assigneeId")).isEqualTo(accountId2);
 
         vertxTestContext.completeNow();
@@ -252,7 +251,7 @@ class ListVerticlesIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).hasSize(1);
         var list = response.body().getJsonObject(0);
-        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getInteger("id")).isEqualTo(listId1);
         vertxTestContext.completeNow();
     }
 
@@ -275,7 +274,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(getListResponse.statusCode()).isEqualTo(200);
         var body = getListResponse.body();
-        assertThat(body.getInteger("listId")).isEqualTo(listId1);
+        assertThat(body.getInteger("id")).isEqualTo(listId1);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
         var videos = body.getJsonArray("videos");
         assertThat(videos).hasSize(1);
@@ -313,7 +312,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(200);
         var body = response.body();
-        assertThat(body.getInteger("listId")).isEqualTo(listId2);
+        assertThat(body.getInteger("id")).isEqualTo(listId2);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
         assertThat(body.getJsonArray("videos")).isEmpty();
         vertxTestContext.completeNow();
@@ -367,7 +366,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
-        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getInteger("id")).isEqualTo(listId1);
         var videos = list.getJsonArray("videos");
         assertThat(videos).hasSize(2);
         var video = videos.getJsonObject(0);
@@ -499,7 +498,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
-        assertThat(list.getInteger("listId")).isEqualTo(listId1);
+        assertThat(list.getInteger("id")).isEqualTo(listId1);
         assertThat(list.getJsonArray("videos")).isEmpty();
         assertThat(list.getBoolean("hasDraftStatus")).isFalse();
 
@@ -556,7 +555,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
-        assertThat(list.getInteger("listId")).isEqualTo(listId2);
+        assertThat(list.getInteger("id")).isEqualTo(listId2);
         assertThat(list.getInteger("assigneeId")).isEqualTo(accountId2);
 
         request = HttpRequest.newBuilder()
@@ -575,7 +574,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         list = listResponse.body();
-        assertThat(list.getInteger("listId")).isEqualTo(listId2);
+        assertThat(list.getInteger("id")).isEqualTo(listId2);
         assertThat(list.getInteger("assigneeId")).isEqualTo(accountId1);
 
         vertxTestContext.completeNow();
