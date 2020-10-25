@@ -1,10 +1,9 @@
 (ns top10.views
-  (:import (goog.i18n DateTimeSymbols_en_US))
   (:require
    [reagent.core :as r]
-   [reagent-material-ui.cljs-time-utils :refer [cljs-time-utils]]
+   ["@date-io/dayjs" :as dayjs-utils]
    [reagent-material-ui.core.button :refer [button]]
-   [reagent-material-ui.pickers.date-picker :refer [date-picker]]
+   [reagent-material-ui.pickers.date-time-picker :refer [date-time-picker]]
    [reagent-material-ui.core.grid :refer [grid]]
    [reagent-material-ui.core.link :refer [link]]
    [reagent-material-ui.core.table :refer [table]]
@@ -81,27 +80,32 @@
         "Everyone who wants to participate must have submitted their top 10 before the deadline has passed."]
        [:p "After everyone has submitted their top 10, it's time to start matching people and top 10s."]
        [:div
-        [mui-pickers-utils-provider {:utils cljs-time-utils :locale DateTimeSymbols_en_US}
+        [mui-pickers-utils-provider {:utils dayjs-utils}
          [:form {:on-submit (fn [event]
                               (.preventDefault event)
                               (if-not @deadline
                                 (reset! deadline-error true)
-                                (do
-                                  (rf/dispatch [::events/create-quiz {:name @name :deadline @deadline}])
-                                  (rf/dispatch [::events/redirect "/quizzes"]))))}
+                                (rf/dispatch [::events/create-quiz {:name @name :deadline @deadline}])))}
           [grid {:container true :direction "column" :spacing 3}
-           [grid {:item true}
-            [text-field {:label "Name" :value @name :required true :on-change #(reset! name (event-value %))}]]
-           [grid {:item true}
-            [date-picker {:error @deadline-error
-                          :disablePast true
-                          :format "MMMM d, yyyy"
-                          :label "Deadline"
-                          :on-change (fn [new-deadline]
-                                       (reset! deadline-error false)
-                                       (reset! deadline new-deadline))
-                          :required true
-                          :value @deadline}]]
+           [grid {:item true :xs 6}
+            [text-field {:fullWidth true
+                         :label "Name"
+                         :on-change #(reset! name (event-value %))
+                         :required true
+                         :value @name}]]
+           [grid {:item true :xs 6}
+            [date-time-picker {:autoOk true
+                               :ampm false
+                               :disablePast true
+                               :error @deadline-error
+                               :fullWidth true
+                               :format "MMMM D, YYYY HH:mm"
+                               :label "Deadline"
+                               :on-change (fn [new-deadline]
+                                            (reset! deadline-error false)
+                                            (reset! deadline new-deadline))
+                               :required true
+                               :value @deadline}]]
            [grid {:item true}
             [grid {:container true :direction "row" :spacing 2}
              [grid {:item true}

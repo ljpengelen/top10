@@ -175,10 +175,10 @@
                  :on-success [::get-quizzes-succeeded]
                  :on-failure [::request-failed]}}))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::create-quiz-succeeded
- (fn [db event]
-   (js/console.log db event)))
+ (fn [_ _]
+   {:redirect "/quizzes"}))
 
 (rf/reg-event-fx
  ::create-quiz
@@ -187,16 +187,11 @@
    {:http-xhrio {:method :post
                  :uri (str base-url "/private/quiz")
                  :headers {"Authorization" (str "Bearer " access-token)}
-                 :params {:name name :deadline (.-date deadline)}
+                 :params {:name name :deadline deadline}
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
                  :on-success [::create-quiz-succeeded]
                  :on-failure [::request-failed]}}))
-
-(rf/reg-event-fx
- ::redirect
- (fn [_ [_ url]]
-   {:redirect url}))
 
 (rf/reg-event-db
  ::add-video-succeeded

@@ -1,6 +1,6 @@
 (ns top10.subs
   (:require
-   [cljs-time.format :as tf]
+   ["dayjs" :as dayjs]
    [re-frame.core :as rf]))
 
 (rf/reg-sub
@@ -14,9 +14,8 @@
    (:active-quiz db)))
 
 (defn format-date [date-string]
-  (->> date-string
-      (tf/parse)
-      (tf/unparse (tf/formatter "MMM d, yyyy"))))
+  (-> (dayjs date-string)
+      (.format "MMMM D, YYYY HH:mm")))
 
 (rf/reg-sub
  ::quizzes
