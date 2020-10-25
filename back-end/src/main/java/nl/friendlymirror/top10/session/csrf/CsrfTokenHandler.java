@@ -4,8 +4,6 @@ import java.util.Set;
 
 import javax.crypto.SecretKey;
 
-import org.apache.commons.math3.random.RandomDataGenerator;
-
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.Handler;
@@ -16,6 +14,7 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.jwt.Jwt;
+import nl.friendlymirror.top10.random.TokenGenerator;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -31,8 +30,6 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
     private static final String CSRF_TOKEN_COOKIE_NAME = "csrf-token";
     private static final String CSRF_TOKEN_CLAIM_NAME = "csrfToken";
-
-    private final RandomDataGenerator randomDataGenerator = new RandomDataGenerator();
 
     private final Jwt jwt;
     private final SecretKey secretKey;
@@ -81,14 +78,10 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
         return tokenInJws.equals(tokenInHeader);
     }
 
-    private String generateToken() {
-        return randomDataGenerator.nextSecureHexString(24);
-    }
-
     private void setCsrfTokens(HttpServerResponse response) {
         log.debug("Setting CSRF token in header and cookie");
 
-        var token = generateToken();
+        var token = TokenGenerator.generateToken();
         response.putHeader(CSRF_TOKEN_HEADER_NAME, token);
 
         var jwt = Jwts.builder()

@@ -10,6 +10,7 @@ import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.entity.AbstractEntityVerticle;
+import nl.friendlymirror.top10.random.TokenGenerator;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -19,7 +20,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
 
     private static final String GET_ACCOUNT_ID_TEMPLATE = "SELECT a.account_id FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
     private static final String UPDATE_STATISTICS_TEMPLATE = "UPDATE account SET last_login_at = NOW(), number_of_logins = number_of_logins + 1 WHERE account_id = ?";
-    private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins) VALUES (?, ?, NOW(), NOW(), 1)";
+    private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins, external_id) VALUES (?, ?, NOW(), NOW(), 1, ?)";
     private static final String CREATE_GOOGLE_ACCOUNT_TEMPLATE = "INSERT INTO google_account (account_id, google_account_id) VALUES (?, ?)";
 
     private final JsonObject jdbcOptions;
@@ -120,7 +121,8 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
     private Future<Integer> createAccount(SQLConnection connection, String name, String emailAddress) {
         var promise = Promise.<Integer> promise();
 
-        var params = new JsonArray().add(name).add(emailAddress);
+        var externalId = TokenGenerator.generateToken();
+        var params = new JsonArray().add(name).add(emailAddress).add(externalId);
         connection.updateWithParams(CREATE_ACCOUNT_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();

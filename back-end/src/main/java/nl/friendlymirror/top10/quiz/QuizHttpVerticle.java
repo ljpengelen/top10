@@ -5,7 +5,6 @@ import static nl.friendlymirror.top10.quiz.QuizEntityVerticle.*;
 import java.time.Instant;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.math3.random.RandomDataGenerator;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.ReplyException;
@@ -18,12 +17,11 @@ import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.*;
+import nl.friendlymirror.top10.random.TokenGenerator;
 
 @Log4j2
 @RequiredArgsConstructor
 public class QuizHttpVerticle extends AbstractVerticle {
-
-    private final RandomDataGenerator randomDataGenerator = new RandomDataGenerator();
 
     private final Router router;
 
@@ -102,7 +100,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
         return new JsonObject()
                 .put("creatorId", accountId)
                 .put("deadline", deadline)
-                .put("externalId", randomDataGenerator.nextSecureHexString(32))
+                .put("externalId", TokenGenerator.generateToken())
                 .put("name", name);
     }
 
