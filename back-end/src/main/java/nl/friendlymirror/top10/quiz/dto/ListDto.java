@@ -3,7 +3,8 @@ package nl.friendlymirror.top10.quiz.dto;
 import java.util.List;
 
 import io.vertx.core.json.JsonObject;
-import lombok.*;
+import lombok.Builder;
+import lombok.Value;
 
 @Value
 @Builder(toBuilder = true)
@@ -14,7 +15,6 @@ public class ListDto {
     Integer quizId;
     String assigneeId;
     Boolean hasDraftStatus;
-    @Singular
     List<VideoDto> videos;
 
     public static ListDto fromJsonObject(JsonObject jsonObject) {
