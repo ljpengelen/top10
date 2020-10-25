@@ -13,21 +13,26 @@
  (fn [db _]
    (:active-quiz db)))
 
-(defn format-date [date-string]
-  (-> (dayjs date-string)
-      (.format "MMMM D, YYYY HH:mm")))
+(defn extend-quiz [quiz]
+  (let [deadline (:deadline quiz)
+        dayjs-deadline (dayjs deadline)
+        formatted-deadline (.format dayjs-deadline "MMMM D, YYYY HH:mm")
+        deadline-has-passed? (.isAfter (dayjs) dayjs-deadline)]
+    (-> quiz
+        (assoc :deadline formatted-deadline)
+        (assoc :deadline-has-passed? deadline-has-passed?))))
 
 (rf/reg-sub
  ::quizzes
  (fn [db _]
    (let [quizzes (:quizzes db)]
-     (map #(update % :deadline format-date) quizzes))))
+     (map extend-quiz quizzes))))
 
 (rf/reg-sub
  ::quiz
  (fn [db _]
-   (let [quiz (:quiz db)]
-     (if quiz (update quiz :deadline format-date) nil))))
+   (if-let [quiz (:quiz db)]
+     (extend-quiz quiz))))
 
 (rf/reg-sub
  ::list
@@ -52,22 +57,30 @@
    (:hasDraftStatus list)))
 
 (rf/reg-sub
+ ::quiz-participants
+ (fn [db _]
+   (:quiz-participants db)))
+
+(rf/reg-sub
+ ::number-of-participants
+ :<- [::quiz-participants]
+ (fn [quiz-participants _]
+   (js/console.log quiz-participants)
+   (count quiz-participants)))
+
+(rf/reg-sub
  ::session
  (fn [db _]
    (:session db)))
 
 (rf/reg-sub
  ::checking-status
-
  :<- [::session]
-
  (fn [session _]
    (:checking-status session)))
 
 (rf/reg-sub
  ::logged-in
-
  :<- [::session]
-
  (fn [session _]
    (:logged-in session)))

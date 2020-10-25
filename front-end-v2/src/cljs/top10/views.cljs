@@ -43,28 +43,49 @@
          [table-cell "Deadline"]
          [table-cell {:colSpan "3"} "Action"]]]
        [table-body
-        (for [{:keys [id name deadline externalId personalListId personalListHasDraftStatus]} quizzes]
+        (for [{:keys [id name deadline deadline-has-passed? externalId personalListId personalListHasDraftStatus]} quizzes]
           ^{:key id}
           [table-row
            [table-cell name]
-           [table-cell deadline]
-           [table-cell [link {:href (str "#/quiz/" externalId) :color "secondary"} "Show"]]
-           [table-cell [link {:href (str "#/list/" personalListId) :color "secondary"}
-                        (if personalListHasDraftStatus "Submit top 10" "View top 10")]]])]]]]
+           [table-cell (if deadline-has-passed? "Closed for participation" deadline)]
+           [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]
+           [table-cell (if deadline-has-passed?
+                         "No list submitted before deadline"
+                         [link {:href (str "#/list/" personalListId) :color "primary"}
+                          (if personalListHasDraftStatus
+                            "Submit top 10"
+                            "View top 10")])]])]]]]
     [grid {:item true}
      [button {:href "#/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]]])
 
 (defn quizzes-page-container []
   [quizzes-page @(rf/subscribe [::subs/quizzes])])
 
-(defn quiz-page [{:keys [name]}]
+(defn quiz-page [{:keys [name deadline deadline-has-passed? personalListId personalListHasDraftStatus]} number-of-participants]
   [:div
    [:h1 name]
-   [:div
-    [:a {:href "#/"} "go to Home Page"]]])
+   (if deadline-has-passed?
+     [:<>
+      [:p "This quiz has reached the final round. "]]
+     [:<>
+      [:p
+       (str 
+        "At the moment, this quiz has " number-of-participants " " (if (> number-of-participants 1) "participants" "participant") ". "
+        "Anyone who wants to join has until " deadline " to submit their personal top 10.") ]
+      (if personalListHasDraftStatus
+        [:p (str
+             "Remember, you still have to submit your personal top 10 for this quiz! "
+             "You can only join the final round when you've submitted a top 10.")]
+        [:p (str "You've already submitted your personal top 10 for this quiz.")])
+      [grid {:container true :spacing 2}
+       [grid {:item true}
+        [button {:href (str "#/list/" personalListId) :color "primary" :variant "contained"}
+         (if personalListHasDraftStatus "Submit top 10" "View top 10")]]
+       [grid {:item true}
+        [button {:href "#/quizzes"} "Back to quiz overview"]]]])])
 
 (defn quiz-page-container []
-  [quiz-page @(rf/subscribe [::subs/quiz])])
+  [quiz-page @(rf/subscribe [::subs/quiz]) @(rf/subscribe [::subs/number-of-participants])])
 
 (defn event-value [^js/Event e] (.. e -target -value))
 
@@ -123,13 +144,13 @@
           [:p (str
                "Pick 10 songs that represent your taste in music. "
                "Just copy any YouTube URL from the address bar of your browser and click the button to add a video to your list. "
-               "You can use the button below each video to remove it. ")]
+               "You can use the button below each video to remove it.")]
           [:p (str
                "Once you've added 10 videos, you can submit the list. "
                "You can't change your top 10 after submitting.")]]
          [:p (str
-          "These are the 10 songs you picked for this quiz. "
-          "To keep things fair, you can't make any changes anymore.")])
+              "These are the 10 songs you picked for this quiz. "
+              "Do you think anyone will know they're yours?")])
        [grid {:container true :direction "column" :spacing 2}
         (for [video videos]
           ^{:key (:id video)}
@@ -156,6 +177,7 @@
                 [text-field {:disabled is-complete?
                              :label "YouTube URL"
                              :on-change #(reset! new-url (event-value %))
+                             :required true
                              :value @new-url}]]
                [grid {:item true}
                 [grid {:container true :spacing 2}
