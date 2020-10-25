@@ -65,7 +65,6 @@
  ::number-of-participants
  :<- [::quiz-participants]
  (fn [quiz-participants _]
-   (js/console.log quiz-participants)
    (count quiz-participants)))
 
 (rf/reg-sub
