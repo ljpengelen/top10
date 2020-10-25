@@ -144,7 +144,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var body = assignListRequest.body();
         var accountId = body.getInteger("accountId");
         var listId = body.getInteger("listId");
-        var assigneeId = body.getInteger("assigneeId");
+        var assigneeId = body.getString("assigneeId");
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto ->

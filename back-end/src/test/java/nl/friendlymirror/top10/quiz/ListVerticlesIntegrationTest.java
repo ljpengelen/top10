@@ -39,11 +39,14 @@ class ListVerticlesIntegrationTest {
     private static final String EMAIL_ADDRESS_1 = "john.doe@example.com";
     private static final String EMAIL_ADDRESS_2 = "jane.doe@example.org";
     private static final String EMAIL_ADDRESS_3 = "jeff.doe@example.co.uk";
+    private static final String EXTERNAL_ACCOUNT_ID_1 = "123456789";
+    private static final String EXTERNAL_ACCOUNT_ID_2 = "987654321";
+    private static final String EXTERNAL_ACCOUNT_ID_3 = "123581321";
 
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant DEADLINE = Instant.now();
-    private static final String EXTERNAL_ID_1 = "abcdefg";
-    private static final String EXTERNAL_ID_2 = "pqrstuvw";
+    private static final String EXTERNAL_QUIZ_ID_1 = "abcdefg";
+    private static final String EXTERNAL_QUIZ_ID_2 = "pqrstuvw";
     private static final String URL_1 = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
     private static final String URL_2 = "https://www.youtube.com/watch?v=FAkj8KiHxjg";
     private static final String EMBEDDABLE_URL_1 = "https://www.youtube-nocookie.com/embed/RBgcN9lrZ3g";
@@ -83,18 +86,18 @@ class ListVerticlesIntegrationTest {
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
-        accountId1 = createUser(connection, USERNAME_1, EMAIL_ADDRESS_1);
-        accountId2 = createUser(connection, USERNAME_2, EMAIL_ADDRESS_2);
-        accountId3 = createUser(connection, USERNAME_3, EMAIL_ADDRESS_3);
+        accountId1 = createUser(connection, USERNAME_1, EMAIL_ADDRESS_1, EXTERNAL_ACCOUNT_ID_1);
+        accountId2 = createUser(connection, USERNAME_2, EMAIL_ADDRESS_2, EXTERNAL_ACCOUNT_ID_2);
+        accountId3 = createUser(connection, USERNAME_3, EMAIL_ADDRESS_3, EXTERNAL_ACCOUNT_ID_3);
     }
 
     private Connection getConnection() throws SQLException {
         return DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
     }
 
-    private int createUser(Connection connection, String username, String emailAddress) throws SQLException {
-        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at) VALUES ('%s', '%s', NOW(), NOW())";
-        var query = String.format(accountQueryTemplate, username, emailAddress);
+    private int createUser(Connection connection, String username, String emailAddress, String externalId) throws SQLException {
+        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at, external_id) VALUES ('%s', '%s', NOW(), NOW(), %s)";
+        var query = String.format(accountQueryTemplate, username, emailAddress, externalId);
         var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
@@ -108,8 +111,8 @@ class ListVerticlesIntegrationTest {
         var connection = getConnection();
         connection.prepareStatement("TRUNCATE TABLE quiz CASCADE").execute();
 
-        quizId1 = createQuiz(connection, accountId1, EXTERNAL_ID_1);
-        quizId2 = createQuiz(connection, accountId3, EXTERNAL_ID_2);
+        quizId1 = createQuiz(connection, accountId1, EXTERNAL_QUIZ_ID_1);
+        quizId2 = createQuiz(connection, accountId3, EXTERNAL_QUIZ_ID_2);
 
         participate(connection, accountId1, quizId1);
         participate(connection, accountId2, quizId1);
@@ -187,7 +190,7 @@ class ListVerticlesIntegrationTest {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_1 + "/list"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID_1 + "/list"))
                 .build();
         var listResponse = httpClient.send(request, new JsonArrayBodyHandler());
 
@@ -204,7 +207,7 @@ class ListVerticlesIntegrationTest {
 
         request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_1 + "/list"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID_1 + "/list"))
                 .build();
         listResponse = httpClient.send(request, new JsonArrayBodyHandler());
 
@@ -216,7 +219,7 @@ class ListVerticlesIntegrationTest {
         assertThat(list.getInteger("assigneeId")).isNull();
 
         request = HttpRequest.newBuilder()
-                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId2)))
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", EXTERNAL_ACCOUNT_ID_2)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId1 + "/assign"))
                 .build();
         var assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
@@ -225,7 +228,7 @@ class ListVerticlesIntegrationTest {
 
         request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_1 + "/list"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID_1 + "/list"))
                 .build();
         listResponse = httpClient.send(request, new JsonArrayBodyHandler());
 
@@ -234,7 +237,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.body()).hasSize(1);
         list = listResponse.body().getJsonObject(0);
         assertThat(list.getInteger("id")).isEqualTo(listId1);
-        assertThat(list.getInteger("assigneeId")).isEqualTo(accountId2);
+        assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
 
         vertxTestContext.completeNow();
     }
@@ -540,7 +543,7 @@ class ListVerticlesIntegrationTest {
     public void assignsList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId2)))
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", EXTERNAL_ACCOUNT_ID_2)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
                 .build();
         var assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
@@ -556,10 +559,10 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
         assertThat(list.getInteger("id")).isEqualTo(listId2);
-        assertThat(list.getInteger("assigneeId")).isEqualTo(accountId2);
+        assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
 
         request = HttpRequest.newBuilder()
-                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId1)))
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", EXTERNAL_ACCOUNT_ID_1)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
                 .build();
         assignResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
@@ -575,7 +578,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         list = listResponse.body();
         assertThat(list.getInteger("id")).isEqualTo(listId2);
-        assertThat(list.getInteger("assigneeId")).isEqualTo(accountId1);
+        assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
 
         vertxTestContext.completeNow();
     }
@@ -584,13 +587,13 @@ class ListVerticlesIntegrationTest {
     public void doesNotAssignListToAccountOutsideQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId3)))
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", EXTERNAL_ACCOUNT_ID_3)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId2 + "/assign"))
                 .build();
         var assignResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(assignResponse.statusCode()).isEqualTo(403);
-        var expectedMessage = String.format("Account \"%d\" does not participate in quiz with ID \"%s\"", accountId3, quizId1);
+        var expectedMessage = String.format("Account with external ID \"%s\" does not participate in quiz with ID \"%s\"", EXTERNAL_ACCOUNT_ID_3, quizId1);
         assertThat(assignResponse.body().getString("error")).isEqualTo(expectedMessage);
 
         vertxTestContext.completeNow();

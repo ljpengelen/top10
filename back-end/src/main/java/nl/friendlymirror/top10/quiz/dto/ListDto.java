@@ -12,7 +12,7 @@ public class ListDto {
     Integer id;
     Integer accountId;
     Integer quizId;
-    Integer assigneeId;
+    String assigneeId;
     Boolean hasDraftStatus;
     @Singular
     List<VideoDto> videos;
@@ -22,7 +22,7 @@ public class ListDto {
                 .id(jsonObject.getInteger("id"))
                 .quizId(jsonObject.getInteger("quizId"))
                 .accountId(jsonObject.getInteger("accountId"))
-                .assigneeId(jsonObject.getInteger("assigneeId"))
+                .assigneeId(jsonObject.getString("assigneeId"))
                 .hasDraftStatus(jsonObject.getBoolean("hasDraftStatus"))
                 .videos(VideoDto.fromJsonArray(jsonObject.getJsonArray("videos")))
                 .build();

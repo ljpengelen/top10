@@ -38,7 +38,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET is_active = false WHERE creator_id = ? AND external_id = ?";
     private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (account_id, quiz_id) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?)) ON CONFLICT DO NOTHING";
     private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?), true) ON CONFLICT DO NOTHING";
-    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.account_id, a.name FROM account a "
+    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.external_id, a.name FROM account a "
                                                             + "NATURAL JOIN participant p "
                                                             + "JOIN quiz q ON p.quiz_id = q.quiz_id "
                                                             + "WHERE q.external_id = ?";
@@ -327,7 +327,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private JsonObject participantArrayToJsonObject(JsonArray array) {
         return new JsonObject()
-                .put("id", array.getInteger(0))
+                .put("id", array.getString(0))
                 .put("name", array.getString(1));
     }
 }

@@ -243,7 +243,7 @@ public class ListHttpVerticle extends AbstractVerticle {
             throw new ValidationException("Request body is empty");
         }
 
-        var assigneeId = toInteger(request.getString("assigneeId"));
+        var assigneeId = request.getString("assigneeId");
         var listId = toInteger(routingContext.pathParam("listId"));
 
         return new JsonObject()

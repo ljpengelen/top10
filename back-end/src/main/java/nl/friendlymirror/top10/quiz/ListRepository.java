@@ -15,9 +15,10 @@ import nl.friendlymirror.top10.quiz.dto.*;
 @Log4j2
 public class ListRepository {
 
-    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id, a.assignee_id FROM list l "
+    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id, acc.external_id FROM list l "
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                                  + "LEFT JOIN assignment a ON l.list_id = a.list_id "
+                                                                  + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+                                                                  + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
                                                                   + "WHERE q.external_id = ? AND NOT l.has_draft_status";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url FROM video v WHERE v.list_id = ANY (?)";
@@ -26,19 +27,23 @@ public class ListRepository {
                                                                    + "WHERE p.account_id = ? AND l.list_id = ?";
     private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(p.account_id) FROM quiz q "
                                                                         + "JOIN participant p ON q.quiz_id = p.quiz_id "
-                                                                        + "WHERE p.account_id = ? AND q.quiz_id = ?";
-    private static final String GET_ONE_LIST_TEMPLATE = "SELECT l.list_id, l.has_draft_status, a.assignee_id, l.quiz_id, l.account_id FROM video v "
+                                                                        + "JOIN account a ON p.account_id = a.account_id "
+                                                                        + "WHERE a.external_id = ? AND q.quiz_id = ?";
+    private static final String GET_ONE_LIST_TEMPLATE = "SELECT l.list_id, l.has_draft_status, acc.external_id, l.quiz_id, l.account_id FROM video v "
                                                         + "NATURAL RIGHT JOIN list l "
-                                                        + "LEFT JOIN assignment a ON l.list_id = a.list_id "
+                                                        + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+                                                        + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
                                                         + "WHERE l.list_id = ?";
-    private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE = "SELECT l.list_id, l.has_draft_status, a.assignee_id, l.quiz_id, l.account_id FROM video v "
+    private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE = "SELECT l.list_id, l.has_draft_status, acc.external_id, l.quiz_id, l.account_id FROM video v "
                                                                 + "NATURAL RIGHT JOIN list l "
-                                                                + "LEFT JOIN assignment a ON l.list_id = a.list_id "
+                                                                + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+                                                                + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
                                                                 + "WHERE v.video_id = ?";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) VALUES (?, ?) ON CONFLICT DO NOTHING";
     private static final String DELETE_VIDEO_TEMPLATE = "DELETE FROM video WHERE video_id = ?";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ?";
-    private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) VALUES (?, ?, ?) "
+    private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) "
+                                                       + "VALUES (?, ?, (SELECT account_id FROM account WHERE external_id = ?)) "
                                                        + "ON CONFLICT (list_id, account_id) DO "
                                                        + "UPDATE SET assignee_id = EXCLUDED.assignee_id";
 
@@ -57,7 +62,7 @@ public class ListRepository {
             var listDtos = asyncLists.result().getRows().stream()
                     .map(row -> ListDto.builder()
                             .id(row.getInteger("list_id"))
-                            .assigneeId(row.getInteger("assignee_id"))
+                            .assigneeId(row.getString("external_id"))
                             .build())
                     .collect(Collectors.toList());
 
@@ -149,7 +154,7 @@ public class ListRepository {
                 var listDto = ListDto.builder()
                         .id(row.getInteger(0))
                         .hasDraftStatus(row.getBoolean(1))
-                        .assigneeId(row.getInteger(2))
+                        .assigneeId(row.getString(2))
                         .quizId(row.getInteger(3))
                         .accountId(row.getInteger(4))
                         .build();
@@ -181,7 +186,7 @@ public class ListRepository {
                 var listDto = ListDto.builder()
                         .id(row.getInteger(0))
                         .hasDraftStatus(row.getBoolean(1))
-                        .assigneeId(row.getInteger(2))
+                        .assigneeId(row.getString(2))
                         .quizId(row.getInteger(3))
                         .accountId(row.getInteger(4))
                         .build();
@@ -262,10 +267,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> assignList(SQLConnection connection, Integer accountId, Integer listId, Integer assigneeId) {
+    public Future<Void> assignList(SQLConnection connection, Integer accountId, Integer listId, String externalAssigneeId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(listId).add(accountId).add(assigneeId);
+        var parameters = new JsonArray().add(listId).add(accountId).add(externalAssigneeId);
         connection.updateWithParams(ASSIGN_LIST_TEMPLATE, parameters, asyncAssignment -> {
             if (asyncAssignment.failed()) {
                 handleFailure(promise, ASSIGN_LIST_TEMPLATE, parameters, asyncAssignment);
@@ -308,10 +313,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, Integer accountId, Integer quizId) {
+    public Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, String externalAccountId, Integer quizId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(accountId).add(quizId);
+        var parameters = new JsonArray().add(externalAccountId).add(quizId);
         connection.querySingleWithParams(ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE, parameters, asyncParticipatesInQuiz -> {
             if (asyncParticipatesInQuiz.failed()) {
                 handleFailure(promise, ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE, parameters, asyncParticipatesInQuiz);
@@ -324,7 +329,7 @@ public class ListRepository {
                 promise.complete();
             } else {
                 log.debug("Account does not participate in quiz");
-                promise.fail(new ForbiddenException(String.format("Account \"%d\" does not participate in quiz with ID \"%d\"", accountId, quizId)));
+                promise.fail(new ForbiddenException(String.format("Account with external ID \"%s\" does not participate in quiz with ID \"%d\"", externalAccountId, quizId)));
             }
         });
 
