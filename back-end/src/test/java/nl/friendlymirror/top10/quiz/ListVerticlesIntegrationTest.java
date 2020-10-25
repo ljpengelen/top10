@@ -114,10 +114,6 @@ class ListVerticlesIntegrationTest {
         quizId1 = createQuiz(connection, accountId1, EXTERNAL_QUIZ_ID_1);
         quizId2 = createQuiz(connection, accountId3, EXTERNAL_QUIZ_ID_2);
 
-        participate(connection, accountId1, quizId1);
-        participate(connection, accountId2, quizId1);
-        participate(connection, accountId3, quizId2);
-
         listId1 = createList(connection, accountId1, quizId1);
         listId2 = createList(connection, accountId2, quizId1);
         listId3 = createList(connection, accountId3, quizId2);
@@ -135,12 +131,6 @@ class ListVerticlesIntegrationTest {
         generatedKeys.next();
 
         return generatedKeys.getInt(1);
-    }
-
-    private void participate(Connection connection, int accountId, int quizId) throws SQLException {
-        var participantTemplate = "INSERT INTO participant (account_id, quiz_id) VALUES (%d, %d)";
-        var query = String.format(participantTemplate, accountId, quizId);
-        connection.prepareStatement(query).execute();
     }
 
     private int createList(Connection connection, int accountId, int quizId) throws SQLException {

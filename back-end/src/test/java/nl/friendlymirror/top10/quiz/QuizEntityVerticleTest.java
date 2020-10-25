@@ -117,16 +117,6 @@ class QuizEntityVerticleTest {
 
                 var quizId = resultSet.getInt(1);
 
-                statement = connection.prepareStatement("SELECT quiz_id, account_id FROM participant WHERE quiz_id = ? AND account_id = ?");
-                statement.setInt(1, quizId);
-                statement.setInt(2, accountId);
-                statement.execute();
-                resultSet = statement.getResultSet();
-
-                assertThat(resultSet.next()).isTrue();
-                assertThat(resultSet.getInt(1)).isEqualTo(quizId);
-                assertThat(resultSet.getInt(2)).isEqualTo(accountId);
-
                 statement = connection.prepareStatement("SELECT account_id, quiz_id, has_draft_status FROM list WHERE quiz_id = ? AND account_id = ?");
                 statement.setInt(1, quizId);
                 statement.setInt(2, accountId);

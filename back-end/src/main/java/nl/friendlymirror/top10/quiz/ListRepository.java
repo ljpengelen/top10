@@ -22,13 +22,12 @@ public class ListRepository {
                                                                   + "WHERE q.external_id = ? AND NOT l.has_draft_status";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url FROM video v WHERE v.list_id = ANY (?)";
-    private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l.list_id) from list l "
-                                                                   + "JOIN participant p ON l.quiz_id = p.quiz_id "
-                                                                   + "WHERE p.account_id = ? AND l.list_id = ?";
-    private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(p.account_id) FROM quiz q "
-                                                                        + "JOIN participant p ON q.quiz_id = p.quiz_id "
-                                                                        + "JOIN account a ON p.account_id = a.account_id "
-                                                                        + "WHERE a.external_id = ? AND q.quiz_id = ?";
+    private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
+                                                                   + "JOIN list l2 ON l1.quiz_id = l2.quiz_id "
+                                                                   + "WHERE l1.account_id = ? AND l2.list_id = ?";
+    private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(l.account_id) FROM list l "
+                                                                        + "JOIN account a ON l.account_id = a.account_id "
+                                                                        + "WHERE a.external_id = ? AND l.quiz_id = ?";
     private static final String GET_ONE_LIST_TEMPLATE = "SELECT l.list_id, l.has_draft_status, acc.external_id, l.quiz_id, l.account_id FROM video v "
                                                         + "NATURAL RIGHT JOIN list l "
                                                         + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "

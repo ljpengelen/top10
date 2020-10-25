@@ -3,7 +3,8 @@ package nl.friendlymirror.top10.quiz;
 import java.time.Instant;
 import java.util.stream.Collectors;
 
-import io.vertx.core.*;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -28,19 +29,17 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private static final String GET_ALL_QUIZZES_TEMPLATE =
             "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id, l.has_draft_status FROM quiz q "
-            + "NATURAL JOIN participant p "
-            + "JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
-            + "WHERE p.account_id = ?";
+            + "JOIN list l ON l.quiz_id = q.quiz_id "
+            + "WHERE l.account_id = ?";
     private static final String GET_ONE_QUIZ_TEMPLATE = "SELECT q.quiz_id, q.name, q.is_active, q.creator_id, q.deadline, q.external_id, l.list_id, l.has_draft_status FROM quiz q "
                                                         + "LEFT JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
                                                         + "WHERE q.external_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
     private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET is_active = false WHERE creator_id = ? AND external_id = ?";
-    private static final String PARTICIPATE_IN_QUIZ_TEMPLATE = "INSERT INTO participant (account_id, quiz_id) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?)) ON CONFLICT DO NOTHING";
     private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?), true) ON CONFLICT DO NOTHING";
     private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.external_id, a.name FROM account a "
-                                                            + "NATURAL JOIN participant p "
-                                                            + "JOIN quiz q ON p.quiz_id = q.quiz_id "
+                                                            + "JOIN list l ON l.account_id = a.account_id "
+                                                            + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                             + "WHERE q.external_id = ?";
 
     private final JsonObject jdbcOptions;
@@ -62,7 +61,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetAll(Message<Integer> getAllQuizzesRequest) {
         var accountId = getAllQuizzesRequest.body();
-        sqlClient.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(accountId).add(accountId), asyncQuizzes -> {
+        sqlClient.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(accountId), asyncQuizzes -> {
             if (asyncQuizzes.failed()) {
                 log.error("Unable to retrieve all quizzes for account ID \"{}\"", accountId, asyncQuizzes.cause());
                 getAllQuizzesRequest.fail(500, "Unable to retrieve all quizzes");
@@ -139,9 +138,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 createQuiz(connection, name, creatorId, deadline, externalId).compose(quizId ->
-                        CompositeFuture.all(
-                                participateInQuiz(connection, creatorId, externalId),
-                                createList(connection, creatorId, externalId)))
+                        createList(connection, creatorId, externalId))
         ).onSuccess(nothing -> {
             log.debug("Created quiz");
             createRequest.reply(null);
@@ -207,9 +204,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 getQuiz(connection, externalId, accountId).compose(quiz ->
-                        CompositeFuture.all(
-                                participateInQuiz(connection, accountId, externalId),
-                                createList(connection, accountId, externalId))))
+                        createList(connection, accountId, externalId)))
                 .onSuccess(nothing -> {
                     log.debug("Successfully let account participate in quiz");
                     participateRequest.reply(null);
@@ -239,26 +234,6 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
             log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, COMPLETE_QUIZ_TEMPLATE);
 
             promise.complete();
-        });
-
-        return promise.future();
-    }
-
-    private Future<Boolean> participateInQuiz(SQLConnection connection, Integer accountId, String externalId) {
-        var promise = Promise.<Boolean> promise();
-
-        connection.updateWithParams(PARTICIPATE_IN_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncUpdate -> {
-            if (asyncUpdate.failed()) {
-                var cause = asyncUpdate.cause();
-                log.error("Unable to execute query \"{}\"", PARTICIPATE_IN_QUIZ_TEMPLATE, cause);
-                promise.fail(cause);
-                return;
-            }
-
-            var numberOfAffectedRows = asyncUpdate.result().getUpdated();
-            log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, PARTICIPATE_IN_QUIZ_TEMPLATE);
-
-            promise.complete(numberOfAffectedRows > 0);
         });
 
         return promise.future();
