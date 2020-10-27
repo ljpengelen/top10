@@ -2,6 +2,8 @@ package nl.friendlymirror.top10.quiz;
 
 import static nl.friendlymirror.top10.quiz.ListEntityVerticle.*;
 
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.StringUtils;
 
 import io.vertx.core.AbstractVerticle;
@@ -60,11 +62,27 @@ public class ListHttpVerticle extends AbstractVerticle {
 
             var listsDto = (ListsDto) allListsReply.result().body();
             log.debug("Retrieved {} lists", listsDto.getLists().size());
+            var sanitizedListsDto = sanitize(listsDto);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(listsDto.toJsonArray().toBuffer());
+                    .end(sanitizedListsDto.toJsonArray().toBuffer());
         });
+    }
+
+    private ListsDto sanitize(ListsDto listsDto) {
+        return listsDto.toBuilder()
+                .clearLists()
+                .lists(listsDto.getLists().stream()
+                        .map(this::sanitize)
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    private ListDto sanitize(ListDto listDto) {
+        return listDto.toBuilder()
+                .accountId(null)
+                .build();
     }
 
     private void handleGetAllForAccount(RoutingContext routingContext) {
@@ -80,10 +98,11 @@ public class ListHttpVerticle extends AbstractVerticle {
 
             var listsDto = (ListsDto) allListsReply.result().body();
             log.debug("Retrieved {} lists", listsDto.getLists().size());
+            var sanitizedListsDto = sanitize(listsDto);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(listsDto.toJsonArray().toBuffer());
+                    .end(sanitizedListsDto.toJsonArray().toBuffer());
         });
     }
 
@@ -189,10 +208,11 @@ public class ListHttpVerticle extends AbstractVerticle {
 
             var list = (ListDto) listReply.result().body();
             log.debug("Retrieved list \"{}\"", list);
+            var sanitizedList = sanitize(list);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(list.toJsonObject().toBuffer());
+                    .end(sanitizedList.toJsonObject().toBuffer());
         });
     }
 

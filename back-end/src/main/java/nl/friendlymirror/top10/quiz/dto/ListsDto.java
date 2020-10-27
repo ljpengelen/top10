@@ -7,7 +7,7 @@ import io.vertx.core.json.JsonArray;
 import lombok.*;
 
 @Value
-@Builder
+@Builder(toBuilder = true)
 public class ListsDto {
 
     @Singular
