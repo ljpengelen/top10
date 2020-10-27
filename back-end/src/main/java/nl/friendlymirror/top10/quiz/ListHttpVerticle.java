@@ -46,11 +46,13 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetAllForQuiz(RoutingContext routingContext) {
+        var accountId = routingContext.user().principal().getInteger("accountId");
         var externalId = routingContext.pathParam("externalId");
 
         log.debug("Get all lists for quiz \"{}\"", externalId);
 
-        vertx.eventBus().request(GET_ALL_LISTS_FOR_QUIZ_ADDRESS, externalId, allListsReply -> {
+        var getRequest = new JsonObject().put("accountId", accountId).put("externalId", externalId);
+        vertx.eventBus().request(GET_ALL_LISTS_FOR_QUIZ_ADDRESS, getRequest, allListsReply -> {
             if (allListsReply.failed()) {
                 handleFailure(allListsReply.cause(), routingContext);
                 return;

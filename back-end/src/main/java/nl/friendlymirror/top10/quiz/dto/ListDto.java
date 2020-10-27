@@ -14,6 +14,7 @@ public class ListDto {
     Integer accountId;
     Integer quizId;
     String assigneeId;
+    String assigneeName;
     Boolean hasDraftStatus;
     List<VideoDto> videos;
 
@@ -23,6 +24,7 @@ public class ListDto {
                 .quizId(jsonObject.getInteger("quizId"))
                 .accountId(jsonObject.getInteger("accountId"))
                 .assigneeId(jsonObject.getString("assigneeId"))
+                .assigneeName(jsonObject.getString("assigneeName"))
                 .hasDraftStatus(jsonObject.getBoolean("hasDraftStatus"))
                 .videos(VideoDto.fromJsonArray(jsonObject.getJsonArray("videos")))
                 .build();
@@ -36,6 +38,9 @@ public class ListDto {
 
         if (assigneeId != null)
             jsonObject.put("assigneeId", assigneeId);
+
+        if (assigneeName != null)
+            jsonObject.put("assigneeName", assigneeName);
 
         if (quizId != null)
             jsonObject.put("quizId", quizId);

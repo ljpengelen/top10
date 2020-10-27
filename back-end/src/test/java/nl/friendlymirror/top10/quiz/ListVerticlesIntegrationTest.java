@@ -228,6 +228,7 @@ class ListVerticlesIntegrationTest {
         list = listResponse.body().getJsonObject(0);
         assertThat(list.getInteger("id")).isEqualTo(listId1);
         assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
         vertxTestContext.completeNow();
     }
@@ -550,6 +551,7 @@ class ListVerticlesIntegrationTest {
         var list = listResponse.body();
         assertThat(list.getInteger("id")).isEqualTo(listId2);
         assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
         request = HttpRequest.newBuilder()
                 .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", EXTERNAL_ACCOUNT_ID_1)))
@@ -569,6 +571,7 @@ class ListVerticlesIntegrationTest {
         list = listResponse.body();
         assertThat(list.getInteger("id")).isEqualTo(listId2);
         assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_1);
 
         vertxTestContext.completeNow();
     }

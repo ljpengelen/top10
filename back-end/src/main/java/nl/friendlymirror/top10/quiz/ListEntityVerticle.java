@@ -46,10 +46,12 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         vertx.eventBus().consumer(ASSIGN_LIST_ADDRESS, this::handleAssignList);
     }
 
-    private void handleGetAll(Message<String> getAllListsRequest) {
-        var externalId = getAllListsRequest.body();
+    private void handleGetAll(Message<JsonObject> getAllListsRequest) {
+        var body = getAllListsRequest.body();
+        var externalId = body.getString("externalId");
+        var accountId = body.getInteger("accountId");
 
-        withTransaction(connection -> listRepository.getAllListsForQuiz(connection, externalId))
+        withTransaction(connection -> listRepository.getAllListsForQuiz(connection, externalId, accountId))
                 .onSuccess(getAllListsRequest::reply)
                 .onFailure(cause -> handleFailure(cause, getAllListsRequest));
     }
@@ -78,7 +80,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getInteger("listId");
         var accountId = body.getInteger("accountId");
 
-        withTransaction(connection -> listRepository.getList(connection, listId).compose(list ->
+        withTransaction(connection -> listRepository.getList(connection, listId, accountId).compose(list ->
                 listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
                         listRepository.getVideosForLists(connection, list.getId()).compose(videosForList ->
                                 Future.succeededFuture(list.toBuilder()
@@ -95,7 +97,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId).compose(listDto -> {
+                listRepository.getList(connection, listId, accountId).compose(listDto -> {
                     if (accountId.equals(listDto.getAccountId())) {
                         return listRepository.addVideo(connection, listId, url);
                     } else {
@@ -112,7 +114,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
 
         withTransaction(connection ->
-                listRepository.getListByVideoId(connection, videoId).compose(listDto -> {
+                listRepository.getListByVideoId(connection, videoId, accountId).compose(listDto -> {
                     if (accountId.equals(listDto.getAccountId())) {
                         return listRepository.deleteVideo(connection, videoId);
                     } else {
@@ -129,7 +131,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getInteger("listId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId).compose(listDto -> {
+                listRepository.getList(connection, listId, accountId).compose(listDto -> {
                     if (accountId.equals(listDto.getAccountId())) {
                         return listRepository.finalizeList(connection, listId);
                     } else {
@@ -147,7 +149,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var assigneeId = body.getString("assigneeId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId).compose(listDto ->
+                listRepository.getList(connection, listId, accountId).compose(listDto ->
                         listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
                                 listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId()).compose(accountParticipatesInQuiz ->
                                         listRepository.assignList(connection, accountId, listId, assigneeId)))))
