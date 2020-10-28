@@ -70,18 +70,22 @@
       [:p (str
            "This quiz has reached the final round. "
            "It's time to assign top 10's to participants.")]
-      [table-container
-       [table
-        [table-head
-         [table-row
-          [table-cell "Assigned to"]
-          [table-cell "Action"]]]
-        [table-body
-         (for [{:keys [id assigneeName]} lists]
-           ^{:key id}
+      [grid {:container true :direction "column" :spacing 2}
+       [grid {:item true}
+        [table-container
+         [table
+          [table-head
            [table-row
-            [table-cell (or assigneeName "Not assigned yet")]
-            [table-cell [link {:href (str "#/quiz/" externalId "/list/" id "/assign") :color "primary"} "Assign"]]])]]]]
+            [table-cell "Assigned to"]
+            [table-cell "Action"]]]
+          [table-body
+           (for [{:keys [id assigneeName]} lists]
+             ^{:key id}
+             [table-row
+              [table-cell (or assigneeName "Not assigned yet")]
+              [table-cell [link {:href (str "#/quiz/" externalId "/list/" id "/assign") :color "primary"} "Assign"]]])]]]]
+       [grid {:item true}
+        [back-to-overview-button]]]]
      [:<>
       [:p
        (str 
