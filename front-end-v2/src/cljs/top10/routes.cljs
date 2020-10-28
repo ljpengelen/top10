@@ -23,4 +23,6 @@
   (defroute "/quiz/:id" [id] (rf/dispatch [::events/set-active-page {:page :quiz-page :quiz-id id}]))
   (defroute "/create-quiz" [] (rf/dispatch [::events/set-active-page {:page :create-quiz-page}]))
   (defroute "/list/:id" [id] (rf/dispatch [::events/set-active-page {:page :create-list-page :list-id id}]))
+  (defroute "/quiz/:quiz-id/list/:list-id/assign" [quiz-id list-id]
+    (rf/dispatch [::events/set-active-page {:page :assign-list-page :quiz-id quiz-id :list-id list-id}]))
   (set-up-browser-navigation!))

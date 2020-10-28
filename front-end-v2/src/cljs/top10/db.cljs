@@ -5,4 +5,5 @@
    :session {:checking-status true
              :logged-in false}
    :quizzes []
-   :quiz-lists []})
+   :quiz-lists []
+   :quiz-participants []})

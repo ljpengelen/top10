@@ -1,5 +1,6 @@
 (ns top10.views
   (:require
+   ["@material-ui/core" :refer [TextField]]
    [reagent.core :as r]
    ["@date-io/dayjs" :as dayjs-utils]
    [reagent-material-ui.core.button :refer [button]]
@@ -12,8 +13,9 @@
    [reagent-material-ui.core.table-container :refer [table-container]]
    [reagent-material-ui.core.table-head :refer [table-head]]
    [reagent-material-ui.core.table-row :refer [table-row]]
-   [reagent-material-ui.pickers.mui-pickers-utils-provider :refer [mui-pickers-utils-provider]]
    [reagent-material-ui.core.text-field :refer [text-field]]
+   [reagent-material-ui.lab.autocomplete :refer [autocomplete]]
+   [reagent-material-ui.pickers.mui-pickers-utils-provider :refer [mui-pickers-utils-provider]]
    [re-frame.core :as rf]
    [top10.events :as events]
    [top10.subs :as subs]))
@@ -57,12 +59,29 @@
 (defn quizzes-page-container []
   [quizzes-page @(rf/subscribe [::subs/quizzes])])
 
-(defn quiz-page [{:keys [name deadline deadline-has-passed? personalListId personalListHasDraftStatus]} number-of-participants]
+(defn back-to-overview-button []
+  [button {:href "#/quizzes"} "Back to quiz overview"])
+
+(defn quiz-page [{:keys [name deadline deadline-has-passed? externalId personalListId personalListHasDraftStatus]} number-of-participants lists]
   [:div
    [:h1 name]
    (if deadline-has-passed?
      [:<>
-      [:p "This quiz has reached the final round. "]]
+      [:p (str
+           "This quiz has reached the final round. "
+           "It's time to assign top 10's to participants.")]
+      [table-container
+       [table
+        [table-head
+         [table-row
+          [table-cell "Assigned to"]
+          [table-cell "Action"]]]
+        [table-body
+         (for [{:keys [id assigneeName]} lists]
+           ^{:key id}
+           [table-row
+            [table-cell (or assigneeName "Not assigned yet")]
+            [table-cell [link {:href (str "#/quiz/" externalId "/list/" id "/assign") :color "primary"} "Assign"]]])]]]]
      [:<>
       [:p
        (str 
@@ -78,10 +97,10 @@
         [button {:href (str "#/list/" personalListId) :color "primary" :variant "contained"}
          (if personalListHasDraftStatus "Submit top 10" "View top 10")]]
        [grid {:item true}
-        [button {:href "#/quizzes"} "Back to quiz overview"]]]])])
+        [back-to-overview-button]]]])])
 
 (defn quiz-page-container []
-  [quiz-page @(rf/subscribe [::subs/quiz]) @(rf/subscribe [::subs/number-of-participants])])
+  [quiz-page @(rf/subscribe [::subs/quiz]) @(rf/subscribe [::subs/number-of-participants]) @(rf/subscribe [::subs/quiz-lists])])
 
 (defn event-value [^js/Event e] (.. e -target -value))
 
@@ -128,7 +147,7 @@
              [grid {:item true}
               [button {:type "submit" :color "primary" :variant "contained"} "Create quiz"]]
              [grid {:item true}
-              [button {:href "#/quizzes"} "Back to quiz overview"]]]]]]]]])))
+              [back-to-overview-button]]]]]]]]])))
 
 (defn create-list-page []
   (let [new-url (r/atom nil)]
@@ -187,10 +206,52 @@
                                               :on-click #(rf/dispatch [::events/finalize-list list-id])
                                               :variant "contained"} "Submit top 10"]])]]]])])
         [grid {:item true}
-         [button {:href "#/quizzes"} "Back to quiz overview"]]]])))
+         [back-to-overview-button]]]])))
 
 (defn create-list-page-container []
   [create-list-page @(rf/subscribe [::subs/active-list]) @(rf/subscribe [::subs/has-draft-status]) @(rf/subscribe [::subs/videos])])
+
+(defn assign-list-page []
+  (let [assignee (r/atom nil)]
+    (fn [quiz-id list-id videos participants]
+      [:<>
+       [:h1 "Assign list"]
+       [grid {:container true :direction "column" :spacing 2}
+        (for [video videos]
+          ^{:key (:id video)}
+          [grid {:item true}
+           [:iframe {:allow "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                     :allowFullScreen true
+                     :frameBorder "0"
+                     :src (:url video)}]])
+        [grid {:item true}
+         [:form {:on-submit (fn [event]
+                              (.preventDefault event)
+                              (when @assignee 
+                                (rf/dispatch [::events/assign-list quiz-id list-id (.-id @assignee)])))}
+          [grid {:container true :direction "column" :spacing 2}
+           [grid {:item true :xs 6}
+            [autocomplete {:get-option-label (fn [option] (.-name option))
+                           :on-change (fn [_ value] (reset! assignee value))
+                           :options participants
+                           :render-input (fn [^js params] (r/create-element TextField params))
+                           :required true}]]
+           [grid {:item true}
+            [grid {:container true :spacing 2}
+             [grid {:item true}
+              [button {:color "primary"
+                       :disabled (nil? @assignee)
+                       :type "submit"
+                       :variant "contained"} "Assign"]]
+             [grid {:item true}
+              [button {:href (str "#/quiz/" quiz-id)} "Back to quiz"]]]]]]]]])))
+
+(defn assign-list-page-container []
+  [assign-list-page
+   @(rf/subscribe [::subs/active-quiz])
+   @(rf/subscribe [::subs/active-list])
+   @(rf/subscribe [::subs/videos])
+   @(rf/subscribe [::subs/quiz-participants])])
 
 (defn- pages [page-name]
   (case page-name
@@ -199,6 +260,7 @@
     :quiz-page [quiz-page-container]
     :create-quiz-page [create-quiz-page]
     :create-list-page [create-list-page-container]
+    :assign-list-page [assign-list-page-container]
     [:div]))
 
 (defn- show-page [page-name] [pages page-name])

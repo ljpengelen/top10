@@ -68,6 +68,11 @@
    (count quiz-participants)))
 
 (rf/reg-sub
+ ::quiz-lists
+ (fn [db _]
+   (:quiz-lists db)))
+
+(rf/reg-sub
  ::session
  (fn [db _]
    (:session db)))

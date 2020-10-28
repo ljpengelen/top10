@@ -24,11 +24,18 @@
          logged-in? (get-in db [:session :logged-in])]
      (case page
        :quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
-                    logged-in? (assoc :dispatch [::get-quiz quiz-id]))
+                    logged-in? (assoc :dispatch-n [[::get-quiz quiz-id]
+                                                   [::get-quiz-lists quiz-id]
+                                                   [::get-quiz-participants quiz-id]]))
        :quizzes-page (cond-> {:db db-with-page}
                        logged-in? (assoc :dispatch [::get-quizzes]))
        :create-list-page (cond-> {:db (assoc db-with-page :active-list list-id)}
                            logged-in? (assoc :dispatch [::get-list list-id]))
+       :assign-list-page (cond-> {:db (-> db-with-page
+                                          (assoc :active-quiz quiz-id)
+                                          (assoc :active-list list-id))}
+                           logged-in? (assoc :dispatch-n [[::get-list list-id]
+                                                          [::get-quiz-participants quiz-id]]))
        (:home-page :create-quiz-page) {:db db-with-page}))))
 
 (rf/reg-event-db
@@ -154,15 +161,25 @@
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
                   :on-success [::get-quiz-succeeded]
-                  :on-failure [::request-failed]}
-                 {:method :get
+                  :on-failure [::request-failed]}]}))
+
+(rf/reg-event-fx
+ ::get-quiz-lists
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id]]
+   {:http-xhrio [{:method :get
                   :uri (str base-url "/private/quiz/" quiz-id "/list")
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
                   :on-success [::get-quiz-lists-succeeded]
-                  :on-failure [::request-failed]}
-                 {:method :get
+                  :on-failure [::request-failed]}]}))
+
+(rf/reg-event-fx
+ ::get-quiz-participants
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id]]
+   {:http-xhrio [{:method :get
                   :uri (str base-url "/private/quiz/" quiz-id "/participants")
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
@@ -278,4 +295,22 @@
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
                  :on-success [::finalize-list-succeeded]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-fx
+ ::assign-list-succeeded
+ (fn [_ [_ quiz-id]]
+   {:redirect (str "/quiz/" quiz-id)}))
+
+(rf/reg-event-fx
+ ::assign-list
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id list-id assignee-id]]
+   {:http-xhrio {:method :put
+                 :uri (str base-url "/private/list/" list-id "/assign")
+                 :headers (authorization-header access-token)
+                 :params {:assigneeId assignee-id}
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/ring-response-format)
+                 :on-success [::assign-list-succeeded quiz-id]
                  :on-failure [::request-failed]}}))
