@@ -79,15 +79,25 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
     }
 
     private JsonObject quizArrayToJsonObject(JsonArray array) {
-        return new JsonObject()
+        var quiz = new JsonObject()
                 .put("id", array.getInteger(0))
                 .put("name", array.getString(1))
                 .put("isActive", array.getBoolean(2))
                 .put("creatorId", array.getInteger(3))
                 .put("deadline", array.getInstant(4))
-                .put("externalId", array.getString(5))
-                .put("personalListId", array.getInteger(6))
-                .put("personalListHasDraftStatus", array.getBoolean(7));
+                .put("externalId", array.getString(5));
+
+        var personalListId = array.getInteger(6);
+        if (personalListId != null) {
+            quiz.put("personalListId", personalListId);
+        }
+
+        var personalListHasDraftStatus = array.getBoolean(7);
+        if (personalListHasDraftStatus != null) {
+            quiz.put("personalListHasDraftStatus", personalListHasDraftStatus);
+        }
+
+        return quiz;
     }
 
     private void handleGetOne(Message<JsonObject> getOneQuizRequest) {
