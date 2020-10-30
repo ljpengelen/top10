@@ -1,4 +1,0 @@
-^{:open-url "http://[[server-hostname]]:[[server-port]]/ci.html"
-  :launch-js ["/opt/google/chrome/chrome" "--headless" "--no-sandbox" "--disable-gpu" "--disable-dev-shm" "--repl" :open-url]}
-
-{:main top10.test-runner}
