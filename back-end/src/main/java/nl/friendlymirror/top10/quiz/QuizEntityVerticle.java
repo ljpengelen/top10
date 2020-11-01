@@ -12,8 +12,7 @@ import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import nl.friendlymirror.top10.ForbiddenException;
-import nl.friendlymirror.top10.NotFoundException;
+import nl.friendlymirror.top10.*;
 import nl.friendlymirror.top10.entity.AbstractEntityVerticle;
 
 @Log4j2
@@ -36,7 +35,9 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                                                         + "WHERE q.external_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES (?, true, ?, ?, ?)";
     private static final String COMPLETE_QUIZ_TEMPLATE = "UPDATE quiz SET is_active = false WHERE creator_id = ? AND external_id = ?";
-    private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?), true) ON CONFLICT DO NOTHING";
+    private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) "
+                                                       + "VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?), true) "
+                                                       + "ON CONFLICT DO NOTHING";
     private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.external_id, a.name FROM account a "
                                                             + "JOIN list l ON l.account_id = a.account_id "
                                                             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
@@ -222,6 +223,8 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {
                         participateRequest.fail(404, cause.getMessage());
+                    } else if (cause instanceof ConflictException) {
+                        participateRequest.fail(409, cause.getMessage());
                     } else {
                         log.error("Unable to let account \"{}\" participate in quiz with external ID \"{}\"", accountId, externalId, cause);
                         participateRequest.fail(500, "Unable to let account participate in quiz");
@@ -249,8 +252,8 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         return promise.future();
     }
 
-    private Future<Boolean> createList(SQLConnection connection, Integer accountId, String externalId) {
-        var promise = Promise.<Boolean> promise();
+    private Future<Integer> createList(SQLConnection connection, Integer accountId, String externalId) {
+        var promise = Promise.<Integer> promise();
 
         connection.updateWithParams(CREATE_LIST_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncUpdate -> {
             if (asyncUpdate.failed()) {
@@ -260,10 +263,17 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 return;
             }
 
-            var numberOfAffectedRows = asyncUpdate.result().getUpdated();
-            log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, CREATE_LIST_TEMPLATE);
+            if (asyncUpdate.result().getUpdated() == 0) {
+                var errorMessage = String.format("Account with ID \"%d\" already has a list for quiz with external ID \"%s\"", accountId, externalId);
+                promise.fail(new ConflictException(errorMessage));
+                return;
+            }
 
-            promise.complete(numberOfAffectedRows > 0);
+            var listId = asyncUpdate.result().getKeys().getInteger(0);
+
+            log.debug("Created new list with ID \"{}\"", listId);
+
+            promise.complete(listId);
         });
 
         return promise.future();

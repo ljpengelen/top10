@@ -224,6 +224,8 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 var cause = (ReplyException) participateReply.cause();
                 if (cause.failureCode() == 404) {
                     routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else if (cause.failureCode() == 409) {
+                    routingContext.fail(new ConflictException(cause.getMessage()));
                 } else {
                     routingContext.fail(new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause()));
                 }
