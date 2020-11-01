@@ -78,7 +78,7 @@ class ListVerticlesIntegrationTest {
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) throws SQLException {
         setUpAccounts();
         setUpQuizzes();
-        deployVerticle(vertx, vertxTestContext);
+        deployVerticles(vertx, vertxTestContext);
     }
 
     private void setUpAccounts() throws SQLException {
@@ -157,7 +157,7 @@ class ListVerticlesIntegrationTest {
         return generatedKeys.getInt(1);
     }
 
-    private void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
+    private void deployVerticles(Vertx vertx, VertxTestContext vertxTestContext) {
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
         server.requestHandler(router);
