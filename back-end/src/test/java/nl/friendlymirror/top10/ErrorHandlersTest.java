@@ -104,6 +104,23 @@ class ErrorHandlersTest {
     }
 
     @Test
+    public void handlesConflict() throws IOException, InterruptedException {
+        router.route(HttpMethod.GET, "/conflict").handler(ar -> {
+            throw new ConflictException("Conflict");
+        });
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/conflict"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(409);
+        assertThat(response.body().getString("error")).isEqualTo("Conflict");
+    }
+
+    @Test
     public void handlesRuntimeException() throws IOException, InterruptedException {
         router.route(HttpMethod.GET, "/runtime").handler(ar -> {
             throw new RuntimeException("Runtime exception");

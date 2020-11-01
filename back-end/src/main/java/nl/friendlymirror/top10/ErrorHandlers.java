@@ -35,6 +35,9 @@ public class ErrorHandlers {
             } else if (failure instanceof NotFoundException) {
                 message = failure.getMessage();
                 statusCode = 404;
+            } else if (failure instanceof ConflictException) {
+                message = failure.getMessage();
+                statusCode = 409;
             } else {
                 log.error(message, failure);
             }
