@@ -216,9 +216,9 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         withTransaction(connection ->
                 getQuiz(connection, externalId, accountId).compose(quiz ->
                         createList(connection, accountId, externalId)))
-                .onSuccess(nothing -> {
+                .onSuccess(listId -> {
                     log.debug("Successfully let account participate in quiz");
-                    participateRequest.reply(null);
+                    participateRequest.reply(listId);
                 })
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {

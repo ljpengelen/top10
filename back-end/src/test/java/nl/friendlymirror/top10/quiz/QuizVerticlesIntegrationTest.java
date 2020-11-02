@@ -125,9 +125,11 @@ class QuizVerticlesIntegrationTest {
                 .PUT(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID + "/participate"))
                 .build();
-        var response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
 
-        assertThat(response.statusCode()).isEqualTo(201);
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().getInteger("personalListId")).isNotNull();
+
         vertxTestContext.completeNow();
     }
 
@@ -154,7 +156,7 @@ class QuizVerticlesIntegrationTest {
                 .build();
         var firstResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
 
-        assertThat(firstResponse.statusCode()).isEqualTo(201);
+        assertThat(firstResponse.statusCode()).isEqualTo(200);
 
         request = HttpRequest.newBuilder()
                 .PUT(HttpRequest.BodyPublishers.noBody())

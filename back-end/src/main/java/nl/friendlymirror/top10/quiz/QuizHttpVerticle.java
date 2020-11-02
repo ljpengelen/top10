@@ -233,11 +233,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 return;
             }
 
-            log.debug("Participating in quiz with external ID \"{}\"", externalId);
+            var listId = (Integer) participateReply.result().body();
+            log.debug("Created list with ID \"{}\" for participating in quiz with external ID \"{}\"", listId, externalId);
 
             routingContext.response()
-                    .setStatusCode(201)
-                    .end();
+                    .putHeader("content-type", "application/json")
+                    .end(new JsonObject().put("personalListId", listId).toBuffer());
         });
     }
 }
