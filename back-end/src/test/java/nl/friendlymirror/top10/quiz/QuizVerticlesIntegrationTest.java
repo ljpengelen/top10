@@ -119,6 +119,66 @@ class QuizVerticlesIntegrationTest {
     }
 
     @Test
+    public void createsQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quiz = new JsonObject()
+                .put("name", QUIZ_NAME)
+                .put("deadline", DEADLINE);
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(quiz))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body().getString("externalId")).isNotBlank();
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void rejectsCreationRequestWithoutBody(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body().getString("error")).isEqualTo("Request body is empty");
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void rejectsCreationRequestWithBlankName(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("deadline", DEADLINE)))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body().getString("error")).isEqualTo("Name is blank");
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void rejectsCreationRequestWithInvalidDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("name", QUIZ_NAME).put("deadline", "invalid date")))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body().getString("error")).isEqualTo("Invalid instant provided for property \"deadline\"");
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void letsAccountParticipate(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
