@@ -185,33 +185,6 @@ class QuizEntityVerticleTest {
     }
 
     @Test
-    public void returnsParticipants(VertxTestContext vertxTestContext) {
-        var createRequest = new JsonObject()
-                .put("creatorId", accountId)
-                .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE)
-                .put("externalId", EXTERNAL_QUIZ_ID);
-        eventBus.request(CREATE_QUIZ_ADDRESS, createRequest, asyncCreate -> {
-                    var getParticipantsRequest = new JsonObject()
-                            .put("accountId", accountId)
-                            .put("externalId", EXTERNAL_QUIZ_ID);
-                    eventBus.request(GET_PARTICIPANTS_ADDRESS, getParticipantsRequest, asyncParticipants -> {
-                        vertxTestContext.verify(() -> {
-                            assertThat(asyncParticipants.succeeded()).isTrue();
-
-                            var participants = (JsonArray) asyncParticipants.result().body();
-                            assertThat(participants).hasSize(1);
-                            var participant = participants.getJsonObject(0);
-                            assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID);
-                            assertThat(participant.getString("name")).isEqualTo(USERNAME);
-                        });
-                        vertxTestContext.completeNow();
-                    });
-                }
-        );
-    }
-
-    @Test
     public void returnsQuizzesForAccount(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
                 .put("creatorId", accountId)
