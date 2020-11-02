@@ -66,22 +66,23 @@ public class QuizHttpVerticle extends AbstractVerticle {
         log.debug("Create quiz");
 
         var accountId = routingContext.user().principal().getInteger("accountId");
-        var createRequest = toCreateRequest(accountId, routingContext);
+        var externalId = TokenGenerator.generateToken();
+        var createRequest = toCreateRequest(accountId, routingContext, externalId);
         vertx.eventBus().request(CREATE_QUIZ_ADDRESS, createRequest, createQuizReply -> {
             if (createQuizReply.failed()) {
                 routingContext.fail(new InternalServerErrorException(String.format("Unable to create quiz \"%s\"", createRequest), createQuizReply.cause()));
                 return;
             }
 
-            log.debug("Created quiz");
+            log.debug("Created quiz with external ID \"{}\"", externalId);
 
             routingContext.response()
-                    .setStatusCode(201)
-                    .end();
+                    .putHeader("content-type", "application/json")
+                    .end(new JsonObject().put("externalId", externalId).toBuffer());
         });
     }
 
-    private JsonObject toCreateRequest(Integer accountId, RoutingContext routingContext) {
+    private JsonObject toCreateRequest(Integer accountId, RoutingContext routingContext, String externalId) {
         var request = getRequestBodyAsJson(routingContext);
         if (request == null) {
             throw new ValidationException("Request body is empty");
@@ -100,7 +101,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
         return new JsonObject()
                 .put("creatorId", accountId)
                 .put("deadline", deadline)
-                .put("externalId", TokenGenerator.generateToken())
+                .put("externalId", externalId)
                 .put("name", name);
     }
 

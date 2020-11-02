@@ -212,30 +212,6 @@ class QuizEntityVerticleTest {
     }
 
     @Test
-    public void failsParticipantsRequestWith404GivenUnknownQuiz(VertxTestContext vertxTestContext) {
-        var createRequest = new JsonObject()
-                .put("creatorId", accountId)
-                .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE)
-                .put("externalId", EXTERNAL_QUIZ_ID);
-        eventBus.request(CREATE_QUIZ_ADDRESS, createRequest, asyncCreate -> {
-            var getParticipantsRequest = new JsonObject()
-                    .put("accountId", accountId)
-                    .put("externalId", NON_EXISTING_EXTERNAL_ID);
-            eventBus.request(GET_PARTICIPANTS_ADDRESS, getParticipantsRequest, asyncParticipants -> {
-                vertxTestContext.verify(() -> {
-                    assertThat(asyncParticipants.failed()).isTrue();
-
-                    var cause = (ReplyException) asyncParticipants.cause();
-                    assertThat(cause.failureCode()).isEqualTo(404);
-                    assertThat(cause.getMessage()).isEqualTo(String.format("Quiz with external ID \"%s\" not found", NON_EXISTING_EXTERNAL_ID));
-                });
-                vertxTestContext.completeNow();
-            });
-        });
-    }
-
-    @Test
     public void returnsQuizzesForAccount(VertxTestContext vertxTestContext) {
         var createRequest = new JsonObject()
                 .put("creatorId", accountId)
@@ -369,57 +345,6 @@ class QuizEntityVerticleTest {
                         assertThat(quiz.getBoolean("isActive")).isTrue();
                         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
                         assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_QUIZ_ID);
-                    });
-                    vertxTestContext.completeNow();
-                });
-            });
-        });
-    }
-
-    @Test
-    public void letsAccountsParticipateInQuiz(VertxTestContext vertxTestContext) {
-        var createRequest = new JsonObject()
-                .put("creatorId", accountId)
-                .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE)
-                .put("externalId", EXTERNAL_QUIZ_ID);
-        eventBus.request(CREATE_QUIZ_ADDRESS, createRequest, asyncCreate -> {
-            var participateRequest = new JsonObject()
-                    .put("accountId", alternativeAccountId)
-                    .put("externalId", EXTERNAL_QUIZ_ID);
-            eventBus.request(PARTICIPATE_IN_QUIZ_ADDRESS, participateRequest, asyncParticipate ->
-                    eventBus.request(GET_ALL_QUIZZES_ADDRESS, alternativeAccountId, asyncGetAll -> {
-                        vertxTestContext.verify(() -> {
-                            assertThat(asyncGetAll.succeeded()).isTrue();
-                            assertThat((JsonArray) asyncGetAll.result().body()).hasSize(1);
-                        });
-                        vertxTestContext.completeNow();
-                    }));
-        });
-    }
-
-    @Test
-    public void failsParticipationRequestWith404GivenUnknownQuiz(VertxTestContext vertxTestContext) {
-        var createRequest = new JsonObject()
-                .put("creatorId", accountId)
-                .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE)
-                .put("externalId", EXTERNAL_QUIZ_ID);
-        eventBus.request(CREATE_QUIZ_ADDRESS, createRequest, asyncCreate -> {
-            var participateRequest = new JsonObject()
-                    .put("accountId", alternativeAccountId)
-                    .put("externalId", NON_EXISTING_EXTERNAL_ID);
-            eventBus.request(PARTICIPATE_IN_QUIZ_ADDRESS, participateRequest, asyncParticipate -> {
-                vertxTestContext.verify(() -> {
-                    assertThat(asyncParticipate.failed()).isTrue();
-                    var cause = (ReplyException) asyncParticipate.cause();
-                    assertThat(cause.failureCode()).isEqualTo(404);
-                    assertThat(cause.getMessage()).isEqualTo(String.format("Quiz with external ID \"%s\" not found", NON_EXISTING_EXTERNAL_ID));
-                });
-                eventBus.request(GET_ALL_QUIZZES_ADDRESS, alternativeAccountId, asyncGetAll -> {
-                    vertxTestContext.verify(() -> {
-                        assertThat(asyncGetAll.succeeded()).isTrue();
-                        assertThat((JsonArray) asyncGetAll.result().body()).isEmpty();
                     });
                     vertxTestContext.completeNow();
                 });

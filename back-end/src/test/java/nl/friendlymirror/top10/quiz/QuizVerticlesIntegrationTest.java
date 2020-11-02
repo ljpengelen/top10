@@ -21,7 +21,7 @@ import io.vertx.junit5.VertxTestContext;
 import nl.friendlymirror.top10.ErrorHandlers;
 import nl.friendlymirror.top10.RandomPort;
 import nl.friendlymirror.top10.config.TestConfig;
-import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
+import nl.friendlymirror.top10.http.*;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
 
 @ExtendWith(VertxExtension.class)
@@ -165,6 +165,53 @@ class QuizVerticlesIntegrationTest {
         assertThat(secondResponse.statusCode()).isEqualTo(409);
         assertThat(secondResponse.body().getString("error")).isEqualTo(String.format("Account with ID \"%d\" already has a list for quiz with external ID \"abcdefg\"", accountId));
 
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returnsParticipants(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quiz = new JsonObject()
+                .put("name", QUIZ_NAME)
+                .put("deadline", DEADLINE);
+
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(quiz))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+        var createResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(createResponse.statusCode()).isEqualTo(200);
+
+        var externalQuizId = createResponse.body().getString("externalId");
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/participants"))
+                .build();
+        var response = httpClient.send(request, new JsonArrayBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).hasSize(1);
+
+        var participant = response.body().getJsonObject(0);
+        assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID);
+        assertThat(participant.getString("name")).isEqualTo(USERNAME);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returns404GettingParticipantsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/participants"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
         vertxTestContext.completeNow();
     }
 }
