@@ -27,6 +27,8 @@
                     logged-in? (assoc :dispatch-n [[::get-quiz quiz-id]
                                                    [::get-quiz-lists quiz-id]
                                                    [::get-quiz-participants quiz-id]]))
+       :complete-quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
+                             logged-in? (assoc :dispatch [::get-quiz quiz-id]))
        :quizzes-page (cond-> {:db db-with-page}
                        logged-in? (assoc :dispatch [::get-quizzes]))
        :create-list-page (cond-> {:db (assoc db-with-page :active-list list-id)}
@@ -313,4 +315,41 @@
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
                  :on-success [::assign-list-succeeded quiz-id]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-db
+ ::participate-in-quiz-succeeded
+ (fn [db [_ response]]
+   (let [personal-list-id (get-in response [:body :personalListId])]
+     (-> db
+         (assoc-in [:quiz :personalListId] personal-list-id)
+         (assoc-in [:quiz :personalListHasDraftStatus] true)))))
+
+(rf/reg-event-fx
+ ::participate-in-quiz
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id]]
+   {:http-xhrio {:method :post
+                 :uri (str base-url "/private/quiz/" quiz-id "/participate")
+                 :headers (authorization-header access-token)
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :on-success [::participate-in-quiz-succeeded]
+                 :on-failure [::request-failed]}}))
+
+(rf/reg-event-fx
+ ::complete-quiz-succeeded
+ (fn [_ _]
+   {:redirect "/quizzes"}))
+
+(rf/reg-event-fx
+ ::complete-quiz
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id]]
+   {:http-xhrio {:method :put
+                 :uri (str base-url "/private/quiz/" quiz-id "/complete")
+                 :headers (authorization-header access-token)
+                 :format (ajax/json-request-format)
+                 :response-format ring-json-response-format
+                 :on-success [::complete-quiz-succeeded]
                  :on-failure [::request-failed]}}))

@@ -37,22 +37,25 @@
    [:h1 "All quizzes"]
    [grid {:container true :direction "column" :spacing 2}
     [grid {:item true}
-     [table-container
-      [table
-       [table-head
-        [table-row
-         [table-cell "Name"]
-         [table-cell "Deadline"]
-         [table-cell "Personal list"]
-         [table-cell "Action"]]]
-       [table-body
-        (for [{:keys [id name deadline deadline-has-passed? externalId personalListHasDraftStatus]} quizzes]
-          ^{:key id}
+     (if (empty? quizzes)
+       [:p "You're not participating in any quizzes right now."]
+       [table-container
+        [table
+         [table-head
           [table-row
-           [table-cell name]
-           [table-cell (if deadline-has-passed? "Closed for participation" deadline)]
-           [table-cell (if personalListHasDraftStatus "No list submitted" "List submitted")]
-           [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]])]]]]
+           [table-cell "Name"]
+           [table-cell "Deadline"]
+           [table-cell "Personal list"]
+           [table-cell {:col-span 2} "Action"]]]
+         [table-body
+          (for [{:keys [id name deadline deadline-has-passed? externalId isCreator personalListHasDraftStatus]} quizzes]
+            ^{:key id}
+            [table-row
+             [table-cell name]
+             [table-cell (if deadline-has-passed? "Closed for participation" deadline)]
+             [table-cell (if personalListHasDraftStatus "No list submitted" "List submitted")]
+             [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]
+             [table-cell (when isCreator [link {:href (str "#/quiz/" externalId "/complete")} "End"])]])]]])]
     [grid {:item true}
      [button {:href "#/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]]])
 
@@ -65,7 +68,8 @@
 (defn quiz-page [{:keys [name deadline deadline-has-passed? externalId personalListId personalListHasDraftStatus]} number-of-participants lists]
   [:div
    [:h1 name]
-   (if deadline-has-passed?
+   (cond
+     (and deadline-has-passed? personalListId (false? personalListHasDraftStatus))
      [:<>
       [:p (str
            "This quiz has reached the final round. "
@@ -86,25 +90,50 @@
               [table-cell [link {:href (str "#/quiz/" externalId "/list/" id "/assign") :color "primary"} "Assign"]]])]]]]
        [grid {:item true}
         [back-to-overview-button]]]]
+     (not deadline-has-passed?)
      [:<>
       [:p
-       (str 
-        "At the moment, this quiz has " number-of-participants " " (if (> number-of-participants 1) "participants" "participant") ". "
-        "Anyone who wants to join has until " deadline " to submit their personal top 10.") ]
-      (if personalListHasDraftStatus
-        [:p (str
-             "Remember, you still have to submit your personal top 10 for this quiz! "
-             "You can only join the final round when you've submitted a top 10.")]
-        [:p (str "You've already submitted your personal top 10 for this quiz.")])
-      [grid {:container true :spacing 2}
-       [grid {:item true}
-        [button {:href (str "#/list/" personalListId) :color "primary" :variant "contained"}
-         (if personalListHasDraftStatus "Submit top 10" "View top 10")]]
-       [grid {:item true}
-        [back-to-overview-button]]]])])
+       (str
+        "At the moment, this quiz has " number-of-participants " " (if (= number-of-participants 1) "participant" "participants") ". "
+        "Anyone who wants to join has until " deadline " to submit their personal top 10.")]
+      (case personalListHasDraftStatus
+        (true) [:p (str
+                    "Remember, you still have to submit your personal top 10 for this quiz! "
+                    "You can only join the final round when you've submitted a top 10.")]
+        (false) [:p (str "You've already submitted your personal top 10 for this quiz.")]
+        (nil) [button {:color "primary"
+                       :on-click #(rf/dispatch [::events/participate-in-quiz externalId])
+                       :variant "contained"}
+               "Participate in quiz"])
+      (when (some? personalListHasDraftStatus)
+        [grid {:container true :spacing 2}
+         [grid {:item true}
+          [button {:href (str "#/list/" personalListId) :color "primary" :variant "contained"}
+           (if personalListHasDraftStatus "Submit top 10" "View top 10")]]
+         [grid {:item true}
+          [back-to-overview-button]]])])])
 
 (defn quiz-page-container []
   [quiz-page @(rf/subscribe [::subs/quiz]) @(rf/subscribe [::subs/number-of-participants]) @(rf/subscribe [::subs/quiz-lists])])
+
+(defn complete-quiz-page [{:keys [name deadline deadline-has-passed? externalId ]}]
+  [:div
+   [:h1 name]
+   (when-not deadline-has-passed?
+     [:p (str
+          "The deadline for this quiz hasn't passed yet. "
+          "Its deadline is " deadline ".")])
+   [:p (str
+        "Are you sure you want to end this quiz? "
+        "After ending the quiz, the end results will become available to all participants.")]
+   [grid {:container true :spacing 2}
+    [grid {:item true} [button {:color "primary"
+                                :on-click #(rf/dispatch [::events/complete-quiz externalId])
+                                :variant "contained"} "End quiz"]]
+    [grid {:item true} [back-to-overview-button]]]])
+
+(defn complete-quiz-page-container []
+  [complete-quiz-page @(rf/subscribe [::subs/quiz])])
 
 (defn event-value [^js/Event e] (.. e -target -value))
 
@@ -262,6 +291,7 @@
     :home-page [home-page]
     :quizzes-page [quizzes-page-container]
     :quiz-page [quiz-page-container]
+    :complete-quiz-page [complete-quiz-page-container]
     :create-quiz-page [create-quiz-page]
     :create-list-page [create-list-page-container]
     :assign-list-page [assign-list-page-container]
