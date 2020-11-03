@@ -10,7 +10,7 @@
            :font-size "1.125rem"
            :line-height "1.75rem"
            :margin "0 auto"
-           :max-width "35rem"
+           :max-width "40rem"
            :padding "4rem 2rem"}]
    [:.ytEmbeddedContainer {:height "0"
                            :max-width "100%"
