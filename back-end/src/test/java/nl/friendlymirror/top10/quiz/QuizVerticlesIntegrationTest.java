@@ -42,7 +42,6 @@ class QuizVerticlesIntegrationTest {
 
     private int accountId;
     private int quizWithListId;
-    private int quizWithoutListId;
     private int listId;
 
     @BeforeAll
@@ -90,8 +89,9 @@ class QuizVerticlesIntegrationTest {
         connection.prepareStatement("TRUNCATE TABLE quiz CASCADE").execute();
 
         quizWithListId = createQuiz(connection, accountId, EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
-        quizWithoutListId = createQuiz(connection, accountId, EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
         listId = createList(connection, accountId, quizWithListId);
+
+        createQuiz(connection, accountId, EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
     }
 
     private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
