@@ -182,7 +182,7 @@ class QuizVerticlesIntegrationTest {
     public void letsAccountParticipate(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID + "/participate"))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
@@ -197,7 +197,7 @@ class QuizVerticlesIntegrationTest {
     public void rejectsParticipationInUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/participate"))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
@@ -211,7 +211,7 @@ class QuizVerticlesIntegrationTest {
     public void rejectsParticipatingTwice(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID + "/participate"))
                 .build();
         var firstResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
@@ -219,7 +219,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(firstResponse.statusCode()).isEqualTo(200);
 
         request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
+                .POST(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_QUIZ_ID + "/participate"))
                 .build();
         var secondResponse = httpClient.send(request, new JsonObjectBodyHandler());

@@ -35,7 +35,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .handler(BodyHandler.create())
                 .handler(this::handleCreate);
 
-        router.route(HttpMethod.PUT, "/private/quiz/:externalId/participate").handler(this::handleParticipate);
+        router.route(HttpMethod.POST, "/private/quiz/:externalId/participate").handler(this::handleParticipate);
 
         router.route(HttpMethod.GET, "/private/quiz/:externalId").handler(this::handleGetOne);
         router.route(HttpMethod.GET, "/private/quiz/:externalId/participants").handler(this::handleGetParticipants);
