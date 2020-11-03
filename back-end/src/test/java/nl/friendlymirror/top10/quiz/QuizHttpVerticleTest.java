@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.Router;
@@ -21,7 +20,7 @@ import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.ErrorHandlers;
 import nl.friendlymirror.top10.RandomPort;
-import nl.friendlymirror.top10.http.*;
+import nl.friendlymirror.top10.http.JsonObjectBodyHandler;
 
 @Log4j2
 @ExtendWith(VertxExtension.class)
@@ -29,9 +28,6 @@ class QuizHttpVerticleTest {
 
     private static final int ACCOUNT_ID = 12345;
     private static final String EXTERNAL_ID = "abcdefg";
-    private static final Instant DEADLINE = Instant.now();
-    private static final int QUIZ_ID = 9876;
-    private static final String NAME = "Greatest Hits";
 
     private final int port = RandomPort.get();
 
@@ -57,74 +53,6 @@ class QuizHttpVerticleTest {
                 vertxTestContext.failNow(cause);
             }
         });
-    }
-
-    @Test
-    public void returnsAllQuizzes(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizzes = new JsonArray().add("a").add("b");
-        vertx.eventBus().consumer("entity.quiz.getAll", request -> {
-            vertxTestContext.verify(() -> assertThat(request.body()).isEqualTo(ACCOUNT_ID));
-            request.reply(quizzes);
-        });
-
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var response = httpClient.send(request, new JsonArrayBodyHandler());
-
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).isEqualTo(quizzes);
-        vertxTestContext.completeNow();
-    }
-
-    @Test
-    public void returnsSingleQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quiz = new JsonObject().put("externalId", EXTERNAL_ID);
-        vertx.eventBus().consumer("entity.quiz.getOne", request -> {
-            vertxTestContext.verify(() -> {
-                var body = (JsonObject) request.body();
-                assertThat(body.getInteger("accountId")).isEqualTo(ACCOUNT_ID);
-                assertThat(body.getString("externalId")).isEqualTo(EXTERNAL_ID);
-            });
-            request.reply(quiz);
-        });
-
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
-
-        assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).isEqualTo(quiz);
-        vertxTestContext.completeNow();
-    }
-
-    @Test
-    public void returns404GettingUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var errorMessage = "Quiz not found";
-        vertx.eventBus().consumer("entity.quiz.getOne", request -> {
-            vertxTestContext.verify(() -> {
-                var body = (JsonObject) request.body();
-                assertThat(body.getInteger("accountId")).isEqualTo(ACCOUNT_ID);
-                assertThat(body.getString("externalId")).isEqualTo(EXTERNAL_ID);
-            });
-            request.fail(404, errorMessage);
-        });
-
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
-
-        assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body().getString("error")).isEqualTo(errorMessage);
-        vertxTestContext.completeNow();
     }
 
     @Test

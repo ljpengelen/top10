@@ -72,19 +72,21 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
             log.debug("Retrieved all quizzes for account");
 
             var quizzes = asyncQuizzes.result().getResults().stream()
-                    .map(this::quizArrayToJsonObject)
+                    .map(quiz -> quizArrayToJsonObject(quiz, accountId))
                     .collect(Collectors.toList());
 
             getAllQuizzesRequest.reply(new JsonArray(quizzes));
         });
     }
 
-    private JsonObject quizArrayToJsonObject(JsonArray array) {
+    private JsonObject quizArrayToJsonObject(JsonArray array, Integer accountId) {
+        var creatorId = array.getInteger(3);
         var quiz = new JsonObject()
                 .put("id", array.getInteger(0))
                 .put("name", array.getString(1))
                 .put("isActive", array.getBoolean(2))
-                .put("creatorId", array.getInteger(3))
+                .put("creatorId", creatorId)
+                .put("isCreator", creatorId.equals(accountId))
                 .put("deadline", array.getInstant(4))
                 .put("externalId", array.getString(5));
 
@@ -131,7 +133,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 log.debug("Quiz with external ID \"{}\" not found", externalId);
                 promise.fail(new NotFoundException(String.format("Quiz with external ID \"%s\" not found", externalId)));
             } else {
-                var quiz = quizArrayToJsonObject(asyncQuiz.result());
+                var quiz = quizArrayToJsonObject(asyncQuiz.result(), accountId);
                 log.debug("Retrieved quiz by external ID \"{}\": \"{}\"", externalId, quiz);
                 promise.complete(quiz);
             }
