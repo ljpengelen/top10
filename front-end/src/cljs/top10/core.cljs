@@ -7,7 +7,7 @@
    [top10.effects :as effects]
    [top10.events :as events]
    [top10.routes :as routes]
-   [top10.views :as views]
+   [top10.views.core :as views]
    [top10.config :as config]))
 
 (defn dev-setup []
