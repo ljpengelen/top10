@@ -8,5 +8,6 @@ public class MessageCodecs {
     public static void register(EventBus eventBus) {
         eventBus.registerDefaultCodec(ListDto.class, new ListDtoMessageCodec());
         eventBus.registerDefaultCodec(ListsDto.class, new ListsDtoMessageCodec());
+        eventBus.registerDefaultCodec(ResultSummaryDto.class, new ResultSummaryDtoMessageCodec());
     }
 }
