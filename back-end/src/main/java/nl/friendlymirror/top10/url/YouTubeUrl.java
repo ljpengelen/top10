@@ -8,8 +8,8 @@ import nl.friendlymirror.top10.ValidationException;
 @UtilityClass
 public class YouTubeUrl {
 
-    private Pattern SHORT_URL_PATTERN = Pattern.compile("^https://youtu.be/([^\\\\?]+)");
-    private Pattern LONG_URL_PATTERN = Pattern.compile("v=([^&]+)");
+    private final Pattern SHORT_URL_PATTERN = Pattern.compile("^https://youtu.be/([^\\\\?]+)");
+    private final Pattern LONG_URL_PATTERN = Pattern.compile("v=([^&]+)");
 
     public String toEmbeddableUrl(String url) {
         return "https://www.youtube-nocookie.com/embed/" + extractVideoId(url);
