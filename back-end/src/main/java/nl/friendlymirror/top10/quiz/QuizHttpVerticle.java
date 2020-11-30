@@ -39,6 +39,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         router.route(HttpMethod.GET, "/private/quiz/:externalId").handler(this::handleGetOne);
         router.route(HttpMethod.GET, "/private/quiz/:externalId/participants").handler(this::handleGetParticipants);
+        router.route(HttpMethod.GET, "/private/quiz/:externalId/result").handler(this::handleGetResult);
 
         router.route(HttpMethod.PUT, "/private/quiz/:externalId/complete").handler(this::handleComplete);
     }
@@ -178,6 +179,36 @@ public class QuizHttpVerticle extends AbstractVerticle {
             routingContext.response()
                     .putHeader("content-type", "application/json")
                     .end(participants.toBuffer());
+        });
+    }
+
+    private void handleGetResult(RoutingContext routingContext) {
+        var externalId = routingContext.pathParam("externalId");
+
+        log.debug(String.format("Get results for quiz \"%s\"", externalId));
+
+        var accountId = routingContext.user().principal().getInteger("accountId");
+        var getQuizRequest = new JsonObject()
+                .put("accountId", accountId)
+                .put("externalId", externalId);
+        vertx.eventBus().request(GET_QUIZ_RESULT_ADDRESS, getQuizRequest, quizResultReply -> {
+            if (quizResultReply.failed()) {
+                var cause = (ReplyException) quizResultReply.cause();
+                if (cause.failureCode() == 404) {
+                    routingContext.fail(new NotFoundException(cause.getMessage()));
+                } else {
+                    var message = String.format("Unable to get results for quiz with external ID \"%s\"", externalId);
+                    routingContext.fail(new InternalServerErrorException(message, quizResultReply.cause()));
+                }
+                return;
+            }
+
+            var quizResult = (JsonObject) quizResultReply.result().body();
+            log.debug("Retrieved result for quiz \"{}\"", quizResult);
+
+            routingContext.response()
+                    .putHeader("content-type", "application/json")
+                    .end(quizResult.toBuffer());
         });
     }
 

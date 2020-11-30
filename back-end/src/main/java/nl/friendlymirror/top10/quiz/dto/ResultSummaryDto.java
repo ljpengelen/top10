@@ -10,13 +10,13 @@ import lombok.Value;
 @Builder
 public class ResultSummaryDto {
 
-    Integer quizId;
+    String quizId;
     List<PersonalResultDto> personalResults;
 
     public static ResultSummaryDto fromJsonObject(JsonObject jsonObject) {
         var personalResults = PersonalResultDto.fromJsonArray(jsonObject.getJsonArray("personalResults"));
         return ResultSummaryDto.builder()
-                .quizId(jsonObject.getInteger("quizId"))
+                .quizId(jsonObject.getString("quizId"))
                 .personalResults(personalResults)
                 .build();
     }

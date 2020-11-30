@@ -6,16 +6,16 @@ import java.util.stream.Collectors;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import lombok.Builder;
-import lombok.Value;
+import lombok.*;
 
 @Value
 @Builder
 public class PersonalResultDto {
 
     Integer accountId;
-    Integer numberOfCorrectAssignments;
+    @Singular
     List<AssignmentDto> correctAssignments;
+    @Singular
     List<AssignmentDto> incorrectAssignments;
 
     public static PersonalResultDto fromJsonObject(JsonObject jsonObject) {
@@ -23,7 +23,6 @@ public class PersonalResultDto {
         var incorrectAssignments = AssignmentDto.fromJsonArray(jsonObject.getJsonArray("incorrectAssignments"));
         return PersonalResultDto.builder()
                 .accountId(jsonObject.getInteger("accountId"))
-                .numberOfCorrectAssignments(correctAssignments.size())
                 .correctAssignments(correctAssignments)
                 .incorrectAssignments(incorrectAssignments)
                 .build();
@@ -42,7 +41,7 @@ public class PersonalResultDto {
     public JsonObject toJsonObject() {
         return new JsonObject()
                 .put("accountId", accountId)
-                .put("numberOfCorrectAssignments", numberOfCorrectAssignments)
+                .put("numberOfCorrectAssignments", correctAssignments.size())
                 .put("correctAssignments", AssignmentDto.toJsonArray(correctAssignments))
                 .put("incorrectAssignments", AssignmentDto.toJsonArray(incorrectAssignments));
     }

@@ -15,7 +15,7 @@ class ResultSummaryDtoMessageCodecTest {
     @Test
     public void encodesResultSummaryDto() {
         var resultSummaryDto = ResultSummaryDto.builder()
-                .quizId(123)
+                .quizId("abc")
                 .personalResults(List.of(PersonalResultDto.builder()
                         .accountId(321)
                         .correctAssignments(List.of(AssignmentDto.builder()
@@ -28,7 +28,6 @@ class ResultSummaryDtoMessageCodecTest {
                                 .creatorId(987)
                                 .assigneeId(789)
                                 .build()))
-                        .numberOfCorrectAssignments(1)
                         .build()))
                 .build();
 

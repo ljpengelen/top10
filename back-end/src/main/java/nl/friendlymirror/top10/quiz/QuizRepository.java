@@ -1,6 +1,8 @@
 package nl.friendlymirror.top10.quiz;
 
 import java.time.Instant;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import io.vertx.core.Future;
@@ -11,6 +13,7 @@ import io.vertx.ext.sql.SQLConnection;
 import lombok.extern.slf4j.Slf4j;
 import nl.friendlymirror.top10.ConflictException;
 import nl.friendlymirror.top10.NotFoundException;
+import nl.friendlymirror.top10.quiz.dto.*;
 
 @Slf4j
 public class QuizRepository {
@@ -31,6 +34,11 @@ public class QuizRepository {
                                                             + "JOIN list l ON l.account_id = a.account_id "
                                                             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                             + "WHERE q.external_id = ?";
+    private static final String GET_QUIZ_RESULT_TEMPLATE =
+            "SELECT a.list_id, a.account_id AS assigner_id, a.assignee_id, l.account_id AS creator_id FROM quiz q "
+            + "JOIN list l ON l.quiz_id = q.quiz_id "
+            + "JOIN assignment a ON a.list_id = l.list_id "
+            + "WHERE q.external_id = ?";
 
     public Future<JsonArray> getAllQuizzes(SQLConnection connection, Integer accountId) {
         var promise = Promise.<JsonArray> promise();
@@ -101,6 +109,64 @@ public class QuizRepository {
         });
 
         return promise.future();
+    }
+
+    public Future<ResultSummaryDto> getQuizResult(SQLConnection connection, String externalId) {
+        var promise = Promise.<ResultSummaryDto> promise();
+
+        connection.queryWithParams(GET_QUIZ_RESULT_TEMPLATE, new JsonArray().add(externalId), asyncQuizResult -> {
+            if (asyncQuizResult.failed()) {
+                var cause = asyncQuizResult.cause();
+                log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_QUIZ_RESULT_TEMPLATE, externalId, cause);
+                promise.fail(cause);
+                return;
+            }
+
+            var rows = asyncQuizResult.result().getRows();
+            if (rows.size() == 0) {
+                log.debug("No assignments found for quiz with external ID \"{}\"", externalId);
+                promise.fail(new NotFoundException(String.format("No assignments found for quiz with external ID \"%s\"", externalId)));
+            } else {
+                var quizResult = assignmentsToQuizResult(externalId, rows);
+                log.debug("Retrieved result for quiz with external ID \"{}\": \"{}\"", externalId, quizResult);
+                promise.complete(quizResult);
+            }
+        });
+
+        return promise.future();
+    }
+
+    private ResultSummaryDto assignmentsToQuizResult(String externalId, List<JsonObject> assignments) {
+        return ResultSummaryDto.builder()
+                .quizId(externalId)
+                .personalResults(toPersonalResults(assignments))
+                .build();
+    }
+
+    private List<PersonalResultDto> toPersonalResults(List<JsonObject> assignments) {
+        var personalResults = new HashMap<Integer, PersonalResultDto.PersonalResultDtoBuilder>();
+
+        assignments.forEach(assignment -> {
+            var accountId = assignment.getInteger("assigner_id");
+            var personalResult = personalResults.computeIfAbsent(accountId, key -> PersonalResultDto.builder().accountId(key));
+            var assigneeId = assignment.getInteger("assignee_id");
+            var creatorId = assignment.getInteger("creator_id");
+            var listId = assignment.getInteger("list_id");
+            var assignmentDto = AssignmentDto.builder()
+                    .assigneeId(assigneeId)
+                    .creatorId(creatorId)
+                    .listId(listId)
+                    .build();
+            if (assigneeId.equals(creatorId)) {
+                personalResult.correctAssignment(assignmentDto);
+            } else {
+                personalResult.incorrectAssignment(assignmentDto);
+            }
+        });
+
+        return personalResults.values().stream()
+                .map(PersonalResultDto.PersonalResultDtoBuilder::build)
+                .collect(Collectors.toList());
     }
 
     public Future<Integer> createQuiz(SQLConnection connection, String name, Integer creatorId, Instant deadline, String externalId) {

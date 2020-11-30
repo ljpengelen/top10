@@ -15,6 +15,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     public static final String GET_ALL_QUIZZES_ADDRESS = "entity.quiz.getAll";
     public static final String GET_ONE_QUIZ_ADDRESS = "entity.quiz.getOne";
+    public static final String GET_QUIZ_RESULT_ADDRESS = "entity.quiz.getResult";
     public static final String CREATE_QUIZ_ADDRESS = "entity.quiz.create";
     public static final String COMPLETE_QUIZ_ADDRESS = "entity.quiz.complete";
     public static final String PARTICIPATE_IN_QUIZ_ADDRESS = "entity.quiz.participate";
@@ -62,17 +63,17 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 });
     }
 
-    private void handleGetResult(Message<JsonObject> getOneQuizRequest) {
-        var body = getOneQuizRequest.body();
+    private void handleGetResult(Message<JsonObject> getQuizResultRequest) {
+        var body = getQuizResultRequest.body();
         var externalId = body.getString("externalId");
         var accountId = body.getInteger("accountId");
-        withConnection(connection -> quizRepository.getQuiz(connection, externalId, accountId))
-                .onSuccess(getOneQuizRequest::reply)
+        withConnection(connection -> quizRepository.getQuizResult(connection, externalId))
+                .onSuccess(getQuizResultRequest::reply)
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {
-                        getOneQuizRequest.fail(404, cause.getMessage());
+                        getQuizResultRequest.fail(404, cause.getMessage());
                     } else {
-                        getOneQuizRequest.fail(500, String.format("Unable to retrieve quiz with external ID \"%s\"", externalId));
+                        getQuizResultRequest.fail(500, String.format("Unable to retrieve result for quiz with external ID \"%s\"", externalId));
                     }
                 });
     }
