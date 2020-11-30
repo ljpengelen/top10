@@ -221,7 +221,7 @@ class QuizVerticlesIntegrationTest {
     }
 
     @Test
-    public void returnsSingleQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void returnsSingleQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .GET()
@@ -245,7 +245,7 @@ class QuizVerticlesIntegrationTest {
     }
 
     @Test
-    public void returns404GettingUnknownQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void returns404GettingUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .GET()
