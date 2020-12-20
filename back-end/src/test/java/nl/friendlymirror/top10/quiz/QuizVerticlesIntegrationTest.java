@@ -350,21 +350,13 @@ class QuizVerticlesIntegrationTest {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/result"))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getInteger("id")).isEqualTo(quizWithListId);
-        assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId);
-        assertThat(quiz.getBoolean("isCreator")).isTrue();
-        assertThat(quiz.getBoolean("isActive")).isTrue();
-        assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
-        assertThat(quiz.getInteger("personalListId")).isEqualTo(listId);
-        assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
+        assertThat(quiz.getString("quizId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         vertxTestContext.completeNow();
     }
