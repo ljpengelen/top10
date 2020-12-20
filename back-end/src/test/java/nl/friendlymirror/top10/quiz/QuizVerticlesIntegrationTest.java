@@ -35,13 +35,17 @@ class QuizVerticlesIntegrationTest {
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant DEADLINE = Instant.now();
     private static final String NON_EXISTING_EXTERNAL_ID = "pqrstuvw";
-    private static final String USERNAME = "John Doe";
-    private static final String EMAIL_ADDRESS = "john.doe@example.com";
-    private static final String EXTERNAL_ACCOUNT_ID = "123456789";
+    private static final String USERNAME_1 = "John Doe";
+    private static final String USERNAME_2 = "Jane Doe";
+    private static final String EMAIL_ADDRESS_1 = "john.doe@example.com";
+    private static final String EMAIL_ADDRESS_2 = "jane.doe@example.com";
+    private static final String EXTERNAL_ACCOUNT_ID_1 = "123456789";
+    private static final String EXTERNAL_ACCOUNT_ID_2 = "987654321";
 
     private final int port = RandomPort.get();
 
-    private int accountId;
+    private int accountId1;
+    private int accountId2;
     private int quizWithListId;
     private int listId;
 
@@ -70,24 +74,29 @@ class QuizVerticlesIntegrationTest {
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
+        accountId1 = createAccount(connection, USERNAME_1, EMAIL_ADDRESS_1, EXTERNAL_ACCOUNT_ID_1);
+        accountId2 = createAccount(connection, USERNAME_2, EMAIL_ADDRESS_2, EXTERNAL_ACCOUNT_ID_2);
+    }
+
+    private int createAccount(Connection connection, String username, String emailAddress, String externalAccountId) throws SQLException {
         var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at, external_id) VALUES ('%s', '%s', NOW(), NOW(), %s)";
-        var query = String.format(accountQueryTemplate, USERNAME, EMAIL_ADDRESS, EXTERNAL_ACCOUNT_ID);
-        statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
+        var query = String.format(accountQueryTemplate, username, emailAddress, externalAccountId);
+        var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         var generatedKeys = statement.getGeneratedKeys();
         generatedKeys.next();
-        accountId = generatedKeys.getInt(1);
+        return generatedKeys.getInt(1);
     }
 
     private void setUpQuiz() throws SQLException {
         var connection = getConnection();
         connection.prepareStatement("TRUNCATE TABLE quiz CASCADE").execute();
 
-        quizWithListId = createQuiz(connection, accountId, EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
-        listId = createList(connection, accountId, quizWithListId);
+        quizWithListId = createQuiz(connection, accountId1, EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        listId = createList(connection, accountId1, quizWithListId);
 
-        createQuiz(connection, accountId, EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
+        createQuiz(connection, accountId2, EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
     }
 
     private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
@@ -120,7 +129,7 @@ class QuizVerticlesIntegrationTest {
         server.requestHandler(router);
 
         router.route().handler(routingContext -> {
-            routingContext.setUser(User.create(new JsonObject().put("accountId", accountId)));
+            routingContext.setUser(User.create(new JsonObject().put("accountId", accountId1)));
             routingContext.next();
         });
 
@@ -205,7 +214,7 @@ class QuizVerticlesIntegrationTest {
         var quiz = response.body().getJsonObject(0);
         assertThat(quiz.getInteger("id")).isEqualTo(quizWithListId);
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId);
+        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
@@ -229,7 +238,7 @@ class QuizVerticlesIntegrationTest {
         var quiz = response.body();
         assertThat(quiz.getInteger("id")).isEqualTo(quizWithListId);
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId);
+        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
@@ -293,7 +302,8 @@ class QuizVerticlesIntegrationTest {
         var secondResponse = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(secondResponse.statusCode()).isEqualTo(409);
-        assertThat(secondResponse.body().getString("error")).isEqualTo(String.format("Account with ID \"%d\" already has a list for quiz with external ID \"abcdefg\"", accountId));
+        assertThat(secondResponse.body().getString("error"))
+                .isEqualTo(String.format("Account with ID \"%d\" already has a list for quiz with external ID \"abcdefg\"", accountId1));
 
         vertxTestContext.completeNow();
     }
@@ -325,8 +335,8 @@ class QuizVerticlesIntegrationTest {
         assertThat(response.body()).hasSize(1);
 
         var participant = response.body().getJsonObject(0);
-        assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID);
-        assertThat(participant.getString("name")).isEqualTo(USERNAME);
+        assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
 
         vertxTestContext.completeNow();
     }
@@ -384,6 +394,47 @@ class QuizVerticlesIntegrationTest {
         var request = HttpRequest.newBuilder()
                 .GET()
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/result"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void completesQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/complete"))
+                .build();
+        var response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+
+        assertThat(response.statusCode()).isEqualTo(201);
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void rejectsCompletionByNonCreator(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST + "/complete"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId1 + "\" is not allowed to close quiz with external ID \"gfedcba\"");
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void rejectsCompletionOfUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/complete"))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
