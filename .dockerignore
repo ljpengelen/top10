@@ -1,3 +1,6 @@
 .git
-front-end/resources/public/cljs-out
+**/.idea
+**/.mvn
+**/.shadow-cljs
+**/node_modules
 **/target
