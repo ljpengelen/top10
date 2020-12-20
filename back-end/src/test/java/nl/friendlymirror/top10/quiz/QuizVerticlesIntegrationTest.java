@@ -56,16 +56,9 @@ class QuizVerticlesIntegrationTest {
 
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) throws SQLException {
-        cleanUp();
         setUpAccounts();
         setUpQuiz();
         deployVerticles(vertx, vertxTestContext);
-    }
-
-    private void cleanUp() throws SQLException {
-        var connection = getConnection();
-        var statement = connection.prepareStatement("TRUNCATE TABLE quiz CASCADE");
-        statement.execute();
     }
 
     private Connection getConnection() throws SQLException {
