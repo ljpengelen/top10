@@ -123,14 +123,9 @@ public class QuizRepository {
             }
 
             var rows = asyncQuizResult.result().getRows();
-            if (rows.size() == 0) {
-                log.debug("No assignments found for quiz with external ID \"{}\"", externalId);
-                promise.fail(new NotFoundException(String.format("No assignments found for quiz with external ID \"%s\"", externalId)));
-            } else {
-                var quizResult = assignmentsToQuizResult(externalId, rows);
-                log.debug("Retrieved result for quiz with external ID \"{}\": \"{}\"", externalId, quizResult);
-                promise.complete(quizResult);
-            }
+            var quizResult = assignmentsToQuizResult(externalId, rows);
+            log.debug("Retrieved result for quiz with external ID \"{}\": \"{}\"", externalId, quizResult);
+            promise.complete(quizResult);
         });
 
         return promise.future();

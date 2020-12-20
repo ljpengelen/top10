@@ -21,6 +21,7 @@ import io.vertx.junit5.VertxTestContext;
 import nl.friendlymirror.top10.ErrorHandlers;
 import nl.friendlymirror.top10.RandomPort;
 import nl.friendlymirror.top10.config.TestConfig;
+import nl.friendlymirror.top10.eventbus.MessageCodecs;
 import nl.friendlymirror.top10.http.*;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
 
@@ -49,6 +50,8 @@ class QuizVerticlesIntegrationTest {
         var verticle = new MigrationVerticle(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
         var deploymentOptions = new DeploymentOptions().setWorker(true);
         vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.completing());
+
+        MessageCodecs.register(vertx.eventBus());
     }
 
     @BeforeEach
@@ -341,6 +344,61 @@ class QuizVerticlesIntegrationTest {
         var request = HttpRequest.newBuilder()
                 .GET()
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/participants"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returnsQuizResults(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        var quiz = response.body();
+        assertThat(quiz.getInteger("id")).isEqualTo(quizWithListId);
+        assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
+        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId);
+        assertThat(quiz.getBoolean("isCreator")).isTrue();
+        assertThat(quiz.getBoolean("isActive")).isTrue();
+        assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
+        assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        assertThat(quiz.getInteger("personalListId")).isEqualTo(listId);
+        assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returnsEmptyQuizResultsForQuizWithoutAssignments(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/result"))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        var quiz = response.body();
+        assertThat(quiz.getString("quizId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        assertThat(quiz.getJsonArray("personalResults")).isEmpty();
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returns404GettingResultsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/result"))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 

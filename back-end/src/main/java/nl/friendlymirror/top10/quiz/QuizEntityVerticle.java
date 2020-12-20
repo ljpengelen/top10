@@ -67,7 +67,9 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var body = getQuizResultRequest.body();
         var externalId = body.getString("externalId");
         var accountId = body.getInteger("accountId");
-        withConnection(connection -> quizRepository.getQuizResult(connection, externalId))
+        withTransaction(connection ->
+                quizRepository.getQuiz(connection, externalId, accountId).compose(quiz ->
+                        quizRepository.getQuizResult(connection, externalId)))
                 .onSuccess(getQuizResultRequest::reply)
                 .onFailure(cause -> {
                     if (cause instanceof NotFoundException) {

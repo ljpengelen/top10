@@ -17,6 +17,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.friendlymirror.top10.*;
+import nl.friendlymirror.top10.quiz.dto.ResultSummaryDto;
 import nl.friendlymirror.top10.random.TokenGenerator;
 
 @Log4j2
@@ -188,10 +189,10 @@ public class QuizHttpVerticle extends AbstractVerticle {
         log.debug(String.format("Get results for quiz \"%s\"", externalId));
 
         var accountId = routingContext.user().principal().getInteger("accountId");
-        var getQuizRequest = new JsonObject()
+        var getQuizResultRequest = new JsonObject()
                 .put("accountId", accountId)
                 .put("externalId", externalId);
-        vertx.eventBus().request(GET_QUIZ_RESULT_ADDRESS, getQuizRequest, quizResultReply -> {
+        vertx.eventBus().request(GET_QUIZ_RESULT_ADDRESS, getQuizResultRequest, quizResultReply -> {
             if (quizResultReply.failed()) {
                 var cause = (ReplyException) quizResultReply.cause();
                 if (cause.failureCode() == 404) {
@@ -203,12 +204,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 return;
             }
 
-            var quizResult = (JsonObject) quizResultReply.result().body();
+            var quizResult = (ResultSummaryDto) quizResultReply.result().body();
             log.debug("Retrieved result for quiz \"{}\"", quizResult);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(quizResult.toBuffer());
+                    .end(quizResult.toJsonObject().toBuffer());
         });
     }
 
