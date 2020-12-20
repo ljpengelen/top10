@@ -142,19 +142,41 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void createsQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quiz = new JsonObject()
+        var createQuizRequest = new JsonObject()
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE);
 
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(quiz))
+                .POST(BodyPublisher.ofJsonObject(createQuizRequest))
                 .uri(URI.create("http://localhost:" + port + "/private/quiz"))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body().getString("externalId")).isNotBlank();
+        var body = response.body();
+        assertThat(body).isNotNull();
+        var externalId = body.getString("externalId");
+        assertThat(externalId).isNotBlank();
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalId))
+                .build();
+        response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        var quiz = response.body();
+        assertThat(quiz.getInteger("id")).isNotNull();
+        assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
+        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(quiz.getBoolean("isCreator")).isTrue();
+        assertThat(quiz.getBoolean("isActive")).isTrue();
+        assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
+        assertThat(quiz.getString("externalId")).isEqualTo(externalId);
+        assertThat(quiz.getInteger("personalListId")).isNotNull();
+        assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
+
         vertxTestContext.completeNow();
     }
 
@@ -403,15 +425,26 @@ class QuizVerticlesIntegrationTest {
     }
 
     @Test
-    public void completesQuiz(Vertx vertx, VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void completesQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
                 .PUT(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/complete"))
                 .build();
-        var response = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        var completeResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
 
-        assertThat(response.statusCode()).isEqualTo(201);
+        assertThat(completeResponse.statusCode()).isEqualTo(201);
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST))
+                .build();
+        var getResponse = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(getResponse.statusCode()).isEqualTo(200);
+        assertThat(getResponse.body()).isNotNull();
+        assertThat(getResponse.body().getBoolean("isActive")).isFalse();
+
         vertxTestContext.completeNow();
     }
 
@@ -426,6 +459,17 @@ class QuizVerticlesIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(403);
         assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId1 + "\" is not allowed to close quiz with external ID \"gfedcba\"");
+
+        request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST))
+                .build();
+        response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).isNotNull();
+        assertThat(response.body().getBoolean("isActive")).isTrue();
+
         vertxTestContext.completeNow();
     }
 
