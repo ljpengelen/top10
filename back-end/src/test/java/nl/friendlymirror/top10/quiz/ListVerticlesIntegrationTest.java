@@ -519,7 +519,7 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
-    public void doesNotFinalizeListNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void doesNotFinalizeNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var nonExistingListId = listId1 - 1;
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
