@@ -89,6 +89,8 @@ class ListVerticlesIntegrationTest {
         accountId1 = createUser(connection, USERNAME_1, EMAIL_ADDRESS_1, EXTERNAL_ACCOUNT_ID_1);
         accountId2 = createUser(connection, USERNAME_2, EMAIL_ADDRESS_2, EXTERNAL_ACCOUNT_ID_2);
         accountId3 = createUser(connection, USERNAME_3, EMAIL_ADDRESS_3, EXTERNAL_ACCOUNT_ID_3);
+
+        connection.close();
     }
 
     private Connection getConnection() throws SQLException {
@@ -119,6 +121,8 @@ class ListVerticlesIntegrationTest {
         listId3 = createList(connection, accountId3, quizId2);
 
         videoId = createVideo(connection, listId3, EMBEDDABLE_URL_3);
+
+        connection.close();
     }
 
     private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
