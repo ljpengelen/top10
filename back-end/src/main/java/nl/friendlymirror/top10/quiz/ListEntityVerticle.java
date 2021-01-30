@@ -151,8 +151,8 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         withTransaction(connection ->
                 listRepository.getList(connection, listId, accountId).compose(listDto ->
                         listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
-                                listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId()).compose(accountParticipatesInQuiz ->
-                                        listRepository.assignList(connection, accountId, listId, assigneeId)))))
+                                listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId(), listDto.getExternalQuizId())
+                                        .compose(accountParticipatesInQuiz -> listRepository.assignList(connection, accountId, listId, assigneeId)))))
                 .onSuccess(assignListRequest::reply)
                 .onFailure(cause -> handleFailure(cause, assignListRequest));
     }

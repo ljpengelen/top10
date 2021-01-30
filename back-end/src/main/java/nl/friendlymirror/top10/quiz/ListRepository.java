@@ -30,18 +30,22 @@ public class ListRepository {
     private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(l.account_id) FROM list l "
                                                                         + "JOIN account a ON l.account_id = a.account_id "
                                                                         + "WHERE a.external_id = ? AND l.quiz_id = ?";
-    private static final String GET_ONE_LIST_TEMPLATE = "SELECT l.list_id, l.has_draft_status, acc.external_id, acc.name, l.quiz_id, l.account_id FROM video v "
-                                                        + "NATURAL RIGHT JOIN list l "
-                                                        + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
-                                                        + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
-                                                        + "WHERE l.list_id = ? AND "
-                                                        + "(ass.account_id = ? OR ass.account_id IS NULL)";
-    private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE = "SELECT l.list_id, l.has_draft_status, acc.external_id, acc.name, l.quiz_id, l.account_id FROM video v "
-                                                                + "NATURAL RIGHT JOIN list l "
-                                                                + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
-                                                                + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
-                                                                + "WHERE v.video_id = ? AND "
-                                                                + "(ass.account_id = ? OR ass.account_id IS NULL)";
+    private static final String GET_ONE_LIST_TEMPLATE =
+            "SELECT l.list_id, l.has_draft_status, acc.external_id AS external_account_id, acc.name, l.quiz_id, q.external_id AS external_quiz_id, l.account_id FROM video v "
+            + "NATURAL RIGHT JOIN list l "
+            + "NATURAL JOIN quiz q "
+            + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+            + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
+            + "WHERE l.list_id = ? AND "
+            + "(ass.account_id = ? OR ass.account_id IS NULL)";
+    private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE =
+            "SELECT l.list_id, l.has_draft_status, acc.external_id AS external_account_id, acc.name, l.quiz_id, q.external_id AS external_quiz_id, l.account_id FROM video v "
+            + "NATURAL RIGHT JOIN list l "
+            + "NATURAL JOIN quiz q "
+            + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+            + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
+            + "WHERE v.video_id = ? AND "
+            + "(ass.account_id = ? OR ass.account_id IS NULL)";
     private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) VALUES (?, ?) ON CONFLICT DO NOTHING";
     private static final String DELETE_VIDEO_TEMPLATE = "DELETE FROM video WHERE video_id = ?";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ?";
@@ -161,7 +165,8 @@ public class ListRepository {
                         .assigneeId(row.getString(2))
                         .assigneeName(row.getString(3))
                         .quizId(row.getInteger(4))
-                        .accountId(row.getInteger(5))
+                        .externalQuizId(row.getString(5))
+                        .accountId(row.getInteger(6))
                         .build();
                 log.debug("Retrieved list by ID \"{}\": \"{}\"", listId, listDto);
                 promise.complete(listDto);
@@ -194,7 +199,8 @@ public class ListRepository {
                         .assigneeId(row.getString(2))
                         .assigneeName(row.getString(3))
                         .quizId(row.getInteger(4))
-                        .accountId(row.getInteger(5))
+                        .externalQuizId(row.getString(5))
+                        .accountId(row.getInteger(6))
                         .build();
                 log.debug("Retrieved list by video ID \"{}\": \"{}\"", videoId, listDto);
                 promise.complete(listDto);
@@ -319,7 +325,7 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, String externalAccountId, Integer quizId) {
+    public Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, String externalAccountId, Integer quizId, String externalQuizId) {
         var promise = Promise.<Void> promise();
 
         var parameters = new JsonArray().add(externalAccountId).add(quizId);
@@ -335,7 +341,8 @@ public class ListRepository {
                 promise.complete();
             } else {
                 log.debug("Account does not participate in quiz");
-                promise.fail(new ForbiddenException(String.format("Account with external ID \"%s\" does not participate in quiz with ID \"%d\"", externalAccountId, quizId)));
+                var message = String.format("Account with external ID \"%s\" does not participate in quiz with external ID \"%s\"", externalAccountId, externalQuizId);
+                promise.fail(new ForbiddenException(message));
             }
         });
 

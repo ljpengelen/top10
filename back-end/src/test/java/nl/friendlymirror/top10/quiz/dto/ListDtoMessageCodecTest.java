@@ -19,6 +19,7 @@ class ListDtoMessageCodecTest {
                 .accountId(456)
                 .assigneeId("abcd")
                 .quizId(321)
+                .externalQuizId("pqr")
                 .hasDraftStatus(true)
                 .videos(List.of(VideoDto.builder()
                         .id(654)

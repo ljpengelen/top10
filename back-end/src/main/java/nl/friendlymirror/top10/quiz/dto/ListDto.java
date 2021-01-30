@@ -13,6 +13,7 @@ public class ListDto {
     Integer id;
     Integer accountId;
     Integer quizId;
+    String externalQuizId;
     String assigneeId;
     String assigneeName;
     Boolean hasDraftStatus;
@@ -22,6 +23,7 @@ public class ListDto {
         return ListDto.builder()
                 .id(jsonObject.getInteger("id"))
                 .quizId(jsonObject.getInteger("quizId"))
+                .externalQuizId(jsonObject.getString("externalQuizId"))
                 .accountId(jsonObject.getInteger("accountId"))
                 .assigneeId(jsonObject.getString("assigneeId"))
                 .assigneeName(jsonObject.getString("assigneeName"))
@@ -44,6 +46,9 @@ public class ListDto {
 
         if (quizId != null)
             jsonObject.put("quizId", quizId);
+
+        if (externalQuizId != null)
+            jsonObject.put("externalQuizId", externalQuizId);
 
         if (hasDraftStatus != null)
             jsonObject.put("hasDraftStatus", hasDraftStatus);
