@@ -9,6 +9,12 @@ public class JsonObjectBodyHandler implements HttpResponse.BodyHandler<JsonObjec
 
     @Override
     public HttpResponse.BodySubscriber<JsonObject> apply(HttpResponse.ResponseInfo responseInfo) {
-        return HttpResponse.BodySubscribers.mapping(HttpResponse.BodySubscribers.ofByteArray(), body -> new JsonObject(Buffer.buffer(body)));
+        return HttpResponse.BodySubscribers.mapping(HttpResponse.BodySubscribers.ofByteArray(), body -> {
+            if (body.length == 0) {
+                return null;
+            }
+
+            return new JsonObject(Buffer.buffer(body));
+        });
     }
 }

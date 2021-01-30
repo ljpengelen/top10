@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.Router;
@@ -28,6 +29,7 @@ import nl.friendlymirror.top10.migration.MigrationVerticle;
 @ExtendWith(VertxExtension.class)
 class QuizVerticlesIntegrationTest {
 
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
     private static final TestConfig TEST_CONFIG = new TestConfig();
 
     private static final String EXTERNAL_ID_FOR_QUIZ_WITH_LIST = "abcdefg";
@@ -76,6 +78,8 @@ class QuizVerticlesIntegrationTest {
 
         accountId1 = createAccount(connection, USERNAME_1, EMAIL_ADDRESS_1, EXTERNAL_ACCOUNT_ID_1);
         accountId2 = createAccount(connection, USERNAME_2, EMAIL_ADDRESS_2, EXTERNAL_ACCOUNT_ID_2);
+
+        connection.close();
     }
 
     private int createAccount(Connection connection, String username, String emailAddress, String externalAccountId) throws SQLException {
@@ -97,6 +101,8 @@ class QuizVerticlesIntegrationTest {
         listId = createList(connection, accountId1, quizWithListId);
 
         createQuiz(connection, accountId2, EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
+
+        connection.close();
     }
 
     private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
@@ -142,16 +148,10 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void createsQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var createQuizRequest = new JsonObject()
+        var quiz = new JsonObject()
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE);
-
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(createQuizRequest))
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = createQuiz(quiz);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var body = response.body();
@@ -159,14 +159,10 @@ class QuizVerticlesIntegrationTest {
         var externalId = body.getString("externalId");
         assertThat(externalId).isNotBlank();
 
-        request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalId))
-                .build();
-        response = httpClient.send(request, new JsonObjectBodyHandler());
+        response = getQuiz(externalId);
 
         assertThat(response.statusCode()).isEqualTo(200);
-        var quiz = response.body();
+        quiz = response.body();
         assertThat(quiz.getInteger("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
         assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
@@ -182,54 +178,39 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCreationRequestWithoutBody(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = createQuiz(null);
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(response.body().getString("error")).isEqualTo("Request body is empty");
+
         vertxTestContext.completeNow();
     }
 
     @Test
     public void rejectsCreationRequestWithBlankName(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("deadline", DEADLINE)))
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var quiz = new JsonObject().put("deadline", DEADLINE);
+        var response = createQuiz(quiz);
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(response.body().getString("error")).isEqualTo("Name is blank");
+
         vertxTestContext.completeNow();
     }
 
     @Test
     public void rejectsCreationRequestWithInvalidDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("name", QUIZ_NAME).put("deadline", "invalid date")))
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var quiz = new JsonObject().put("name", QUIZ_NAME).put("deadline", "invalid date");
+        var response = createQuiz(quiz);
 
         assertThat(response.statusCode()).isEqualTo(400);
         assertThat(response.body().getString("error")).isEqualTo("Invalid instant provided for property \"deadline\"");
+
         vertxTestContext.completeNow();
     }
 
     @Test
     public void returnsAllQuizzes(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var response = httpClient.send(request, new JsonArrayBodyHandler());
+        var response = getQuizzes();
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).hasSize(1);
@@ -249,12 +230,7 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returnsSingleQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = getQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
@@ -273,26 +249,17 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = getQuiz(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+
         vertxTestContext.completeNow();
     }
 
     @Test
     public void letsAccountParticipate(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST + "/participate"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = participateInQuiz(EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body().getInteger("personalListId")).isNotNull();
@@ -302,12 +269,7 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsParticipationInUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/participate"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = participateInQuiz(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
@@ -316,12 +278,7 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsParticipatingTwice(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/participate"))
-                .build();
-        var secondResponse = httpClient.send(request, new JsonObjectBodyHandler());
+        var secondResponse = participateInQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         assertThat(secondResponse.statusCode()).isEqualTo(409);
         assertThat(secondResponse.body().getString("error"))
@@ -335,28 +292,19 @@ class QuizVerticlesIntegrationTest {
         var quiz = new JsonObject()
                 .put("name", QUIZ_NAME)
                 .put("deadline", DEADLINE);
-
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(quiz))
-                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
-                .build();
-        var createResponse = httpClient.send(request, new JsonObjectBodyHandler());
+        var createResponse = createQuiz(quiz);
 
         assertThat(createResponse.statusCode()).isEqualTo(200);
 
         var externalQuizId = createResponse.body().getString("externalId");
 
-        request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/participants"))
-                .build();
-        var response = httpClient.send(request, new JsonArrayBodyHandler());
+        var response = getParticipants(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body()).hasSize(1);
+        var body = new JsonArray(response.body());
+        assertThat(body).hasSize(1);
 
-        var participant = response.body().getJsonObject(0);
+        var participant = body.getJsonObject(0);
         assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
         assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
 
@@ -365,26 +313,18 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingParticipantsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/participants"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = getParticipants(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        var body = new JsonObject(response.body());
+        assertThat(body.getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+
         vertxTestContext.completeNow();
     }
 
     @Test
     public void returnsQuizResults(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/result"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = getQuizResults(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
@@ -395,12 +335,7 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returnsEmptyQuizResultsForQuizWithoutAssignments(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/result"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = getQuizResults(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
@@ -412,34 +347,21 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingResultsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/result"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = getQuizResults(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+
         vertxTestContext.completeNow();
     }
 
     @Test
     public void completesQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST + "/complete"))
-                .build();
-        var completeResponse = httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+        var completeResponse = completeQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         assertThat(completeResponse.statusCode()).isEqualTo(201);
 
-        request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITH_LIST))
-                .build();
-        var getResponse = httpClient.send(request, new JsonObjectBodyHandler());
+        var getResponse = getQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
 
         assertThat(getResponse.statusCode()).isEqualTo(200);
         assertThat(getResponse.body()).isNotNull();
@@ -450,21 +372,12 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCompletionByNonCreator(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST + "/complete"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = completeQuiz(EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
 
         assertThat(response.statusCode()).isEqualTo(403);
         assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId1 + "\" is not allowed to close quiz with external ID \"gfedcba\"");
 
-        request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST))
-                .build();
-        response = httpClient.send(request, new JsonObjectBodyHandler());
+        response = getQuiz(EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isNotNull();
@@ -475,15 +388,73 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCompletionOfUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .PUT(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + NON_EXISTING_EXTERNAL_ID + "/complete"))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var response = completeQuiz(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+
         vertxTestContext.completeNow();
+    }
+
+    private HttpResponse<JsonArray> getQuizzes() throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+        return HTTP_CLIENT.send(request, new JsonArrayBodyHandler());
+    }
+
+    private HttpResponse<JsonObject> createQuiz(JsonObject quiz) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(quiz))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz"))
+                .build();
+
+        return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
+    }
+
+    private HttpResponse<JsonObject> participateInQuiz(String externalId) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalId + "/participate"))
+                .build();
+
+        return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
+    }
+
+    private HttpResponse<JsonObject> getQuizResults(String externalQuizId) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/result"))
+                .build();
+
+        return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
+    }
+
+    private HttpResponse<String> getParticipants(String externalQuizId) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/participants"))
+                .build();
+
+        return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<JsonObject> completeQuiz(String externalQuizId) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .PUT(HttpRequest.BodyPublishers.noBody())
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/complete"))
+                .build();
+
+        return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
+    }
+
+    private HttpResponse<JsonObject> getQuiz(String externalQuizId) throws IOException, InterruptedException {
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId))
+                .build();
+
+        return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 }

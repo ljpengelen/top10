@@ -16,6 +16,7 @@ If you rename the file `.env.sample` to `.env`, you can use [direnv](https://dir
 ## Running tests
 
 Execute `./mvnw verify` to run the tests and create a JAR.
+The database server must be running while the tests are executed.
 
 ## Running the app
 
