@@ -3,8 +3,6 @@ package nl.friendlymirror.top10.quiz;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.*;
 import java.sql.*;
 import java.time.Instant;
 
@@ -23,7 +21,6 @@ import nl.friendlymirror.top10.ErrorHandlers;
 import nl.friendlymirror.top10.RandomPort;
 import nl.friendlymirror.top10.config.TestConfig;
 import nl.friendlymirror.top10.eventbus.MessageCodecs;
-import nl.friendlymirror.top10.http.*;
 import nl.friendlymirror.top10.http.HttpClient;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
 

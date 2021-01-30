@@ -3,9 +3,6 @@ package nl.friendlymirror.top10.quiz;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.*;
-import java.net.http.HttpClient;
 import java.sql.*;
 import java.time.Instant;
 
@@ -14,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.Router;
@@ -25,7 +21,6 @@ import nl.friendlymirror.top10.ErrorHandlers;
 import nl.friendlymirror.top10.RandomPort;
 import nl.friendlymirror.top10.config.TestConfig;
 import nl.friendlymirror.top10.eventbus.MessageCodecs;
-import nl.friendlymirror.top10.http.*;
 import nl.friendlymirror.top10.migration.MigrationVerticle;
 
 @Log4j2
