@@ -13,12 +13,10 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.User;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import nl.friendlymirror.top10.ErrorHandlers;
-import nl.friendlymirror.top10.RandomPort;
+import nl.friendlymirror.top10.*;
 import nl.friendlymirror.top10.config.TestConfig;
 import nl.friendlymirror.top10.eventbus.MessageCodecs;
 import nl.friendlymirror.top10.http.HttpClient;
@@ -29,8 +27,6 @@ class QuizVerticlesIntegrationTest {
 
     private static final TestConfig TEST_CONFIG = new TestConfig();
 
-    private static final String EXTERNAL_ID_FOR_QUIZ_WITH_LIST = "abcdefg";
-    private static final String EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST = "gfedcba";
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant DEADLINE = Instant.now();
     private static final String NON_EXISTING_EXTERNAL_ID = "pqrstuvw";
@@ -43,12 +39,10 @@ class QuizVerticlesIntegrationTest {
 
     private final int port = RandomPort.get();
     private final HttpClient httpClient = new HttpClient(port);
+    private final UserHandler userHandler = new UserHandler();
 
     private int accountId1;
     private int accountId2;
-    private int quizWithListId;
-    private int listIdForAccountId1;
-    private int listIdForAccountId2;
 
     @BeforeAll
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -62,7 +56,7 @@ class QuizVerticlesIntegrationTest {
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) throws SQLException {
         setUpAccounts();
-        setUpQuiz();
+        deleteQuizzes();
         deployVerticles(vertx, vertxTestContext);
     }
 
@@ -92,41 +86,10 @@ class QuizVerticlesIntegrationTest {
         return generatedKeys.getInt(1);
     }
 
-    private void setUpQuiz() throws SQLException {
+    private void deleteQuizzes() throws SQLException {
         var connection = getConnection();
         connection.prepareStatement("TRUNCATE TABLE quiz CASCADE").execute();
-
-        quizWithListId = createQuiz(connection, accountId1, EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
-        listIdForAccountId1 = createList(connection, accountId1, quizWithListId);
-        listIdForAccountId2 = createList(connection, accountId2, quizWithListId);
-
-        createQuiz(connection, accountId2, EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
-
         connection.close();
-    }
-
-    private int createQuiz(Connection connection, int creatorId, String externalId) throws SQLException {
-        var query = String.format("INSERT INTO quiz (name, is_active, creator_id, deadline, external_id) VALUES ('%s', true, %d, '%s', '%s')",
-                QUIZ_NAME, creatorId, DEADLINE, externalId);
-        var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-        statement.execute();
-
-        var generatedKeys = statement.getGeneratedKeys();
-        generatedKeys.next();
-
-        return generatedKeys.getInt(1);
-    }
-
-    private int createList(Connection connection, int accountId, int quizId) throws SQLException {
-        var listTemplate = "INSERT INTO list (account_id, quiz_id, has_draft_status) VALUES (%d, %d, true)";
-        var query = String.format(listTemplate, accountId, quizId);
-        var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
-        statement.execute();
-
-        var generatedKeys = statement.getGeneratedKeys();
-        generatedKeys.next();
-
-        return generatedKeys.getInt(1);
     }
 
     private void deployVerticles(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -134,10 +97,7 @@ class QuizVerticlesIntegrationTest {
         var router = Router.router(vertx);
         server.requestHandler(router);
 
-        router.route().handler(routingContext -> {
-            routingContext.setUser(User.create(new JsonObject().put("accountId", accountId1)));
-            routingContext.next();
-        });
+        router.route().handler(userHandler::handle);
 
         ErrorHandlers.configure(router);
         vertx.deployVerticle(new QuizEntityVerticle(TEST_CONFIG.getJdbcOptions()));
@@ -148,9 +108,9 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void createsQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quiz = new JsonObject()
-                .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE);
+        userHandler.logIn(accountId1);
+
+        var quiz = quiz();
         var response = httpClient.createQuiz(quiz);
 
         assertThat(response.statusCode()).isEqualTo(200);
@@ -174,6 +134,12 @@ class QuizVerticlesIntegrationTest {
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
+    }
+
+    private static JsonObject quiz() {
+        return new JsonObject()
+                .put("name", QUIZ_NAME)
+                .put("deadline", DEADLINE);
     }
 
     @Test
@@ -210,19 +176,23 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returnsAllQuizzes(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+
         var response = httpClient.getQuizzes();
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).hasSize(1);
         var quiz = response.body().getJsonObject(0);
-        assertThat(quiz.getInteger("id")).isEqualTo(quizWithListId);
+        assertThat(quiz.getInteger("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
         assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
-        assertThat(quiz.getInteger("personalListId")).isEqualTo(listIdForAccountId1);
+        assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
+        assertThat(quiz.getInteger("personalListId")).isNotNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
@@ -230,18 +200,23 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returnsSingleQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var response = httpClient.getQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+
+        var quizId = createQuizResponse.body().getInteger("id");
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var response = httpClient.getQuiz(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getInteger("id")).isEqualTo(quizWithListId);
+        assertThat(quiz.getInteger("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
         assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
-        assertThat(quiz.getInteger("personalListId")).isEqualTo(listIdForAccountId1);
+        assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
+        assertThat(quiz.getInteger("personalListId")).isNotNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
@@ -259,7 +234,12 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void letsAccountParticipate(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var response = httpClient.participateInQuiz(EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+
+        userHandler.logIn(accountId2);
+        var response = httpClient.participateInQuiz(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body().getInteger("personalListId")).isNotNull();
@@ -278,21 +258,23 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsParticipatingTwice(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var secondResponse = httpClient.participateInQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var secondResponse = httpClient.participateInQuiz(externalQuizId);
 
         assertThat(secondResponse.statusCode()).isEqualTo(409);
         assertThat(secondResponse.body().getString("error"))
-                .isEqualTo(String.format("Account with ID \"%d\" already has a list for quiz with external ID \"abcdefg\"", accountId1));
+                .isEqualTo(String.format("Account with ID \"%d\" already has a list for quiz with external ID \"%s\"", accountId1, externalQuizId));
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void returnsParticipants(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quiz = new JsonObject()
-                .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE);
-        var createResponse = httpClient.createQuiz(quiz);
+        userHandler.logIn(accountId1);
+        var createResponse = httpClient.createQuiz(quiz());
 
         assertThat(createResponse.statusCode()).isEqualTo(200);
 
@@ -324,22 +306,31 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returnsQuizResults(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var response = httpClient.getQuizResults(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var response = httpClient.getQuizResults(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getString("quizId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
+        assertThat(quiz.getJsonArray("personalResults")).isEmpty();
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void returnsEmptyQuizResultsForQuizWithoutAssignments(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var response = httpClient.getQuizResults(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var response = httpClient.getQuizResults(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getString("quizId")).isEqualTo(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
         assertThat(quiz.getJsonArray("personalResults")).isEmpty();
 
         vertxTestContext.completeNow();
@@ -357,11 +348,15 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void completesQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var completeResponse = httpClient.completeQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var completeResponse = httpClient.completeQuiz(externalQuizId);
 
         assertThat(completeResponse.statusCode()).isEqualTo(201);
 
-        var getResponse = httpClient.getQuiz(EXTERNAL_ID_FOR_QUIZ_WITH_LIST);
+        var getResponse = httpClient.getQuiz(externalQuizId);
 
         assertThat(getResponse.statusCode()).isEqualTo(200);
         assertThat(getResponse.body()).isNotNull();
@@ -372,12 +367,17 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCompletionByNonCreator(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var response = httpClient.completeQuiz(EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+        var externalId = createQuizResponse.body().getString("externalId");
+
+        userHandler.logIn(accountId2);
+        var response = httpClient.completeQuiz(externalId);
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId1 + "\" is not allowed to close quiz with external ID \"gfedcba\"");
+        assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId2 + "\" is not allowed to close quiz with external ID \"" + externalId + "\"");
 
-        response = httpClient.getQuiz(EXTERNAL_ID_FOR_QUIZ_WITHOUT_LIST);
+        response = httpClient.getQuiz(externalId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isNotNull();
