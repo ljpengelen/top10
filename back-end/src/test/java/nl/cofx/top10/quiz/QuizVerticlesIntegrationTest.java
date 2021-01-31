@@ -102,6 +102,8 @@ class QuizVerticlesIntegrationTest {
         ErrorHandlers.configure(router);
         vertx.deployVerticle(new QuizEntityVerticle(TEST_CONFIG.getJdbcOptions()));
         vertx.deployVerticle(new QuizHttpVerticle(router));
+        vertx.deployVerticle(new ListHttpVerticle(router));
+        vertx.deployVerticle(new ListEntityVerticle(TEST_CONFIG.getJdbcOptions()));
         vertxTestContext.completeNow();
         server.listen(port);
     }
@@ -307,15 +309,55 @@ class QuizVerticlesIntegrationTest {
     @Test
     public void returnsQuizResults(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
-        var createQuizResponse = httpClient.createQuiz(quiz());
 
+        var createQuizResponse = httpClient.createQuiz(quiz());
         var externalQuizId = createQuizResponse.body().getString("externalId");
+        var listsResponse = httpClient.getLists();
+        assertThat(listsResponse.statusCode()).isEqualTo(200);
+        var lists = listsResponse.body();
+        assertThat(lists).hasSize(1);
+        var listId1 = lists.getJsonObject(0).getInteger("id");
+
+        userHandler.logIn(accountId2);
+
+        httpClient.participateInQuiz(externalQuizId);
+        listsResponse = httpClient.getLists();
+        assertThat(listsResponse.statusCode()).isEqualTo(200);
+        lists = listsResponse.body();
+        assertThat(lists).hasSize(1);
+        var listId2 = lists.getJsonObject(0).getInteger("id");
+
+        userHandler.logIn(accountId1);
+
+        httpClient.assignList(listId1, EXTERNAL_ACCOUNT_ID_1);
+        httpClient.assignList(listId2, EXTERNAL_ACCOUNT_ID_2);
+
         var response = httpClient.getQuizResults(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
         assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
-        assertThat(quiz.getJsonArray("personalResults")).isEmpty();
+        var allPersonalResults = quiz.getJsonArray("personalResults");
+        assertThat(allPersonalResults).hasSize(1);
+        var personalResults = allPersonalResults.getJsonObject(0);
+        assertThat(personalResults.getInteger("accountId")).isEqualTo(accountId1);
+        assertThat(personalResults.getJsonArray("incorrectAssignments")).isEmpty();
+        var correctAssignments = personalResults.getJsonArray("correctAssignments");
+        assertThat(correctAssignments).hasSize(2);
+        assertThat(correctAssignments).anySatisfy(assignment -> {
+            assertThat(assignment).isInstanceOf(JsonObject.class);
+            var assignmentAsJsonObject = (JsonObject) assignment;
+            assertThat(assignmentAsJsonObject.getInteger("creatorId")).isEqualTo(accountId1);
+            assertThat(assignmentAsJsonObject.getInteger("assigneeId")).isEqualTo(accountId1);
+            assertThat(assignmentAsJsonObject.getInteger("listId")).isEqualTo(listId1);
+        });
+        assertThat(correctAssignments).anySatisfy(assignment -> {
+            assertThat(assignment).isInstanceOf(JsonObject.class);
+            var assignmentAsJsonObject = (JsonObject) assignment;
+            assertThat(assignmentAsJsonObject.getInteger("creatorId")).isEqualTo(accountId2);
+            assertThat(assignmentAsJsonObject.getInteger("assigneeId")).isEqualTo(accountId2);
+            assertThat(assignmentAsJsonObject.getInteger("listId")).isEqualTo(listId2);
+        });
 
         vertxTestContext.completeNow();
     }
