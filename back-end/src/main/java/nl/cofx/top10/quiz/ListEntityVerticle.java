@@ -170,6 +170,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         } else if (cause instanceof NotFoundException) {
             message.fail(404, errorMessage);
         } else {
+            log.error("An unexpected error occurred: " + errorMessage);
             message.fail(500, errorMessage);
         }
     }

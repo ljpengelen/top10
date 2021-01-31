@@ -45,7 +45,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var accountId = getAllQuizzesRequest.body();
         withConnection(connection -> quizRepository.getAllQuizzes(connection, accountId))
                 .onSuccess(getAllQuizzesRequest::reply)
-                .onFailure(cause -> getAllQuizzesRequest.fail(500, String.format("Unable to retrieve all quizzes for account \"%d\"", accountId)));
+                .onFailure(cause -> handleFailure(cause, getAllQuizzesRequest));
     }
 
     private void handleGetOne(Message<JsonObject> getOneQuizRequest) {
@@ -54,13 +54,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
         withConnection(connection -> quizRepository.getQuiz(connection, externalId, accountId))
                 .onSuccess(getOneQuizRequest::reply)
-                .onFailure(cause -> {
-                    if (cause instanceof NotFoundException) {
-                        getOneQuizRequest.fail(404, cause.getMessage());
-                    } else {
-                        getOneQuizRequest.fail(500, String.format("Unable to retrieve quiz with external ID \"%s\"", externalId));
-                    }
-                });
+                .onFailure(cause -> handleFailure(cause, getOneQuizRequest));
     }
 
     private void handleGetResult(Message<JsonObject> getQuizResultRequest) {
@@ -71,13 +65,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 quizRepository.getQuiz(connection, externalId, accountId).compose(quiz ->
                         quizRepository.getQuizResult(connection, externalId)))
                 .onSuccess(getQuizResultRequest::reply)
-                .onFailure(cause -> {
-                    if (cause instanceof NotFoundException) {
-                        getQuizResultRequest.fail(404, cause.getMessage());
-                    } else {
-                        getQuizResultRequest.fail(500, String.format("Unable to retrieve result for quiz with external ID \"%s\"", externalId));
-                    }
-                });
+                .onFailure(cause -> handleFailure(cause, getQuizResultRequest));
     }
 
     private void handleCreate(Message<JsonObject> createRequest) {
@@ -93,11 +81,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         ).onSuccess(nothing -> {
             log.debug("Created quiz");
             createRequest.reply(null);
-        }).onFailure(cause -> {
-            var errorMessage = "Unable to create quiz";
-            log.error(errorMessage, cause);
-            createRequest.fail(500, errorMessage);
-        });
+        }).onFailure(cause -> handleFailure(cause, createRequest));
     }
 
     private void handleComplete(Message<JsonObject> completeRequest) {
@@ -116,16 +100,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         })).onSuccess(nothing -> {
             log.debug("Successfully completed quiz");
             completeRequest.reply(null);
-        }).onFailure(cause -> {
-            if (cause instanceof NotFoundException) {
-                completeRequest.fail(404, cause.getMessage());
-            } else if (cause instanceof ForbiddenException) {
-                completeRequest.fail(403, cause.getMessage());
-            } else {
-                log.error("Unable to let account \"{}\" complete quiz with external ID \"{}\"", accountId, externalId, cause);
-                completeRequest.fail(500, "Unable to let account participate in quiz");
-            }
-        });
+        }).onFailure(cause -> handleFailure(cause, completeRequest));
     }
 
     private void handleParticipate(Message<JsonObject> participateRequest) {
@@ -140,16 +115,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                     log.debug("Successfully let account participate in quiz");
                     participateRequest.reply(listId);
                 })
-                .onFailure(cause -> {
-                    if (cause instanceof NotFoundException) {
-                        participateRequest.fail(404, cause.getMessage());
-                    } else if (cause instanceof ConflictException) {
-                        participateRequest.fail(409, cause.getMessage());
-                    } else {
-                        log.error("Unable to let account \"{}\" participate in quiz with external ID \"{}\"", accountId, externalId, cause);
-                        participateRequest.fail(500, "Unable to let account participate in quiz");
-                    }
-                });
+                .onFailure(cause -> handleFailure(cause, participateRequest));
     }
 
     private void handleGetAllParticipants(Message<JsonObject> getAllParticipantsRequest) {
@@ -160,13 +126,20 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
                 quizRepository.getQuiz(connection, externalId, accountId)
                         .compose(quiz -> quizRepository.getAllParticipants(connection, externalId)))
                 .onSuccess(getAllParticipantsRequest::reply)
-                .onFailure(cause -> {
-                    if (cause instanceof NotFoundException) {
-                        getAllParticipantsRequest.fail(404, cause.getMessage());
-                    } else {
-                        log.error("Unable to get participants of quiz with external ID \"{}\"", externalId, cause);
-                        getAllParticipantsRequest.fail(500, "Unable to get participants of quiz");
-                    }
-                });
+                .onFailure(cause -> handleFailure(cause, getAllParticipantsRequest));
+    }
+
+    private <T> void handleFailure(Throwable cause, Message<T> message) {
+        var errorMessage = cause.getMessage();
+        if (cause instanceof ForbiddenException) {
+            message.fail(403, errorMessage);
+        } else if (cause instanceof NotFoundException) {
+            message.fail(404, errorMessage);
+        } else if (cause instanceof ConflictException) {
+            message.fail(409, errorMessage);
+        } else {
+            log.error("An unexpected error occurred: " + errorMessage);
+            message.fail(500, errorMessage);
+        }
     }
 }
