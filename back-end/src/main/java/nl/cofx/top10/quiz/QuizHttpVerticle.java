@@ -51,7 +51,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
         var accountId = routingContext.user().principal().getInteger("accountId");
         vertx.eventBus().request(GET_ALL_QUIZZES_ADDRESS, accountId, allQuizzesReply -> {
             if (allQuizzesReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to get all quizzes for account \"%s\"", accountId), allQuizzesReply.cause()));
+                handleFailure(allQuizzesReply.cause(), routingContext);
                 return;
             }
 
@@ -72,7 +72,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
         var createRequest = toCreateRequest(accountId, routingContext, externalId);
         vertx.eventBus().request(CREATE_QUIZ_ADDRESS, createRequest, createQuizReply -> {
             if (createQuizReply.failed()) {
-                routingContext.fail(new InternalServerErrorException(String.format("Unable to create quiz \"%s\"", createRequest), createQuizReply.cause()));
+                handleFailure(createQuizReply.cause(), routingContext);
                 return;
             }
 
@@ -136,12 +136,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(GET_ONE_QUIZ_ADDRESS, getQuizRequest, quizReply -> {
             if (quizReply.failed()) {
-                var cause = (ReplyException) quizReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(String.format("Unable to get quiz with external ID \"%s\"", externalId), quizReply.cause()));
-                }
+                handleFailure(quizReply.cause(), routingContext);
                 return;
             }
 
@@ -165,12 +160,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(GET_PARTICIPANTS_ADDRESS, getParticipantsRequest, participantsReply -> {
             if (participantsReply.failed()) {
-                var cause = (ReplyException) participantsReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(String.format("Unable to get participants for quiz \"%s\"", externalId), participantsReply.cause()));
-                }
+                handleFailure(participantsReply.cause(), routingContext);
                 return;
             }
 
@@ -194,13 +184,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(GET_QUIZ_RESULT_ADDRESS, getQuizResultRequest, quizResultReply -> {
             if (quizResultReply.failed()) {
-                var cause = (ReplyException) quizResultReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else {
-                    var message = String.format("Unable to get results for quiz with external ID \"%s\"", externalId);
-                    routingContext.fail(new InternalServerErrorException(message, quizResultReply.cause()));
-                }
+                handleFailure(quizResultReply.cause(), routingContext);
                 return;
             }
 
@@ -224,14 +208,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(COMPLETE_QUIZ_ADDRESS, completeRequest, completeQuizReply -> {
             if (completeQuizReply.failed()) {
-                var cause = (ReplyException) completeQuizReply.cause();
-                if (cause.failureCode() == 403) {
-                    routingContext.fail(new ForbiddenException(cause.getMessage()));
-                } else if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(String.format("Unable to complete quiz: \"%s\"", completeRequest), completeQuizReply.cause()));
-                }
+                handleFailure(completeQuizReply.cause(), routingContext);
                 return;
             }
 
@@ -254,14 +231,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 .put("externalId", externalId);
         vertx.eventBus().request(PARTICIPATE_IN_QUIZ_ADDRESS, participateRequest, participateReply -> {
             if (participateReply.failed()) {
-                var cause = (ReplyException) participateReply.cause();
-                if (cause.failureCode() == 404) {
-                    routingContext.fail(new NotFoundException(cause.getMessage()));
-                } else if (cause.failureCode() == 409) {
-                    routingContext.fail(new ConflictException(cause.getMessage()));
-                } else {
-                    routingContext.fail(new InternalServerErrorException(String.format("Unable to participate in quiz: \"%s\"", participateRequest), participateReply.cause()));
-                }
+                handleFailure(participateReply.cause(), routingContext);
                 return;
             }
 
@@ -272,5 +242,18 @@ public class QuizHttpVerticle extends AbstractVerticle {
                     .putHeader("content-type", "application/json")
                     .end(new JsonObject().put("personalListId", listId).toBuffer());
         });
+    }
+
+    private void handleFailure(Throwable cause, RoutingContext routingContext) {
+        var replyException = (ReplyException) cause;
+        if (replyException.failureCode() == 404) {
+            routingContext.fail(new NotFoundException(replyException.getMessage()));
+        } else if (replyException.failureCode() == 403) {
+            routingContext.fail(new ForbiddenException(replyException.getMessage()));
+        } else if (replyException.failureCode() == 409) {
+            routingContext.fail(new ConflictException(cause.getMessage()));
+        } else {
+            routingContext.fail(new InternalServerErrorException(replyException.getMessage(), replyException));
+        }
     }
 }
