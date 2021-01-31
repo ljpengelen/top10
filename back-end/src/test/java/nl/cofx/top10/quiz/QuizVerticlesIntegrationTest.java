@@ -317,6 +317,7 @@ class QuizVerticlesIntegrationTest {
         var lists = listsResponse.body();
         assertThat(lists).hasSize(1);
         var listId1 = lists.getJsonObject(0).getInteger("id");
+        httpClient.finalizeList(listId1);
 
         userHandler.logIn(accountId2);
 
@@ -326,6 +327,7 @@ class QuizVerticlesIntegrationTest {
         lists = listsResponse.body();
         assertThat(lists).hasSize(1);
         var listId2 = lists.getJsonObject(0).getInteger("id");
+        httpClient.finalizeList(listId2);
 
         userHandler.logIn(accountId1);
 

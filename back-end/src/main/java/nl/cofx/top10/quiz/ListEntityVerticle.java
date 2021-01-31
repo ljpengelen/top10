@@ -149,10 +149,16 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var assigneeId = body.getString("assigneeId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId, accountId).compose(listDto ->
-                        listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
+                listRepository.getList(connection, listId, accountId).compose(listDto -> {
+                    if (listDto.getHasDraftStatus()) {
+                        log.debug("User \"{}\" cannot assign \"{}\" to non-finalized list \"{}\"", accountId, assigneeId, listId);
+                        return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" has not been finalized yet", listId)));
+                    } else {
+                        return listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
                                 listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId(), listDto.getExternalQuizId())
-                                        .compose(accountParticipatesInQuiz -> listRepository.assignList(connection, accountId, listId, assigneeId)))))
+                                        .compose(accountParticipatesInQuiz -> listRepository.assignList(connection, accountId, listId, assigneeId)));
+                    }
+                }))
                 .onSuccess(assignListRequest::reply)
                 .onFailure(cause -> handleFailure(cause, assignListRequest));
     }

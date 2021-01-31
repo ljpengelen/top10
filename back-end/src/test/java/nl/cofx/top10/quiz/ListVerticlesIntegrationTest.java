@@ -401,10 +401,11 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
-    public void assignsList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void assignsToFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId2);
         httpClient.participateInQuiz(externalQuizId);
         userHandler.logIn(accountId1);
+        httpClient.finalizeList(listId);
 
         var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
 
@@ -434,7 +435,24 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
+    public void doesNotAssignToNonFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId2);
+        httpClient.participateInQuiz(externalQuizId);
+        userHandler.logIn(accountId1);
+
+        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
+
+        assertThat(assignResponse.statusCode()).isEqualTo(403);
+        var expectedMessage = String.format("List \"%d\" has not been finalized yet", listId);
+        assertThat(assignResponse.body().getString("error")).isEqualTo(expectedMessage);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void doesNotAssignListToAccountOutsideQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        httpClient.finalizeList(listId);
+
         var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
 
         assertThat(assignResponse.statusCode()).isEqualTo(403);
