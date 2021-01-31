@@ -37,6 +37,7 @@ class GoogleAccountVerticleTest {
         var connection = DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
+        connection.close();
     }
 
     @BeforeEach
