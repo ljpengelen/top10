@@ -17,7 +17,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.*;
-import nl.cofx.top10.quiz.dto.ResultSummaryDto;
+import nl.cofx.top10.quiz.dto.*;
 import nl.cofx.top10.random.TokenGenerator;
 
 @Log4j2
@@ -55,12 +55,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 return;
             }
 
-            var quizzes = (JsonArray) allQuizzesReply.result().body();
-            log.debug("Retrieved {} quizzes", quizzes.size());
+            var quizzesDto = (QuizzesDto) allQuizzesReply.result().body();
+            log.debug("Retrieved {} quizzes", quizzesDto.getQuizzes().size());
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(quizzes.toBuffer());
+                    .end(quizzesDto.toJsonArray().toBuffer());
         });
     }
 
@@ -140,12 +140,12 @@ public class QuizHttpVerticle extends AbstractVerticle {
                 return;
             }
 
-            var quiz = (JsonObject) quizReply.result().body();
-            log.debug("Retrieved quiz \"{}\"", quiz);
+            var quizDto = (QuizDto) quizReply.result().body();
+            log.debug("Retrieved quiz \"{}\"", quizDto);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
-                    .end(quiz.toBuffer());
+                    .end(quizDto.toJsonObject().toBuffer());
         });
     }
 

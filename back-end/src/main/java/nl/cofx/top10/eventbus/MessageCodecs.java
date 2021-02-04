@@ -9,5 +9,7 @@ public class MessageCodecs {
         eventBus.registerDefaultCodec(ListDto.class, new ListDtoMessageCodec());
         eventBus.registerDefaultCodec(ListsDto.class, new ListsDtoMessageCodec());
         eventBus.registerDefaultCodec(ResultSummaryDto.class, new ResultSummaryDtoMessageCodec());
+        eventBus.registerDefaultCodec(QuizDto.class, new QuizDtoMessageCodec());
+        eventBus.registerDefaultCodec(QuizzesDto.class, new QuizzesDtoMessageCodec());
     }
 }

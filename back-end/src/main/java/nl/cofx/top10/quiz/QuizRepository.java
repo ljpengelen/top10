@@ -40,8 +40,8 @@ public class QuizRepository {
             + "JOIN assignment a ON a.list_id = l.list_id "
             + "WHERE q.external_id = ?";
 
-    public Future<JsonArray> getAllQuizzes(SQLConnection connection, Integer accountId) {
-        var promise = Promise.<JsonArray> promise();
+    public Future<QuizzesDto> getAllQuizzes(SQLConnection connection, Integer accountId) {
+        var promise = Promise.<QuizzesDto> promise();
 
         connection.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(accountId), asyncQuizzes -> {
             if (asyncQuizzes.failed()) {
@@ -54,41 +54,43 @@ public class QuizRepository {
             log.debug("Retrieved all quizzes for account");
 
             var quizzes = asyncQuizzes.result().getResults().stream()
-                    .map(quiz -> quizArrayToJsonObject(quiz, accountId))
+                    .map(quiz -> toQuizDto(quiz, accountId))
                     .collect(Collectors.toList());
 
-            promise.complete(new JsonArray(quizzes));
+            promise.complete(QuizzesDto.builder()
+                    .quizzes(quizzes)
+                    .build());
         });
 
         return promise.future();
     }
 
-    private JsonObject quizArrayToJsonObject(JsonArray array, Integer accountId) {
+    private QuizDto toQuizDto(JsonArray array, Integer accountId) {
         var creatorId = array.getInteger(3);
-        var quiz = new JsonObject()
-                .put("id", array.getInteger(0))
-                .put("name", array.getString(1))
-                .put("isActive", array.getBoolean(2))
-                .put("creatorId", creatorId)
-                .put("isCreator", creatorId.equals(accountId))
-                .put("deadline", array.getInstant(4))
-                .put("externalId", array.getString(5));
+        var quizDtoBuilder = QuizDto.builder()
+                .id(array.getInteger(0))
+                .name(array.getString(1))
+                .isActive(array.getBoolean(2))
+                .creatorId(creatorId)
+                .isCreator(creatorId.equals(accountId))
+                .deadline(array.getInstant(4))
+                .externalId(array.getString(5));
 
         var personalListId = array.getInteger(6);
         if (personalListId != null) {
-            quiz.put("personalListId", personalListId);
+            quizDtoBuilder.personalListId(personalListId);
         }
 
         var personalListHasDraftStatus = array.getBoolean(7);
         if (personalListHasDraftStatus != null) {
-            quiz.put("personalListHasDraftStatus", personalListHasDraftStatus);
+            quizDtoBuilder.personalListHasDraftStatus(personalListHasDraftStatus);
         }
 
-        return quiz;
+        return quizDtoBuilder.build();
     }
 
-    public Future<JsonObject> getQuiz(SQLConnection connection, String externalId, Integer accountId) {
-        var promise = Promise.<JsonObject> promise();
+    public Future<QuizDto> getQuiz(SQLConnection connection, String externalId, Integer accountId) {
+        var promise = Promise.<QuizDto> promise();
 
         connection.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(accountId).add(externalId), asyncQuiz -> {
             if (asyncQuiz.failed()) {
@@ -102,7 +104,7 @@ public class QuizRepository {
                 log.debug("Quiz with external ID \"{}\" not found", externalId);
                 promise.fail(new NotFoundException(String.format("Quiz with external ID \"%s\" not found", externalId)));
             } else {
-                var quiz = quizArrayToJsonObject(asyncQuiz.result(), accountId);
+                var quiz = toQuizDto(asyncQuiz.result(), accountId);
                 log.debug("Retrieved quiz by external ID \"{}\": \"{}\"", externalId, quiz);
                 promise.complete(quiz);
             }

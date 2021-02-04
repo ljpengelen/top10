@@ -90,7 +90,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
 
         withTransaction(connection -> quizRepository.getQuiz(connection, externalId, accountId).compose(quiz -> {
-            if (accountId.equals(quiz.getInteger("creatorId"))) {
+            if (accountId.equals(quiz.getCreatorId())) {
                 log.debug("Account \"{}\" is creator of quiz with external ID \"{}\"", accountId, externalId);
                 return quizRepository.completeQuiz(connection, accountId, externalId);
             } else {
