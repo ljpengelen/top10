@@ -26,7 +26,9 @@
  ::quizzes
  (fn [db _]
    (let [quizzes (:quizzes db)]
-     (map extend-quiz quizzes))))
+     (->> quizzes
+          (sort-by (fn [quiz] (-> quiz :deadline dayjs .unix)) >)
+          (map extend-quiz)))))
 
 (rf/reg-sub
  ::quiz
