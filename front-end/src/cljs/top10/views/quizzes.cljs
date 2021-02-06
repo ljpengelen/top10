@@ -28,14 +28,14 @@
            [table-cell "Personal list"]
            [table-cell {:col-span 2} "Action"]]]
          [table-body
-          (for [{:keys [id name deadline deadline-has-passed? externalId isCreator personalListHasDraftStatus]} quizzes]
+          (for [{:keys [id name deadline deadline-has-passed? externalId isActive isCreator personalListHasDraftStatus]} quizzes]
             ^{:key id}
             [table-row
              [table-cell name]
              [table-cell (if deadline-has-passed? "Closed for participation" deadline)]
              [table-cell (if personalListHasDraftStatus "No list submitted" "List submitted")]
              [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]
-             [table-cell (when isCreator [link {:href (str "#/quiz/" externalId "/complete")} "End"])]])]]])]
+             [table-cell (when (and isActive isCreator) [link {:href (str "#/quiz/" externalId "/complete")} "End"])]])]]])]
     [grid {:item true}
      [button {:href "#/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]]])
 
