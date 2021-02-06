@@ -472,4 +472,23 @@ class ListVerticlesIntegrationTest {
 
         vertxTestContext.completeNow();
     }
+
+    @Test
+    public void doesNotAssignToListInCompletedQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+        httpClient.finalizeList(listId);
+
+        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
+
+        assertThat(assignResponse.statusCode()).isEqualTo(201);
+
+        httpClient.completeQuiz(externalQuizId);
+
+        assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
+
+        assertThat(assignResponse.statusCode()).isEqualTo(403);
+        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("Quiz with external ID \"%s\" is completed", externalQuizId));
+
+        vertxTestContext.completeNow();
+    }
 }

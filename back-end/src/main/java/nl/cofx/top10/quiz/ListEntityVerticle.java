@@ -28,6 +28,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
     public static final String ASSIGN_LIST_ADDRESS = "entity.list.assign";
 
     private final ListRepository listRepository = new ListRepository();
+    private final QuizRepository quizRepository = new QuizRepository();
 
     private final JsonObject jdbcOptions;
 
@@ -154,9 +155,17 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                         log.debug("User \"{}\" cannot assign \"{}\" to non-finalized list \"{}\"", accountId, assigneeId, listId);
                         return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" has not been finalized yet", listId)));
                     } else {
-                        return listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
+                        return quizRepository.getQuiz(connection, listDto.getExternalQuizId(), accountId).compose(quiz -> {
+                            if (quiz.isActive()) {
+                                return Future.succeededFuture();
+                            } else {
+                                var externalQuizId = quiz.getExternalId();
+                                log.debug("User \"{}\" cannot assign to list \"{}\" of completed quiz \"{}\"", accountId, listId, externalQuizId);
+                                return Future.failedFuture(new ForbiddenException(String.format("Quiz with external ID \"%s\" is completed", externalQuizId)));
+                            }
+                        }).compose(nothing -> listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
                                 listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId(), listDto.getExternalQuizId())
-                                        .compose(accountParticipatesInQuiz -> listRepository.assignList(connection, accountId, listId, assigneeId)));
+                                        .compose(accountParticipatesInQuiz -> listRepository.assignList(connection, accountId, listId, assigneeId))));
                     }
                 }))
                 .onSuccess(assignListRequest::reply)
