@@ -32,7 +32,7 @@
             ^{:key id}
             [table-row
              [table-cell name]
-             [table-cell (if deadline-has-passed? "Closed for participation" deadline)]
+             [table-cell (if-not isActive "Quiz has ended" (if deadline-has-passed? "Closed for participation" deadline))]
              [table-cell (if personalListHasDraftStatus "No list submitted" "List submitted")]
              [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]
              [table-cell (when (and isActive isCreator) [link {:href (str "#/quiz/" externalId "/complete")} "End"])]])]]])]
