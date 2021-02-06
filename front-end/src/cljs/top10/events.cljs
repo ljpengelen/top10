@@ -350,6 +350,6 @@
                  :uri (str base-url "/private/quiz/" quiz-id "/complete")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
-                 :response-format ring-json-response-format
+                 :response-format (ajax/ring-response-format)
                  :on-success [::complete-quiz-succeeded]
                  :on-failure [::request-failed]}}))
