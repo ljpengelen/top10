@@ -212,7 +212,7 @@ public class SessionIntegrationTest {
                 .build();
         var logOutResponse = httpClient.send(logOutRequest, HttpResponse.BodyHandlers.discarding());
 
-        assertThat(logOutResponse.statusCode()).isEqualTo(201);
+        assertThat(logOutResponse.statusCode()).isEqualTo(204);
 
         getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
         assertThat(getStatusResponse.body().getString("status")).isEqualTo("NO_SESSION");

@@ -90,7 +90,7 @@ public class SessionVerticle extends AbstractVerticle {
                 .setPath("/");
 
         routingContext.response()
-                .setStatusCode(201)
+                .setStatusCode(204)
                 .addCookie(cookie)
                 .end();
     }

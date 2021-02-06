@@ -215,7 +215,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
             log.debug("Completed quiz with external ID \"{}\"", externalId);
 
             routingContext.response()
-                    .setStatusCode(201)
+                    .setStatusCode(204)
                     .end();
         });
     }

@@ -157,7 +157,7 @@ public class ListHttpVerticle extends AbstractVerticle {
             log.debug("Deleted video");
 
             routingContext.response()
-                    .setStatusCode(201)
+                    .setStatusCode(204)
                     .end();
         });
     }
@@ -234,7 +234,7 @@ public class ListHttpVerticle extends AbstractVerticle {
             log.debug("Finalized list \"{}\"", listId);
 
             routingContext.response()
-                    .setStatusCode(201)
+                    .setStatusCode(204)
                     .end();
         });
     }
@@ -254,7 +254,7 @@ public class ListHttpVerticle extends AbstractVerticle {
             log.debug("Assigned list");
 
             routingContext.response()
-                    .setStatusCode(201)
+                    .setStatusCode(204)
                     .end();
         });
     }

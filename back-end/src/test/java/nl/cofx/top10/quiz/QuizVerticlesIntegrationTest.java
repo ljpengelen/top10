@@ -415,7 +415,7 @@ class QuizVerticlesIntegrationTest {
         var externalQuizId = createQuizResponse.body().getString("externalId");
         var completeResponse = httpClient.completeQuiz(externalQuizId);
 
-        assertThat(completeResponse.statusCode()).isEqualTo(201);
+        assertThat(completeResponse.statusCode()).isEqualTo(204);
 
         var getResponse = httpClient.getQuiz(externalQuizId);
 

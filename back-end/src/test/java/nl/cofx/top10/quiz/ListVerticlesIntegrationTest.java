@@ -146,7 +146,7 @@ class ListVerticlesIntegrationTest {
 
         var finalizeResponse = httpClient.finalizeList(listId);
 
-        assertThat(finalizeResponse.statusCode()).isEqualTo(201);
+        assertThat(finalizeResponse.statusCode()).isEqualTo(204);
 
         listsForQuiz = httpClient.getLists(externalQuizId);
 
@@ -159,7 +159,7 @@ class ListVerticlesIntegrationTest {
 
         var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
 
-        assertThat(assignResponse.statusCode()).isEqualTo(201);
+        assertThat(assignResponse.statusCode()).isEqualTo(204);
 
         listsForQuiz = httpClient.getLists(externalQuizId);
 
@@ -345,7 +345,7 @@ class ListVerticlesIntegrationTest {
 
         var deleteVideoResponse = httpClient.deleteVideo(videoId);
 
-        assertThat(deleteVideoResponse.statusCode()).isEqualTo(201);
+        assertThat(deleteVideoResponse.statusCode()).isEqualTo(204);
 
         vertxTestContext.completeNow();
     }
@@ -401,7 +401,7 @@ class ListVerticlesIntegrationTest {
     public void finalizesListForOwnAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var finalizeResponse = httpClient.finalizeList(listId);
 
-        assertThat(finalizeResponse.statusCode()).isEqualTo(201);
+        assertThat(finalizeResponse.statusCode()).isEqualTo(204);
 
         var listResponse = httpClient.getList(listId);
 
@@ -446,7 +446,7 @@ class ListVerticlesIntegrationTest {
 
         var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
 
-        assertThat(assignResponse.statusCode()).isEqualTo(201);
+        assertThat(assignResponse.statusCode()).isEqualTo(204);
 
         var listResponse = httpClient.getList(listId);
 
@@ -458,7 +458,7 @@ class ListVerticlesIntegrationTest {
 
         assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
 
-        assertThat(assignResponse.statusCode()).isEqualTo(201);
+        assertThat(assignResponse.statusCode()).isEqualTo(204);
 
         listResponse = httpClient.getList(listId);
 
@@ -517,7 +517,7 @@ class ListVerticlesIntegrationTest {
 
         var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
 
-        assertThat(assignResponse.statusCode()).isEqualTo(201);
+        assertThat(assignResponse.statusCode()).isEqualTo(204);
 
         httpClient.completeQuiz(externalQuizId);
 
