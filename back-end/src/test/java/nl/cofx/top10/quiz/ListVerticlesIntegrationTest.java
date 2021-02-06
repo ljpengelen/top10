@@ -294,6 +294,25 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
+    public void doesNotAddVideoToFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var addVideoResponse = httpClient.addVideo(listId, URL_1);
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+        var body = addVideoResponse.body();
+        assertThat(body.getInteger("id")).isNotNull();
+        assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+
+        httpClient.finalizeList(listId);
+
+        addVideoResponse = httpClient.addVideo(listId, URL_2);
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(403);
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" is finalized", listId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void doesNotAddVideoToListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId2);
 
@@ -327,6 +346,24 @@ class ListVerticlesIntegrationTest {
         var deleteVideoResponse = httpClient.deleteVideo(videoId);
 
         assertThat(deleteVideoResponse.statusCode()).isEqualTo(201);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotDeleteVideoFromFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var addVideoResponse = httpClient.addVideo(listId, URL_1);
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(200);
+        var body = addVideoResponse.body();
+        var videoId = body.getInteger("id");
+
+        httpClient.finalizeList(listId);
+
+        var deleteVideoResponse = httpClient.deleteVideo(videoId);
+
+        assertThat(deleteVideoResponse.statusCode()).isEqualTo(403);
+        assertThat(deleteVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" is finalized", listId));
 
         vertxTestContext.completeNow();
     }

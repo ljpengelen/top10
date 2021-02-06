@@ -99,10 +99,15 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId, accountId).compose(listDto -> {
-                    if (accountId.equals(listDto.getAccountId())) {
-                        return listRepository.addVideo(connection, listId, url);
+                    if (!accountId.equals(listDto.getAccountId())) {
+                        var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
+                        log.debug(message);
+                        return Future.failedFuture(new ForbiddenException(message));
+                    } else if (!listDto.getHasDraftStatus()) {
+                        log.debug("Account \"{}\" cannot assign to finalized list \"{}\"", accountId, listId);
+                        return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" is finalized", listId)));
                     } else {
-                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listId)));
+                        return listRepository.addVideo(connection, listId, url);
                     }
                 }))
                 .onSuccess(addVideoRequest::reply)
@@ -116,10 +121,16 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 listRepository.getListByVideoId(connection, videoId, accountId).compose(listDto -> {
-                    if (accountId.equals(listDto.getAccountId())) {
-                        return listRepository.deleteVideo(connection, videoId);
+                    var listId = listDto.getId();
+                    if (!accountId.equals(listDto.getAccountId())) {
+                        var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
+                        log.debug(message);
+                        return Future.failedFuture(new ForbiddenException(message));
+                    } else if (!listDto.getHasDraftStatus()) {
+                        log.debug("Account \"{}\" cannot assign to finalized list \"{}\"", accountId, listId);
+                        return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" is finalized", listId)));
                     } else {
-                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listDto.getId())));
+                        return listRepository.deleteVideo(connection, videoId);
                     }
                 }))
                 .onSuccess(deleteVideoRequest::reply)
