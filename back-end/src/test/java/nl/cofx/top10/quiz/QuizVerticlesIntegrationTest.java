@@ -334,6 +334,8 @@ class QuizVerticlesIntegrationTest {
         httpClient.assignList(listId1, EXTERNAL_ACCOUNT_ID_1);
         httpClient.assignList(listId2, EXTERNAL_ACCOUNT_ID_2);
 
+        httpClient.completeQuiz(externalQuizId);
+
         var response = httpClient.getQuizResults(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
@@ -368,14 +370,29 @@ class QuizVerticlesIntegrationTest {
     public void returnsEmptyQuizResultsForQuizWithoutAssignments(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
-
         var externalQuizId = createQuizResponse.body().getString("externalId");
+        httpClient.completeQuiz(externalQuizId);
+
         var response = httpClient.getQuizResults(externalQuizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
         assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
         assertThat(quiz.getJsonArray("personalResults")).isEmpty();
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returns403WhenRequestingResultsForActiveQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var response = httpClient.getQuizResults(externalQuizId);
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz with external ID \"%s\" is still active", externalQuizId));
 
         vertxTestContext.completeNow();
     }

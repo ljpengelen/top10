@@ -62,8 +62,16 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
         var accountId = body.getInteger("accountId");
         withTransaction(connection ->
-                quizRepository.getQuiz(connection, externalId, accountId).compose(quiz ->
-                        quizRepository.getQuizResult(connection, externalId)))
+                quizRepository.getQuiz(connection, externalId, accountId).compose(quiz -> {
+                    if (quiz.isActive()) {
+                        var message = String.format("Quiz with external ID \"%s\" is still active", externalId);
+                        log.debug(message);
+                        return Future.failedFuture(new ForbiddenException(message));
+                    } else {
+                        log.debug(String.format("Quiz with external ID \"%s\" is no longer active", externalId));
+                        return quizRepository.getQuizResult(connection, externalId);
+                    }
+                }))
                 .onSuccess(getQuizResultRequest::reply)
                 .onFailure(cause -> handleFailure(cause, getQuizResultRequest));
     }
