@@ -2,7 +2,7 @@ package nl.cofx.top10.quiz.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
+import java.util.*;
 
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +16,7 @@ class ResultSummaryDtoMessageCodecTest {
     public void encodesResultSummaryDto() {
         var resultSummaryDto = ResultSummaryDto.builder()
                 .quizId("abc")
-                .personalResults(List.of(PersonalResultDto.builder()
+                .personalResults(Collections.singletonList(PersonalResultDto.builder()
                         .accountId(321)
                         .name("John Doe")
                         .correctAssignments(List.of(AssignmentDto.builder()
