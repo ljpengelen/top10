@@ -27,6 +27,8 @@
                     logged-in? (assoc :dispatch-n [[::get-quiz quiz-id]
                                                    [::get-quiz-lists quiz-id]
                                                    [::get-quiz-participants quiz-id]]))
+       :quiz-results-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
+                           logged-in? (assoc :dispatch [::get-quiz-results quiz-id]))
        :complete-quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
                              logged-in? (assoc :dispatch [::get-quiz quiz-id]))
        :quizzes-page (cond-> {:db db-with-page}
@@ -353,3 +355,21 @@
                  :response-format (ajax/ring-response-format)
                  :on-success [::complete-quiz-succeeded]
                  :on-failure [::request-failed]}}))
+
+(rf/reg-event-db
+ ::get-quiz-results-succeeded
+ (fn [db [_ response]]
+   (let [quiz-results (:body response)]
+     (assoc db :quiz-results quiz-results))))
+
+(rf/reg-event-fx
+ ::get-quiz-results
+ [(rf/inject-cofx :access-token)]
+ (fn [{:keys [access-token]} [_ quiz-id]]
+   {:http-xhrio [{:method :get
+                  :uri (str base-url "/private/quiz/" quiz-id "/result")
+                  :headers (authorization-header access-token)
+                  :format (ajax/json-request-format)
+                  :response-format ring-json-response-format
+                  :on-success [::get-quiz-results-succeeded]
+                  :on-failure [::request-failed]}]}))

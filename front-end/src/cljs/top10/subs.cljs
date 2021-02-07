@@ -90,3 +90,8 @@
  :<- [::session]
  (fn [session _]
    (:logged-in session)))
+
+(rf/reg-sub
+ ::quiz-results
+ (fn [db _]
+   (:quiz-results db)))

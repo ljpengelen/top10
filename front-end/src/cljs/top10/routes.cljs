@@ -22,6 +22,7 @@
   (defroute "/quizzes" [] (rf/dispatch [::events/set-active-page {:page :quizzes-page}]))
   (defroute "/quiz/:id" [id] (rf/dispatch [::events/set-active-page {:page :quiz-page :quiz-id id}]))
   (defroute "/quiz/:id/complete" [id] (rf/dispatch [::events/set-active-page {:page :complete-quiz-page :quiz-id id}]))
+  (defroute "/quiz/:id/results" [id] (rf/dispatch [::events/set-active-page {:page :quiz-results-page :quiz-id id}]))
   (defroute "/create-quiz" [] (rf/dispatch [::events/set-active-page {:page :create-quiz-page}]))
   (defroute "/list/:id" [id] (rf/dispatch [::events/set-active-page {:page :create-list-page :list-id id}]))
   (defroute "/quiz/:quiz-id/list/:list-id/assign" [quiz-id list-id]

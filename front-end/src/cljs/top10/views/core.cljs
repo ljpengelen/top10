@@ -8,6 +8,7 @@
    [top10.views.create-quiz :refer [create-quiz-page]]
    [top10.views.home :refer [home-page]]
    [top10.views.quiz :refer [quiz-page-container]]
+   [top10.views.quiz-results :refer [quiz-results-page-container]]
    [top10.views.quizzes :refer [quizzes-page-container]]))
 
 (defn- pages [page-name]
@@ -15,6 +16,7 @@
     :home-page [home-page]
     :quizzes-page [quizzes-page-container]
     :quiz-page [quiz-page-container]
+    :quiz-results-page [quiz-results-page-container]
     :complete-quiz-page [complete-quiz-page-container]
     :create-quiz-page [create-quiz-page]
     :create-list-page [create-list-page-container]
