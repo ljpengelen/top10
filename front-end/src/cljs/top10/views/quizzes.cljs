@@ -32,12 +32,16 @@
             ^{:key id}
             [table-row
              [table-cell name]
-             [table-cell [link {:href (str "#/quiz/" externalId) :color "primary"} "Show"]]
              [table-cell (cond
                            (not isActive) "Quiz has ended"
                            deadline-has-passed? "Closed for participation"
                            :else deadline)]
              [table-cell (if personalListHasDraftStatus "No top 10 submitted" "Top 10 submitted")]
+             [table-cell (cond
+                           (not isActive) [link {:href (str "#/quiz/" externalId "/results") :color "primary"} "Show results"]
+                           (and (not deadline-has-passed?) personalListHasDraftStatus) [link {:href (str "#/quiz/" externalId) :color "primary"} "Submit top 10"]
+                           (and deadline-has-passed? (not personalListHasDraftStatus)) [link {:href (str "#/quiz/" externalId) :color "primary"} "Assign top 10's"]
+                           :else [link {:href (str "#/quiz/" externalId) :color "primary"} "Show status"])]
              [table-cell (when (and isActive isCreator) [link {:href (str "#/quiz/" externalId "/complete")} "End"])]])]]])]
     [grid {:item true}
      [button {:href "#/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]]])
