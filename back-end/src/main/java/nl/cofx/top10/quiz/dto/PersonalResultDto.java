@@ -13,6 +13,7 @@ import lombok.*;
 public class PersonalResultDto {
 
     Integer accountId;
+    String name;
     @Singular
     List<AssignmentDto> correctAssignments;
     @Singular
@@ -23,6 +24,7 @@ public class PersonalResultDto {
         var incorrectAssignments = AssignmentDto.fromJsonArray(jsonObject.getJsonArray("incorrectAssignments"));
         return PersonalResultDto.builder()
                 .accountId(jsonObject.getInteger("accountId"))
+                .name(jsonObject.getString("name"))
                 .correctAssignments(correctAssignments)
                 .incorrectAssignments(incorrectAssignments)
                 .build();
@@ -41,6 +43,7 @@ public class PersonalResultDto {
     public JsonObject toJsonObject() {
         return new JsonObject()
                 .put("accountId", accountId)
+                .put("name", name)
                 .put("numberOfCorrectAssignments", correctAssignments.size())
                 .put("correctAssignments", AssignmentDto.toJsonArray(correctAssignments))
                 .put("incorrectAssignments", AssignmentDto.toJsonArray(incorrectAssignments));

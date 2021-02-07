@@ -14,13 +14,17 @@ public class AssignmentDto {
 
     Integer listId;
     Integer assigneeId;
+    String assigneeName;
     Integer creatorId;
+    String creatorName;
 
     public static AssignmentDto fromJsonObject(JsonObject jsonObject) {
         return AssignmentDto.builder()
                 .listId(jsonObject.getInteger("listId"))
                 .assigneeId(jsonObject.getInteger("assigneeId"))
+                .assigneeName(jsonObject.getString("assigneeName"))
                 .creatorId(jsonObject.getInteger("creatorId"))
+                .creatorName(jsonObject.getString("creatorName"))
                 .build();
     }
 
@@ -42,7 +46,9 @@ public class AssignmentDto {
         return new JsonObject()
                 .put("listId", listId)
                 .put("assigneeId", assigneeId)
-                .put("creatorId", creatorId);
+                .put("assigneeName", assigneeName)
+                .put("creatorId", creatorId)
+                .put("creatorName", creatorName);
     }
 
     public static JsonArray toJsonArray(List<AssignmentDto> assignments) {

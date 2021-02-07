@@ -35,9 +35,15 @@ public class QuizRepository {
                                                             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                             + "WHERE q.external_id = ?";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
-            "SELECT a.list_id, a.account_id AS assigner_id, a.assignee_id, l.account_id AS creator_id FROM quiz q "
+            "SELECT ass.list_id, "
+            + "ass.account_id AS assigner_id, assigner_acc.name AS assigner_name, "
+            + "ass.assignee_id, assignee_acc.name AS assignee_name, "
+            + "l.account_id AS creator_id, creator_acc.name AS creator_name FROM quiz q "
             + "JOIN list l ON l.quiz_id = q.quiz_id "
-            + "JOIN assignment a ON a.list_id = l.list_id "
+            + "JOIN assignment ass ON ass.list_id = l.list_id "
+            + "JOIN account creator_acc ON creator_acc.account_id = l.account_id "
+            + "JOIN account assigner_acc ON assigner_acc.account_id = ass.account_id "
+            + "JOIN account assignee_acc ON assignee_acc.account_id = ass.assignee_id "
             + "WHERE q.external_id = ?";
 
     public Future<QuizzesDto> getAllQuizzes(SQLConnection connection, Integer accountId) {
@@ -145,13 +151,21 @@ public class QuizRepository {
 
         assignments.forEach(assignment -> {
             var accountId = assignment.getInteger("assigner_id");
-            var personalResult = personalResults.computeIfAbsent(accountId, key -> PersonalResultDto.builder().accountId(key));
+            var name = assignment.getString("assigner_name");
+            var personalResult = personalResults.computeIfAbsent(accountId, key ->
+                    PersonalResultDto.builder()
+                            .accountId(key)
+                            .name(name));
             var assigneeId = assignment.getInteger("assignee_id");
+            var assigneeName = assignment.getString("assignee_name");
             var creatorId = assignment.getInteger("creator_id");
+            var creatorName = assignment.getString("creator_name");
             var listId = assignment.getInteger("list_id");
             var assignmentDto = AssignmentDto.builder()
                     .assigneeId(assigneeId)
+                    .assigneeName(assigneeName)
                     .creatorId(creatorId)
+                    .creatorName(creatorName)
                     .listId(listId)
                     .build();
             if (assigneeId.equals(creatorId)) {

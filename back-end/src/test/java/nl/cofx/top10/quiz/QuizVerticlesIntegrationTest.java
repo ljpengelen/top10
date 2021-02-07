@@ -345,6 +345,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(allPersonalResults).hasSize(1);
         var personalResults = allPersonalResults.getJsonObject(0);
         assertThat(personalResults.getInteger("accountId")).isEqualTo(accountId1);
+        assertThat(personalResults.getString("name")).isEqualTo(USERNAME_1);
         assertThat(personalResults.getJsonArray("incorrectAssignments")).isEmpty();
         var correctAssignments = personalResults.getJsonArray("correctAssignments");
         assertThat(correctAssignments).hasSize(2);
@@ -352,14 +353,18 @@ class QuizVerticlesIntegrationTest {
             assertThat(assignment).isInstanceOf(JsonObject.class);
             var assignmentAsJsonObject = (JsonObject) assignment;
             assertThat(assignmentAsJsonObject.getInteger("creatorId")).isEqualTo(accountId1);
+            assertThat(assignmentAsJsonObject.getString("creatorName")).isEqualTo(USERNAME_1);
             assertThat(assignmentAsJsonObject.getInteger("assigneeId")).isEqualTo(accountId1);
+            assertThat(assignmentAsJsonObject.getString("assigneeName")).isEqualTo(USERNAME_1);
             assertThat(assignmentAsJsonObject.getInteger("listId")).isEqualTo(listId1);
         });
         assertThat(correctAssignments).anySatisfy(assignment -> {
             assertThat(assignment).isInstanceOf(JsonObject.class);
             var assignmentAsJsonObject = (JsonObject) assignment;
             assertThat(assignmentAsJsonObject.getInteger("creatorId")).isEqualTo(accountId2);
+            assertThat(assignmentAsJsonObject.getString("creatorName")).isEqualTo(USERNAME_2);
             assertThat(assignmentAsJsonObject.getInteger("assigneeId")).isEqualTo(accountId2);
+            assertThat(assignmentAsJsonObject.getString("assigneeName")).isEqualTo(USERNAME_2);
             assertThat(assignmentAsJsonObject.getInteger("listId")).isEqualTo(listId2);
         });
 
