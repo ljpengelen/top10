@@ -81,12 +81,18 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getInteger("listId");
         var accountId = body.getInteger("accountId");
 
-        withTransaction(connection -> listRepository.getList(connection, listId, accountId).compose(list ->
-                listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
-                        listRepository.getVideosForLists(connection, list.getId()).compose(videosForList ->
+        withTransaction(connection -> listRepository.getList(connection, listId)
+                .compose(list ->
+                        listRepository.getAssignment(connection, listId, accountId).compose(assignment ->
                                 Future.succeededFuture(list.toBuilder()
-                                        .videos(videosForList.getOrDefault(listId, Collections.emptyList()))
-                                        .build())))))
+                                        .externalAssigneeId(assignment.getExternalAssigneeId())
+                                        .assigneeName(assignment.getAssigneeName())
+                                        .build()))).compose(list ->
+                        listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
+                                listRepository.getVideosForLists(connection, list.getId()).compose(videosForList ->
+                                        Future.succeededFuture(list.toBuilder()
+                                                .videos(videosForList.getOrDefault(listId, Collections.emptyList()))
+                                                .build())))))
                 .onSuccess(getOneListRequest::reply)
                 .onFailure(cause -> handleFailure(cause, getOneListRequest));
     }
@@ -98,7 +104,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId, accountId).compose(listDto -> {
+                listRepository.getList(connection, listId).compose(listDto -> {
                     if (!accountId.equals(listDto.getAccountId())) {
                         var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
                         log.debug(message);
@@ -120,7 +126,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getInteger("accountId");
 
         withTransaction(connection ->
-                listRepository.getListByVideoId(connection, videoId, accountId).compose(listDto -> {
+                listRepository.getListByVideoId(connection, videoId).compose(listDto -> {
                     var listId = listDto.getId();
                     if (!accountId.equals(listDto.getAccountId())) {
                         var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
@@ -143,7 +149,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getInteger("listId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId, accountId).compose(listDto -> {
+                listRepository.getList(connection, listId).compose(listDto -> {
                     if (accountId.equals(listDto.getAccountId())) {
                         return listRepository.finalizeList(connection, listId);
                     } else {
@@ -161,22 +167,23 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var assigneeId = body.getString("assigneeId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId, accountId).compose(listDto -> {
+                listRepository.getList(connection, listId).compose(listDto -> {
                     if (listDto.getHasDraftStatus()) {
                         log.debug("User \"{}\" cannot assign \"{}\" to non-finalized list \"{}\"", accountId, assigneeId, listId);
                         return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" has not been finalized yet", listId)));
                     } else {
                         return quizRepository.getQuiz(connection, listDto.getExternalQuizId(), accountId).compose(quiz -> {
                             if (quiz.isActive()) {
-                                return Future.succeededFuture();
+                                return listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
+                                        listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId(), listDto.getExternalQuizId())
+                                                .compose(accountParticipatesInQuiz ->
+                                                        listRepository.assignList(connection, accountId, listId, assigneeId)));
                             } else {
                                 var externalQuizId = quiz.getExternalId();
                                 log.debug("User \"{}\" cannot assign to list \"{}\" of completed quiz \"{}\"", accountId, listId, externalQuizId);
                                 return Future.failedFuture(new ForbiddenException(String.format("Quiz with external ID \"%s\" is completed", externalQuizId)));
                             }
-                        }).compose(nothing -> listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
-                                listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId(), listDto.getExternalQuizId())
-                                        .compose(accountParticipatesInQuiz -> listRepository.assignList(connection, accountId, listId, assigneeId))));
+                        });
                     }
                 }))
                 .onSuccess(assignListRequest::reply)

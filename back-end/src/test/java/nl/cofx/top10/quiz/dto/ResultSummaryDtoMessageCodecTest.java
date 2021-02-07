@@ -2,7 +2,8 @@ package nl.cofx.top10.quiz.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -21,16 +22,16 @@ class ResultSummaryDtoMessageCodecTest {
                         .name("John Doe")
                         .correctAssignments(List.of(AssignmentDto.builder()
                                 .listId(456)
-                                .creatorId(789)
+                                .externalCreatorId("789")
                                 .creatorName("Jane Doe")
-                                .assigneeId(789)
+                                .externalAssigneeId("789")
                                 .assigneeName("Jane Doe")
                                 .build()))
                         .incorrectAssignments(List.of(AssignmentDto.builder()
                                 .listId(654)
-                                .creatorId(987)
+                                .externalCreatorId("987")
                                 .assigneeName("Jim Doe")
-                                .assigneeId(789)
+                                .externalAssigneeId("789")
                                 .assigneeName("Jane Doe")
                                 .build()))
                         .build()))

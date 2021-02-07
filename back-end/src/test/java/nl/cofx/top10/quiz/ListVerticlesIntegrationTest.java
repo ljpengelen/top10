@@ -168,7 +168,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listsForQuiz.body()).hasSize(1);
         list = listsForQuiz.body().getJsonObject(0);
         assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(list.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
         vertxTestContext.completeNow();
@@ -453,7 +453,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
         assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(list.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
         assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
@@ -465,7 +465,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         list = listResponse.body();
         assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getString("assigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(list.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_1);
 
         vertxTestContext.completeNow();

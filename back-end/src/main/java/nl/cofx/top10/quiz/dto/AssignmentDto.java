@@ -13,17 +13,17 @@ import lombok.Value;
 public class AssignmentDto {
 
     Integer listId;
-    Integer assigneeId;
+    String externalAssigneeId;
     String assigneeName;
-    Integer creatorId;
+    String externalCreatorId;
     String creatorName;
 
     public static AssignmentDto fromJsonObject(JsonObject jsonObject) {
         return AssignmentDto.builder()
                 .listId(jsonObject.getInteger("listId"))
-                .assigneeId(jsonObject.getInteger("assigneeId"))
+                .externalAssigneeId(jsonObject.getString("externalAssigneeId"))
                 .assigneeName(jsonObject.getString("assigneeName"))
-                .creatorId(jsonObject.getInteger("creatorId"))
+                .externalCreatorId(jsonObject.getString("externalCreatorId"))
                 .creatorName(jsonObject.getString("creatorName"))
                 .build();
     }
@@ -45,9 +45,9 @@ public class AssignmentDto {
     public JsonObject toJsonObject() {
         return new JsonObject()
                 .put("listId", listId)
-                .put("assigneeId", assigneeId)
+                .put("externalAssigneeId", externalAssigneeId)
                 .put("assigneeName", assigneeName)
-                .put("creatorId", creatorId)
+                .put("externalCreatorId", externalCreatorId)
                 .put("creatorName", creatorName);
     }
 

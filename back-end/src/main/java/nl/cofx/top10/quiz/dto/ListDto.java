@@ -14,7 +14,7 @@ public class ListDto {
     Integer accountId;
     Integer quizId;
     String externalQuizId;
-    String assigneeId;
+    String externalAssigneeId;
     String assigneeName;
     Boolean hasDraftStatus;
     List<VideoDto> videos;
@@ -25,7 +25,7 @@ public class ListDto {
                 .quizId(jsonObject.getInteger("quizId"))
                 .externalQuizId(jsonObject.getString("externalQuizId"))
                 .accountId(jsonObject.getInteger("accountId"))
-                .assigneeId(jsonObject.getString("assigneeId"))
+                .externalAssigneeId(jsonObject.getString("externalAssigneeId"))
                 .assigneeName(jsonObject.getString("assigneeName"))
                 .hasDraftStatus(jsonObject.getBoolean("hasDraftStatus"))
                 .videos(VideoDto.fromJsonArray(jsonObject.getJsonArray("videos")))
@@ -38,8 +38,8 @@ public class ListDto {
         if (accountId != null)
             jsonObject.put("accountId", accountId);
 
-        if (assigneeId != null)
-            jsonObject.put("assigneeId", assigneeId);
+        if (externalAssigneeId != null)
+            jsonObject.put("externalAssigneeId", externalAssigneeId);
 
         if (assigneeName != null)
             jsonObject.put("assigneeName", assigneeName);

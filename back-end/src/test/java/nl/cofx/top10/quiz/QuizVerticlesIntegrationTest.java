@@ -334,6 +334,13 @@ class QuizVerticlesIntegrationTest {
         httpClient.assignList(listId1, EXTERNAL_ACCOUNT_ID_1);
         httpClient.assignList(listId2, EXTERNAL_ACCOUNT_ID_2);
 
+        userHandler.logIn(accountId2);
+
+        httpClient.assignList(listId1, EXTERNAL_ACCOUNT_ID_1);
+        httpClient.assignList(listId2, EXTERNAL_ACCOUNT_ID_2);
+
+        userHandler.logIn(accountId1);
+
         httpClient.completeQuiz(externalQuizId);
 
         var response = httpClient.getQuizResults(externalQuizId);
@@ -342,31 +349,58 @@ class QuizVerticlesIntegrationTest {
         var quiz = response.body();
         assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
         var allPersonalResults = quiz.getJsonArray("personalResults");
-        assertThat(allPersonalResults).hasSize(1);
-        var personalResults = allPersonalResults.getJsonObject(0);
-        assertThat(personalResults.getInteger("accountId")).isEqualTo(accountId1);
-        assertThat(personalResults.getString("name")).isEqualTo(USERNAME_1);
-        assertThat(personalResults.getJsonArray("incorrectAssignments")).isEmpty();
-        var correctAssignments = personalResults.getJsonArray("correctAssignments");
+        assertThat(allPersonalResults).hasSize(2);
+
+        var firstPersonalResults = allPersonalResults.getJsonObject(0);
+        assertThat(firstPersonalResults.getInteger("accountId")).isEqualTo(accountId1);
+        assertThat(firstPersonalResults.getString("name")).isEqualTo(USERNAME_1);
+        assertThat(firstPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
+        var correctAssignments = firstPersonalResults.getJsonArray("correctAssignments");
         assertThat(correctAssignments).hasSize(2);
-        assertThat(correctAssignments).anySatisfy(assignment -> {
-            assertThat(assignment).isInstanceOf(JsonObject.class);
-            var assignmentAsJsonObject = (JsonObject) assignment;
-            assertThat(assignmentAsJsonObject.getInteger("creatorId")).isEqualTo(accountId1);
-            assertThat(assignmentAsJsonObject.getString("creatorName")).isEqualTo(USERNAME_1);
-            assertThat(assignmentAsJsonObject.getInteger("assigneeId")).isEqualTo(accountId1);
-            assertThat(assignmentAsJsonObject.getString("assigneeName")).isEqualTo(USERNAME_1);
-            assertThat(assignmentAsJsonObject.getInteger("listId")).isEqualTo(listId1);
-        });
-        assertThat(correctAssignments).anySatisfy(assignment -> {
-            assertThat(assignment).isInstanceOf(JsonObject.class);
-            var assignmentAsJsonObject = (JsonObject) assignment;
-            assertThat(assignmentAsJsonObject.getInteger("creatorId")).isEqualTo(accountId2);
-            assertThat(assignmentAsJsonObject.getString("creatorName")).isEqualTo(USERNAME_2);
-            assertThat(assignmentAsJsonObject.getInteger("assigneeId")).isEqualTo(accountId2);
-            assertThat(assignmentAsJsonObject.getString("assigneeName")).isEqualTo(USERNAME_2);
-            assertThat(assignmentAsJsonObject.getInteger("listId")).isEqualTo(listId2);
-        });
+        var firstAssignment = correctAssignments.getJsonObject(0);
+        assertThat(firstAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(firstAssignment.getString("creatorName")).isEqualTo(USERNAME_1);
+        assertThat(firstAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(firstAssignment.getString("assigneeName")).isEqualTo(USERNAME_1);
+        assertThat(firstAssignment.getInteger("listId")).isEqualTo(listId1);
+        var secondAssignment = correctAssignments.getJsonObject(1);
+        assertThat(secondAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(secondAssignment.getString("creatorName")).isEqualTo(USERNAME_2);
+        assertThat(secondAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(secondAssignment.getString("assigneeName")).isEqualTo(USERNAME_2);
+        assertThat(secondAssignment.getInteger("listId")).isEqualTo(listId2);
+
+        var secondPersonalResults = allPersonalResults.getJsonObject(1);
+        assertThat(secondPersonalResults.getInteger("accountId")).isEqualTo(accountId2);
+        assertThat(secondPersonalResults.getString("name")).isEqualTo(USERNAME_2);
+        assertThat(secondPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
+        correctAssignments = secondPersonalResults.getJsonArray("correctAssignments");
+        assertThat(correctAssignments).hasSize(2);
+        firstAssignment = correctAssignments.getJsonObject(0);
+        assertThat(firstAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(firstAssignment.getString("creatorName")).isEqualTo(USERNAME_1);
+        assertThat(firstAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(firstAssignment.getString("assigneeName")).isEqualTo(USERNAME_1);
+        assertThat(firstAssignment.getInteger("listId")).isEqualTo(listId1);
+        secondAssignment = correctAssignments.getJsonObject(1);
+        assertThat(secondAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(secondAssignment.getString("creatorName")).isEqualTo(USERNAME_2);
+        assertThat(secondAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(secondAssignment.getString("assigneeName")).isEqualTo(USERNAME_2);
+        assertThat(secondAssignment.getInteger("listId")).isEqualTo(listId2);
+
+        var ranking = quiz.getJsonArray("ranking");
+        assertThat(ranking).hasSize(2);
+        var firstRankingEntry = ranking.getJsonObject(0);
+        assertThat(firstRankingEntry.getInteger("rank")).isEqualTo(1);
+        assertThat(firstRankingEntry.getInteger("accountId")).isEqualTo(accountId1);
+        assertThat(firstRankingEntry.getString("name")).isEqualTo(USERNAME_1);
+        assertThat(firstRankingEntry.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
+        var secondRankEntry = ranking.getJsonObject(1);
+        assertThat(secondRankEntry.getInteger("rank")).isEqualTo(1);
+        assertThat(secondRankEntry.getInteger("accountId")).isEqualTo(accountId2);
+        assertThat(secondRankEntry.getString("name")).isEqualTo(USERNAME_2);
+        assertThat(secondRankEntry.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
 
         vertxTestContext.completeNow();
     }

@@ -37,8 +37,8 @@ public class QuizRepository {
     private static final String GET_QUIZ_RESULT_TEMPLATE =
             "SELECT ass.list_id, "
             + "ass.account_id AS assigner_id, assigner_acc.name AS assigner_name, "
-            + "ass.assignee_id, assignee_acc.name AS assignee_name, "
-            + "l.account_id AS creator_id, creator_acc.name AS creator_name FROM quiz q "
+            + "assignee_acc.external_id AS external_assignee_id, assignee_acc.name AS assignee_name, "
+            + "creator_acc.external_id AS external_creator_id, creator_acc.name AS creator_name FROM quiz q "
             + "JOIN list l ON l.quiz_id = q.quiz_id "
             + "JOIN assignment ass ON ass.list_id = l.list_id "
             + "JOIN account creator_acc ON creator_acc.account_id = l.account_id "
@@ -156,19 +156,19 @@ public class QuizRepository {
                     PersonalResultDto.builder()
                             .accountId(key)
                             .name(name));
-            var assigneeId = assignment.getInteger("assignee_id");
+            var externalAssigneeId = assignment.getString("external_assignee_id");
             var assigneeName = assignment.getString("assignee_name");
-            var creatorId = assignment.getInteger("creator_id");
+            var externalCreatorId = assignment.getString("external_creator_id");
             var creatorName = assignment.getString("creator_name");
             var listId = assignment.getInteger("list_id");
             var assignmentDto = AssignmentDto.builder()
-                    .assigneeId(assigneeId)
+                    .externalAssigneeId(externalAssigneeId)
                     .assigneeName(assigneeName)
-                    .creatorId(creatorId)
+                    .externalCreatorId(externalCreatorId)
                     .creatorName(creatorName)
                     .listId(listId)
                     .build();
-            if (assigneeId.equals(creatorId)) {
+            if (externalAssigneeId.equals(externalCreatorId)) {
                 personalResult.correctAssignment(assignmentDto);
             } else {
                 personalResult.incorrectAssignment(assignmentDto);

@@ -17,7 +17,7 @@ class ListsDtoMessageCodecTest {
         var listDto = ListDto.builder()
                 .id(123)
                 .accountId(456)
-                .assigneeId("abcd")
+                .externalAssigneeId("abcd")
                 .quizId(321)
                 .hasDraftStatus(true)
                 .videos(List.of(VideoDto.builder()
