@@ -24,8 +24,8 @@
          [table-head
           [table-row
            [table-cell "Name"]
-           [table-cell "Deadline"]
-           [table-cell "Personal list"]
+           [table-cell "Participation deadline"]
+           [table-cell "Personal top 10"]
            [table-cell {:col-span 2} "Action"]]]
          [table-body
           (for [{:keys [id name deadline deadline-has-passed? externalId isActive isCreator personalListHasDraftStatus]} quizzes]
