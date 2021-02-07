@@ -352,7 +352,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(allPersonalResults).hasSize(2);
 
         var firstPersonalResults = allPersonalResults.getJsonObject(0);
-        assertThat(firstPersonalResults.getInteger("accountId")).isEqualTo(accountId1);
+        assertThat(firstPersonalResults.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
         assertThat(firstPersonalResults.getString("name")).isEqualTo(USERNAME_1);
         assertThat(firstPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
         var correctAssignments = firstPersonalResults.getJsonArray("correctAssignments");
@@ -371,7 +371,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(secondAssignment.getInteger("listId")).isEqualTo(listId2);
 
         var secondPersonalResults = allPersonalResults.getJsonObject(1);
-        assertThat(secondPersonalResults.getInteger("accountId")).isEqualTo(accountId2);
+        assertThat(secondPersonalResults.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
         assertThat(secondPersonalResults.getString("name")).isEqualTo(USERNAME_2);
         assertThat(secondPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
         correctAssignments = secondPersonalResults.getJsonArray("correctAssignments");
@@ -393,12 +393,12 @@ class QuizVerticlesIntegrationTest {
         assertThat(ranking).hasSize(2);
         var firstRankingEntry = ranking.getJsonObject(0);
         assertThat(firstRankingEntry.getInteger("rank")).isEqualTo(1);
-        assertThat(firstRankingEntry.getInteger("accountId")).isEqualTo(accountId1);
+        assertThat(firstRankingEntry.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
         assertThat(firstRankingEntry.getString("name")).isEqualTo(USERNAME_1);
         assertThat(firstRankingEntry.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
         var secondRankEntry = ranking.getJsonObject(1);
         assertThat(secondRankEntry.getInteger("rank")).isEqualTo(1);
-        assertThat(secondRankEntry.getInteger("accountId")).isEqualTo(accountId2);
+        assertThat(secondRankEntry.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
         assertThat(secondRankEntry.getString("name")).isEqualTo(USERNAME_2);
         assertThat(secondRankEntry.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
 

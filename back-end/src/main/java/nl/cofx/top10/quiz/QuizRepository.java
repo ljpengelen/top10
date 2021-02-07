@@ -36,7 +36,7 @@ public class QuizRepository {
                                                             + "WHERE q.external_id = ?";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
             "SELECT ass.list_id, "
-            + "ass.account_id AS assigner_id, assigner_acc.name AS assigner_name, "
+            + "assigner_acc.external_id AS external_assigner_id, assigner_acc.name AS assigner_name, "
             + "assignee_acc.external_id AS external_assignee_id, assignee_acc.name AS assignee_name, "
             + "creator_acc.external_id AS external_creator_id, creator_acc.name AS creator_name FROM quiz q "
             + "JOIN list l ON l.quiz_id = q.quiz_id "
@@ -147,14 +147,14 @@ public class QuizRepository {
     }
 
     private List<PersonalResultDto> toPersonalResults(List<JsonObject> assignments) {
-        var personalResults = new HashMap<Integer, PersonalResultDto.PersonalResultDtoBuilder>();
+        var personalResults = new HashMap<String, PersonalResultDto.PersonalResultDtoBuilder>();
 
         assignments.forEach(assignment -> {
-            var accountId = assignment.getInteger("assigner_id");
+            var externalAccountId = assignment.getString("external_assigner_id");
             var name = assignment.getString("assigner_name");
-            var personalResult = personalResults.computeIfAbsent(accountId, key ->
+            var personalResult = personalResults.computeIfAbsent(externalAccountId, key ->
                     PersonalResultDto.builder()
-                            .accountId(key)
+                            .externalAccountId(key)
                             .name(name));
             var externalAssigneeId = assignment.getString("external_assignee_id");
             var assigneeName = assignment.getString("assignee_name");

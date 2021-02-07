@@ -18,7 +18,7 @@ class ResultSummaryDtoMessageCodecTest {
         var resultSummaryDto = ResultSummaryDto.builder()
                 .quizId("abc")
                 .personalResults(Collections.singletonList(PersonalResultDto.builder()
-                        .accountId(321)
+                        .externalAccountId("321")
                         .name("John Doe")
                         .correctAssignments(List.of(AssignmentDto.builder()
                                 .listId(456)

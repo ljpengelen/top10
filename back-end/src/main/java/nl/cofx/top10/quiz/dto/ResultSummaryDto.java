@@ -38,7 +38,7 @@ public class ResultSummaryDto {
             previousNumberOfCorrectAssignments = numberOfCorrectAssignments;
 
             var rankingEntry = RankingEntryDto.builder()
-                    .accountId(personalResult.getAccountId())
+                    .externalAccountId(personalResult.getExternalAccountId())
                     .name(personalResult.getName())
                     .numberOfCorrectAssignments(numberOfCorrectAssignments)
                     .rank(rank)
