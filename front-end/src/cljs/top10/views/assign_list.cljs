@@ -30,6 +30,7 @@
           [grid {:container true :direction "column" :spacing 2}
            [grid {:item true :xs 6}
             [autocomplete {:get-option-label (fn [option] (.-name option))
+                           :get-option-selected (fn [option value] (= (.-id option) (.-id value)))
                            :on-change (fn [_ value] (reset! assignee value))
                            :options participants
                            :render-input (fn [^js params] (r/create-element TextField params))
