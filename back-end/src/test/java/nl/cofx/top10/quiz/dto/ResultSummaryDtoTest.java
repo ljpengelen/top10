@@ -15,13 +15,13 @@ class ResultSummaryDtoTest {
                         "4",
                         PersonalResultDto.builder()
                                 .externalAccountId("4")
-                                .name("Four")
+                                .name("FourA")
                                 .correctAssignment(assignment())
                                 .build(),
                         "5",
                         PersonalResultDto.builder()
                                 .externalAccountId("5")
-                                .name("Five")
+                                .name("FourB")
                                 .correctAssignment(assignment())
                                 .build(),
                         "3",
@@ -34,7 +34,7 @@ class ResultSummaryDtoTest {
                         "1",
                         PersonalResultDto.builder()
                                 .externalAccountId("1")
-                                .name("One")
+                                .name("OneA")
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
@@ -47,7 +47,7 @@ class ResultSummaryDtoTest {
                         "2",
                         PersonalResultDto.builder()
                                 .externalAccountId("2")
-                                .name("Two")
+                                .name("OneB")
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
@@ -57,13 +57,13 @@ class ResultSummaryDtoTest {
         assertThat(resultSummaryDto.getRanking()).containsExactly(
                 RankingEntryDto.builder()
                         .externalAccountId("1")
-                        .name("One")
+                        .name("OneA")
                         .rank(1)
                         .numberOfCorrectAssignments(3)
                         .build(),
                 RankingEntryDto.builder()
                         .externalAccountId("2")
-                        .name("Two")
+                        .name("OneB")
                         .rank(1)
                         .numberOfCorrectAssignments(3)
                         .build(),
@@ -75,13 +75,13 @@ class ResultSummaryDtoTest {
                         .build(),
                 RankingEntryDto.builder()
                         .externalAccountId("4")
-                        .name("Four")
+                        .name("FourA")
                         .rank(4)
                         .numberOfCorrectAssignments(1)
                         .build(),
                 RankingEntryDto.builder()
                         .externalAccountId("5")
-                        .name("Five")
+                        .name("FourB")
                         .rank(4)
                         .numberOfCorrectAssignments(1)
                         .build(),

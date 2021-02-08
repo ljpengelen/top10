@@ -47,6 +47,14 @@ public class ResultSummaryDto {
             ranking.add(rankingEntry);
         }
 
+        ranking.sort((r1, r2) -> {
+            if (r1.getRank() == r2.getRank()) {
+                return r1.getName().compareTo(r2.getName());
+            } else {
+                return r1.getRank() - r2.getRank();
+            }
+        });
+
         return ranking;
     }
 
