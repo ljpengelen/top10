@@ -49,7 +49,7 @@ public class ResultSummaryDto {
 
         ranking.sort((r1, r2) -> {
             if (r1.getRank() == r2.getRank()) {
-                return r1.getName().compareTo(r2.getName());
+                return r1.getName().compareToIgnoreCase(r2.getName());
             } else {
                 return r1.getRank() - r2.getRank();
             }
