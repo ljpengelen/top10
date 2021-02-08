@@ -348,10 +348,10 @@ class QuizVerticlesIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
         assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
-        var allPersonalResults = quiz.getJsonArray("personalResults");
+        var allPersonalResults = quiz.getJsonObject("personalResults");
         assertThat(allPersonalResults).hasSize(2);
 
-        var firstPersonalResults = allPersonalResults.getJsonObject(0);
+        var firstPersonalResults = allPersonalResults.getJsonObject(EXTERNAL_ACCOUNT_ID_1);
         assertThat(firstPersonalResults.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
         assertThat(firstPersonalResults.getString("name")).isEqualTo(USERNAME_1);
         assertThat(firstPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
@@ -370,7 +370,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(secondAssignment.getString("assigneeName")).isEqualTo(USERNAME_2);
         assertThat(secondAssignment.getInteger("listId")).isEqualTo(listId2);
 
-        var secondPersonalResults = allPersonalResults.getJsonObject(1);
+        var secondPersonalResults = allPersonalResults.getJsonObject(EXTERNAL_ACCOUNT_ID_2);
         assertThat(secondPersonalResults.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
         assertThat(secondPersonalResults.getString("name")).isEqualTo(USERNAME_2);
         assertThat(secondPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
@@ -417,7 +417,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
         assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
-        assertThat(quiz.getJsonArray("personalResults")).isEmpty();
+        assertThat(quiz.getJsonObject("personalResults")).isEmpty();
 
         vertxTestContext.completeNow();
     }

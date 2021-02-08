@@ -2,7 +2,7 @@ package nl.cofx.top10.quiz.dto;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
@@ -11,23 +11,27 @@ class ResultSummaryDtoTest {
     @Test
     void computesFromPersonalResultsRanking() {
         var resultSummaryDto = ResultSummaryDto.builder()
-                .personalResults(Arrays.asList(
+                .personalResults(Map.of(
+                        "4",
                         PersonalResultDto.builder()
                                 .externalAccountId("4")
                                 .name("Four")
                                 .correctAssignment(assignment())
                                 .build(),
+                        "5",
                         PersonalResultDto.builder()
                                 .externalAccountId("5")
                                 .name("Five")
                                 .correctAssignment(assignment())
                                 .build(),
+                        "3",
                         PersonalResultDto.builder()
                                 .externalAccountId("3")
                                 .name("Three")
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
                                 .build(),
+                        "1",
                         PersonalResultDto.builder()
                                 .externalAccountId("1")
                                 .name("One")
@@ -35,10 +39,12 @@ class ResultSummaryDtoTest {
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
                                 .build(),
+                        "6",
                         PersonalResultDto.builder()
                                 .externalAccountId("6")
                                 .name("Six")
                                 .build(),
+                        "2",
                         PersonalResultDto.builder()
                                 .externalAccountId("2")
                                 .name("Two")

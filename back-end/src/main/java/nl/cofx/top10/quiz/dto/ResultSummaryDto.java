@@ -14,20 +14,21 @@ public class ResultSummaryDto {
 
     String quizId;
     @Builder.Default
-    List<PersonalResultDto> personalResults = new ArrayList<>();
+    Map<String, PersonalResultDto> personalResults = new HashMap<>();
 
     private int getNumberOfCorrectAssignments(PersonalResultDto personalResultDto) {
         return personalResultDto.getCorrectAssignments().size();
     }
 
     public List<RankingEntryDto> getRanking() {
-        personalResults.sort(Comparator.comparing(this::getNumberOfCorrectAssignments).reversed());
+        var results = new ArrayList<>(personalResults.values());
+        results.sort(Comparator.comparing(this::getNumberOfCorrectAssignments).reversed());
 
         int rank = 0;
         int skipRanks = 1;
         int previousNumberOfCorrectAssignments = Integer.MAX_VALUE;
-        var ranking = new ArrayList<RankingEntryDto>(personalResults.size());
-        for (PersonalResultDto personalResult : personalResults) {
+        var ranking = new ArrayList<RankingEntryDto>(results.size());
+        for (PersonalResultDto personalResult : results) {
             var numberOfCorrectAssignments = getNumberOfCorrectAssignments(personalResult);
             if (previousNumberOfCorrectAssignments > numberOfCorrectAssignments) {
                 rank = rank + skipRanks;
@@ -50,7 +51,7 @@ public class ResultSummaryDto {
     }
 
     public static ResultSummaryDto fromJsonObject(JsonObject jsonObject) {
-        var personalResults = PersonalResultDto.fromJsonArray(jsonObject.getJsonArray("personalResults"));
+        var personalResults = PersonalResultDto.toPersonalResults(jsonObject.getJsonObject("personalResults"));
         return ResultSummaryDto.builder()
                 .quizId(jsonObject.getString("quizId"))
                 .personalResults(personalResults)
@@ -60,7 +61,7 @@ public class ResultSummaryDto {
     public JsonObject toJsonObject() {
         return new JsonObject()
                 .put("quizId", quizId)
-                .put("personalResults", PersonalResultDto.toJsonArray(personalResults))
+                .put("personalResults", PersonalResultDto.toJsonObject(personalResults))
                 .put("ranking", new JsonArray(getRanking().stream()
                         .map(RankingEntryDto::toJsonObject)
                         .collect(Collectors.toList())));

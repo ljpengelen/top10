@@ -1,8 +1,7 @@
 package nl.cofx.top10.quiz;
 
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import io.vertx.core.Future;
@@ -146,7 +145,7 @@ public class QuizRepository {
                 .build();
     }
 
-    private List<PersonalResultDto> toPersonalResults(List<JsonObject> assignments) {
+    private Map<String, PersonalResultDto> toPersonalResults(List<JsonObject> assignments) {
         var personalResults = new HashMap<String, PersonalResultDto.PersonalResultDtoBuilder>();
 
         assignments.forEach(assignment -> {
@@ -175,9 +174,8 @@ public class QuizRepository {
             }
         });
 
-        return personalResults.values().stream()
-                .map(PersonalResultDto.PersonalResultDtoBuilder::build)
-                .collect(Collectors.toList());
+        return personalResults.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().build()));
     }
 
     public Future<Integer> createQuiz(SQLConnection connection, String name, Integer creatorId, Instant deadline, String externalId) {

@@ -1,10 +1,7 @@
 package nl.cofx.top10.quiz.dto;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import lombok.*;
 
@@ -19,7 +16,7 @@ public class PersonalResultDto {
     @Singular
     List<AssignmentDto> incorrectAssignments;
 
-    public static PersonalResultDto fromJsonObject(JsonObject jsonObject) {
+    public static PersonalResultDto toPersonalResult(JsonObject jsonObject) {
         var correctAssignments = AssignmentDto.fromJsonArray(jsonObject.getJsonArray("correctAssignments"));
         var incorrectAssignments = AssignmentDto.fromJsonArray(jsonObject.getJsonArray("incorrectAssignments"));
         return PersonalResultDto.builder()
@@ -30,12 +27,16 @@ public class PersonalResultDto {
                 .build();
     }
 
-    public static List<PersonalResultDto> fromJsonArray(JsonArray jsonArray) {
-        var personalResults = new ArrayList<PersonalResultDto>();
+    public static Map<String, PersonalResultDto> toPersonalResults(JsonObject jsonObject) {
+        var personalResults = new HashMap<String, PersonalResultDto>();
 
-        for (int i = 0; i < jsonArray.size(); i++) {
-            personalResults.add(fromJsonObject(jsonArray.getJsonObject(i)));
-        }
+        jsonObject.forEach(e -> {
+            var externalAccountId = e.getKey();
+            var personalResultAsJsonObject = (JsonObject) e.getValue();
+            var personalResult = toPersonalResult(personalResultAsJsonObject);
+
+            personalResults.put(externalAccountId, personalResult);
+        });
 
         return personalResults;
     }
@@ -48,9 +49,11 @@ public class PersonalResultDto {
                 .put("incorrectAssignments", AssignmentDto.toJsonArray(incorrectAssignments));
     }
 
-    public static JsonArray toJsonArray(List<PersonalResultDto> personalResults) {
-        return new JsonArray(personalResults.stream()
-                .map(PersonalResultDto::toJsonObject)
-                .collect(Collectors.toList()));
+    public static JsonObject toJsonObject(Map<String, PersonalResultDto> personalResults) {
+        var jsonObject = new JsonObject();
+        personalResults.forEach((externalAccountId, personalResultDto) ->
+                jsonObject.put(externalAccountId, personalResultDto.toJsonObject()));
+
+        return jsonObject;
     }
 }
