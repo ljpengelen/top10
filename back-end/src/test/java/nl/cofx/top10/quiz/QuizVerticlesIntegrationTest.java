@@ -391,16 +391,16 @@ class QuizVerticlesIntegrationTest {
 
         var ranking = quiz.getJsonArray("ranking");
         assertThat(ranking).hasSize(2);
-        var firstRankingEntry = ranking.getJsonObject(0);
-        assertThat(firstRankingEntry.getInteger("rank")).isEqualTo(1);
-        assertThat(firstRankingEntry.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
-        assertThat(firstRankingEntry.getString("name")).isEqualTo(USERNAME_1);
-        assertThat(firstRankingEntry.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
-        var secondRankEntry = ranking.getJsonObject(1);
-        assertThat(secondRankEntry.getInteger("rank")).isEqualTo(1);
-        assertThat(secondRankEntry.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
-        assertThat(secondRankEntry.getString("name")).isEqualTo(USERNAME_2);
-        assertThat(secondRankEntry.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
+        var rankEntryForJane = ranking.getJsonObject(0);
+        assertThat(rankEntryForJane.getInteger("rank")).isEqualTo(1);
+        assertThat(rankEntryForJane.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(rankEntryForJane.getString("name")).isEqualTo(USERNAME_2);
+        assertThat(rankEntryForJane.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
+        var rankEntryForJohn = ranking.getJsonObject(1);
+        assertThat(rankEntryForJohn.getInteger("rank")).isEqualTo(1);
+        assertThat(rankEntryForJohn.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(rankEntryForJohn.getString("name")).isEqualTo(USERNAME_1);
+        assertThat(rankEntryForJohn.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
 
         vertxTestContext.completeNow();
     }
