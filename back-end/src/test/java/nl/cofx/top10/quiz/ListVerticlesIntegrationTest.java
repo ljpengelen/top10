@@ -187,7 +187,7 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
-    public void returnsSingleList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void returnsSingleListForActiveQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
@@ -198,6 +198,40 @@ class ListVerticlesIntegrationTest {
         var body = getListResponse.body();
         assertThat(body.getInteger("id")).isEqualTo(listId);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
+        assertThat(body.getString("externalQuizId")).isEqualTo(externalQuizId);
+        assertThat(body.getBoolean("isActiveQuiz")).isTrue();
+        assertThat(body.getInteger("creatorId")).isNull();
+        assertThat(body.getString("creatorName")).isNull();
+        assertThat(body.getString("externalAssigneeId")).isNull();
+        assertThat(body.getString("assigneeName")).isNull();
+
+        var videos = body.getJsonArray("videos");
+        assertThat(videos).hasSize(1);
+        var video = videos.getJsonObject(0);
+        assertThat(video.getInteger("id")).isNotNull();
+        assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returnsSingleListForCompletedQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        httpClient.addVideo(listId, URL_1);
+        httpClient.completeQuiz(externalQuizId);
+
+        var getListResponse = httpClient.getList(listId);
+
+        assertThat(getListResponse.statusCode()).isEqualTo(200);
+        var body = getListResponse.body();
+        assertThat(body.getInteger("id")).isEqualTo(listId);
+        assertThat(body.getBoolean("hasDraftStatus")).isTrue();
+        assertThat(body.getString("externalQuizId")).isEqualTo(externalQuizId);
+        assertThat(body.getBoolean("isActiveQuiz")).isFalse();
+        assertThat(body.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(body.getString("creatorName")).isEqualTo(USERNAME_1);
+        assertThat(body.getString("externalAssigneeId")).isNull();
+        assertThat(body.getString("assigneeName")).isNull();
+
         var videos = body.getJsonArray("videos");
         assertThat(videos).hasSize(1);
         var video = videos.getJsonObject(0);
@@ -234,6 +268,12 @@ class ListVerticlesIntegrationTest {
         var body = response.body();
         assertThat(body.getInteger("id")).isEqualTo(newListId);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
+        assertThat(body.getString("externalQuizId")).isEqualTo(externalQuizId);
+        assertThat(body.getBoolean("isActiveQuiz")).isTrue();
+        assertThat(body.getInteger("creatorId")).isNull();
+        assertThat(body.getString("creatorName")).isNull();
+        assertThat(body.getString("externalAssigneeId")).isNull();
+        assertThat(body.getString("assigneeName")).isNull();
         assertThat(body.getJsonArray("videos")).isEmpty();
 
         vertxTestContext.completeNow();

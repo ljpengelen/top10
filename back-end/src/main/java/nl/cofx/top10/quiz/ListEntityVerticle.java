@@ -105,7 +105,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto -> {
-                    if (!accountId.equals(listDto.getAccountId())) {
+                    if (!accountId.equals(listDto.getCreatorId())) {
                         var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
                         log.debug(message);
                         return Future.failedFuture(new ForbiddenException(message));
@@ -128,12 +128,12 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         withTransaction(connection ->
                 listRepository.getListByVideoId(connection, videoId).compose(listDto -> {
                     var listId = listDto.getId();
-                    if (!accountId.equals(listDto.getAccountId())) {
+                    if (!accountId.equals(listDto.getCreatorId())) {
                         var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
                         log.debug(message);
                         return Future.failedFuture(new ForbiddenException(message));
                     } else if (!listDto.getHasDraftStatus()) {
-                        log.debug("Account \"{}\" cannot assign to finalized list \"{}\"", accountId, listId);
+                        log.debug("Account \"{}\" cannot delete video from finalized list \"{}\"", accountId, listId);
                         return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" is finalized", listId)));
                     } else {
                         return listRepository.deleteVideo(connection, videoId);
@@ -150,7 +150,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto -> {
-                    if (accountId.equals(listDto.getAccountId())) {
+                    if (accountId.equals(listDto.getCreatorId())) {
                         return listRepository.finalizeList(connection, listId);
                     } else {
                         return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listId)));

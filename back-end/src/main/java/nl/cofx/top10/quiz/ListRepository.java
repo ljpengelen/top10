@@ -31,9 +31,10 @@ public class ListRepository {
                                                                         + "JOIN account a ON l.account_id = a.account_id "
                                                                         + "WHERE a.external_id = ? AND l.quiz_id = ?";
     private static final String GET_ONE_LIST_TEMPLATE =
-            "SELECT l.list_id, l.has_draft_status, l.quiz_id, q.external_id AS external_quiz_id, l.account_id FROM video v "
+            "SELECT l.list_id, l.has_draft_status, l.quiz_id, q.external_id AS external_quiz_id, q.is_active, l.account_id AS creator_id, a.name AS creator_name FROM video v "
             + "NATURAL RIGHT JOIN list l "
             + "NATURAL JOIN quiz q "
+            + "JOIN account a ON a.account_id = l.account_id "
             + "WHERE l.list_id = ?";
     private static final String GET_ASSIGNMENT_TEMPLATE = "SELECT acc.external_id, acc.name FROM list l "
                                                           + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
@@ -162,7 +163,9 @@ public class ListRepository {
                         .hasDraftStatus(row.getBoolean(1))
                         .quizId(row.getInteger(2))
                         .externalQuizId(row.getString(3))
-                        .accountId(row.getInteger(4))
+                        .isActiveQuiz(row.getBoolean(4))
+                        .creatorId(row.getInteger(5))
+                        .creatorName(row.getString(6))
                         .build();
                 log.debug("Retrieved list by ID \"{}\": \"{}\"", listId, listDto);
                 promise.complete(listDto);
@@ -223,7 +226,7 @@ public class ListRepository {
                         .hasDraftStatus(row.getBoolean(1))
                         .quizId(row.getInteger(2))
                         .externalQuizId(row.getString(3))
-                        .accountId(row.getInteger(4))
+                        .creatorId(row.getInteger(4))
                         .build();
                 log.debug("Retrieved list by video ID \"{}\": \"{}\"", videoId, listDto);
                 promise.complete(listDto);

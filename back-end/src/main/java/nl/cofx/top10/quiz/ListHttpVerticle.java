@@ -80,9 +80,14 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private ListDto sanitize(ListDto listDto) {
-        return listDto.toBuilder()
-                .accountId(null)
-                .build();
+        if (listDto.isActiveQuiz()) {
+            return listDto.toBuilder()
+                    .creatorId(null)
+                    .creatorName(null)
+                    .build();
+        }
+
+        return listDto;
     }
 
     private void handleGetAllForAccount(RoutingContext routingContext) {

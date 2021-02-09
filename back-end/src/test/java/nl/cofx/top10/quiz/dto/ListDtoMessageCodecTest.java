@@ -16,8 +16,10 @@ class ListDtoMessageCodecTest {
     public void encodesListDto() {
         var listDto = ListDto.builder()
                 .id(123)
-                .accountId(456)
+                .creatorId(456)
+                .creatorName("John Doe")
                 .externalAssigneeId("abcd")
+                .isActiveQuiz(true)
                 .quizId(321)
                 .externalQuizId("pqr")
                 .hasDraftStatus(true)
