@@ -373,3 +373,15 @@
                   :response-format ring-json-response-format
                   :on-success [::get-quiz-results-succeeded]
                   :on-failure [::request-failed]}]}))
+
+(rf/reg-event-db
+ ::show-personal-results
+ (fn [db [_ external-account-id]]
+   (-> db
+       (assoc :active-page :personal-results-page)
+       (assoc :external-account-id external-account-id))))
+
+(rf/reg-event-db
+ ::show-quiz-results
+ (fn [db _]
+   (assoc db :active-page :quiz-results-page)))

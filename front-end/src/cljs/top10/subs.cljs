@@ -95,3 +95,15 @@
  ::quiz-results
  (fn [db _]
    (:quiz-results db)))
+
+(rf/reg-sub
+ ::external-account-id
+ (fn [db _]
+   (:external-account-id db)))
+
+(rf/reg-sub
+ ::personal-results
+ :<- [::external-account-id]
+ :<- [::quiz-results]
+ (fn [[external-account-id quiz-results]]
+   (get-in quiz-results [:personalResults (keyword external-account-id)])))
