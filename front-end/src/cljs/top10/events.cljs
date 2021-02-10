@@ -71,7 +71,7 @@
                  :response-format ring-json-response-format
                  :with-credentials true
                  :on-success [::session-check-succeeded]
-                 :on-failure [::session-check-failed]}}))
+                 :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
  ::log-in-with-back-end-succeeded
