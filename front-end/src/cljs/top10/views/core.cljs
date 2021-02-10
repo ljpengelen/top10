@@ -13,7 +13,7 @@
    [top10.views.quiz-results :refer [quiz-results-page-container]]
    [top10.views.quizzes :refer [quizzes-page-container]]))
 
-(defn- pages [page-name]
+(defn- content [page-name]
   (case page-name
     :home-page [home-page]
     :personal-results-page [personal-results-page-container]
@@ -27,8 +27,6 @@
     :assign-list-page [assign-list-page-container]
     [:div]))
 
-(defn- show-page [page-name] [pages page-name])
-
 (defn main-panel []
   (let [active-page (rf/subscribe [::subs/active-page])]
-    [show-page @active-page]))
+    [content @active-page]))
