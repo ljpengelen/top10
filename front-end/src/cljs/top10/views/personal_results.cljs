@@ -2,6 +2,7 @@
   (:require
    [reagent-material-ui.core.button :refer [button]]
    [reagent-material-ui.core.grid :refer [grid]]
+   [reagent-material-ui.core.link :refer [link]]
    [reagent-material-ui.core.table :refer [table]]
    [reagent-material-ui.core.table-body :refer [table-body]]
    [reagent-material-ui.core.table-cell :refer [table-cell]]
@@ -24,7 +25,7 @@
          [table-cell]
          [table-cell "Your guess"]
          [table-cell "Actual name"]
-         [table-cell "Top 10"]]]
+         [table-cell "Action"]]]
        [table-body
         (for [{:keys [listId assigneeName]} correctAssignments]
           ^{:key listId}
@@ -32,7 +33,7 @@
            [table-cell "✅"]
            [table-cell assigneeName]
            [table-cell assigneeName]
-           [table-cell listId]])
+           [table-cell [link {:href (str "#/list/" listId) :color "primary"} "Show top 10"]]])
         (for [{:keys [listId assigneeName creatorName]} incorrectAssignments]
           ^{:key listId}
           [table-row

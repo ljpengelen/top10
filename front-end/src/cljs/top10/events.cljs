@@ -33,8 +33,8 @@
                              logged-in? (assoc :dispatch [::get-quiz quiz-id]))
        :quizzes-page (cond-> {:db db-with-page}
                        logged-in? (assoc :dispatch [::get-quizzes]))
-       :create-list-page (cond-> {:db (assoc db-with-page :active-list list-id)}
-                           logged-in? (assoc :dispatch [::get-list list-id]))
+       (:list-page :personal-list-page) (cond-> {:db (assoc db-with-page :active-list list-id)}
+                                          logged-in? (assoc :dispatch [::get-list list-id]))
        :assign-list-page (cond-> {:db (-> db-with-page
                                           (assoc :active-quiz quiz-id)
                                           (assoc :active-list list-id))}
@@ -269,8 +269,11 @@
 (rf/reg-event-db
  ::get-list-succeeded
  (fn [db [_ response]]
-   (let [list (:body response)]
-     (assoc db :list list))))
+   (let [list (:body response)
+         active-quiz (:externalQuizId list)]
+     (-> db
+         (assoc :list list)
+         (assoc :active-quiz active-quiz)))))
 
 (rf/reg-event-fx
  ::get-list

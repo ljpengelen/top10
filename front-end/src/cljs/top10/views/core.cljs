@@ -4,7 +4,8 @@
    [top10.subs :as subs]
    [top10.views.assign-list :refer [assign-list-page-container]]
    [top10.views.complete-quiz :refer [complete-quiz-page-container]]
-   [top10.views.create-list :refer [create-list-page-container]]
+   [top10.views.list :refer [list-page-container]]
+   [top10.views.personal-list :refer [personal-list-page-container]]
    [top10.views.create-quiz :refer [create-quiz-page]]
    [top10.views.home :refer [home-page]]
    [top10.views.personal-results :refer [personal-results-page-container]]
@@ -21,7 +22,8 @@
     :quiz-results-page [quiz-results-page-container]
     :complete-quiz-page [complete-quiz-page-container]
     :create-quiz-page [create-quiz-page]
-    :create-list-page [create-list-page-container]
+    :list-page [list-page-container]
+    :personal-list-page [personal-list-page-container]
     :assign-list-page [assign-list-page-container]
     [:div]))
 

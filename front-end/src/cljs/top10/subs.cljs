@@ -53,6 +53,12 @@
    (:videos list)))
 
 (rf/reg-sub
+ ::list-creator-name
+ :<- [::list]
+ (fn [list _]
+   (:creatorName list)))
+
+(rf/reg-sub
  ::has-draft-status
  :<- [::list]
  (fn [list _]

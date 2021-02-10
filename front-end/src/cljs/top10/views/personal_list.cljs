@@ -1,4 +1,4 @@
-(ns top10.views.create-list
+(ns top10.views.personal-list
   (:require
    [reagent.core :as r]
    [reagent-material-ui.core.button :refer [button]]
@@ -9,7 +9,7 @@
    [top10.subs :as subs]
    [top10.views.base :refer [back-to-overview-button event-value]]))
 
-(defn create-list-page []
+(defn personal-list-page []
   (let [new-url (r/atom nil)]
     (fn [list-id has-draft-status? videos]
       [:div
@@ -68,5 +68,5 @@
         [grid {:item true}
          [back-to-overview-button]]]])))
 
-(defn create-list-page-container []
-  [create-list-page @(rf/subscribe [::subs/active-list]) @(rf/subscribe [::subs/has-draft-status]) @(rf/subscribe [::subs/videos])])
+(defn personal-list-page-container []
+  [personal-list-page @(rf/subscribe [::subs/active-list]) @(rf/subscribe [::subs/has-draft-status]) @(rf/subscribe [::subs/videos])])
