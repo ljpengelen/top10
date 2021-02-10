@@ -92,7 +92,7 @@
    (:checking-status session)))
 
 (rf/reg-sub
- ::logged-in
+ ::logged-in?
  :<- [::session]
  (fn [session _]
    (:logged-in session)))
