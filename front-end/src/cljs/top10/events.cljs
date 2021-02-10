@@ -95,13 +95,13 @@
                  :response-format ring-json-response-format
                  :with-credentials true
                  :on-success [::log-in-with-back-end-succeeded]
-                 :on-failure [::log-in-failed]}}))
+                 :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
  ::log-in
  (fn [_ _]
    {:log-in-with-google {:on-success [::log-in-with-back-end]
-                         :on-failure [::log-in-failed]}}))
+                         :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
  ::log-out-with-back-end-succeeded
@@ -110,16 +110,11 @@
      {:set-csrf-token new-csrf-token
       :db (assoc-in db [:session :logged-in] false)})))
 
-(rf/reg-event-db
- ::log-out-failed
- (fn [_ event]
-   (js/console.log event)))
-
 (rf/reg-event-fx
  ::log-out
  [(rf/inject-cofx :csrf-token)]
  (fn [{:keys [csrf-token]} _]
-   {:log-out-with-google {:on-failure [::log-out-failed]}
+   {:log-out-with-google {:on-failure [::request-failed]}
     :set-access-token nil
     :http-xhrio {:method :post
                  :uri (str base-url "/session/logOut")
@@ -128,7 +123,7 @@
                  :response-format (ajax/ring-response-format)
                  :with-credentials true
                  :on-success [::log-out-with-back-end-succeeded]
-                 :on-failure [::log-out-failed]}}))
+                 :on-failure [::request-failed]}}))
 
 (rf/reg-event-db
  ::get-quiz-succeeded
