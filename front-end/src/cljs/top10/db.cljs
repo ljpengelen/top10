@@ -6,4 +6,5 @@
              :logged-in false}
    :quizzes []
    :quiz-lists []
-   :quiz-participants []})
+   :quiz-participants []
+   :dialog {:show? false}})

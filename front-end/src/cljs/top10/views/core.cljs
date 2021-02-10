@@ -3,6 +3,7 @@
    [re-frame.core :as rf]
    [top10.subs :as subs]
    [top10.views.assign-list :refer [assign-list-page-container]]
+   [top10.views.base :refer [base-page]]
    [top10.views.complete-quiz :refer [complete-quiz-page-container]]
    [top10.views.list :refer [list-page-container]]
    [top10.views.personal-list :refer [personal-list-page-container]]
@@ -29,4 +30,4 @@
 
 (defn main-panel []
   (let [active-page (rf/subscribe [::subs/active-page])]
-    [content @active-page]))
+    [base-page [content @active-page]]))

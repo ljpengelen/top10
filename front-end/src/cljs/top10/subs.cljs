@@ -113,3 +113,18 @@
  :<- [::quiz-results]
  (fn [[external-account-id quiz-results]]
    (get-in quiz-results [:personalResults (keyword external-account-id)])))
+
+(rf/reg-sub
+ ::show-dialog?
+ (fn [db _]
+   (get-in db [:dialog :show?])))
+
+(rf/reg-sub
+ ::dialog-text
+ (fn [db _]
+   (get-in db [:dialog :text])))
+
+(rf/reg-sub
+ ::dialog-title
+ (fn [db _]
+   (get-in db [:dialog :title])))

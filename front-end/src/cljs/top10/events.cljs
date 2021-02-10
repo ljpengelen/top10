@@ -150,8 +150,17 @@
 
 (rf/reg-event-db
  ::request-failed
- (fn [_ event]
-   (js/console.log event)))
+ (fn [db event]
+   (js/console.log event)
+   (assoc db :dialog {:show? true
+                      :title "Oh no!"
+                      :text (str "Something unexpected went wrong. "
+                                 "Please try again if you're convinced this should work.")})))
+
+(rf/reg-event-db
+ ::dismiss-dialog
+ (fn [db _]
+   (assoc db :dialog {:show? false})))
 
 (defn authorization-header [access-token] {"Authorization" (str "Bearer " access-token)})
 
