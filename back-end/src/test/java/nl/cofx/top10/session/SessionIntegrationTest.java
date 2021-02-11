@@ -104,8 +104,8 @@ public class SessionIntegrationTest {
                 .build();
         var allQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonObjectBodyHandler());
 
-        assertThat(allQuizzesResponse.statusCode()).isEqualTo(400);
-        assertThat(allQuizzesResponse.body().getString("error")).isEqualTo("Missing authorization header");
+        assertThat(allQuizzesResponse.statusCode()).isEqualTo(401);
+        assertThat(allQuizzesResponse.body().getString("error")).isEqualTo("No authenticated user found");
 
         allQuizzesRequest = HttpRequest.newBuilder()
                 .GET()
@@ -115,7 +115,7 @@ public class SessionIntegrationTest {
         allQuizzesResponse = httpClient.send(allQuizzesRequest, new JsonObjectBodyHandler());
 
         assertThat(allQuizzesResponse.statusCode()).isEqualTo(401);
-        assertThat(allQuizzesResponse.body().getString("error")).isEqualTo("No session");
+        assertThat(allQuizzesResponse.body().getString("error")).isEqualTo("No authenticated user found");
 
         var getStatusRequest = HttpRequest.newBuilder()
                 .GET()

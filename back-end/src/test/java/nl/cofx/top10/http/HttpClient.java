@@ -72,7 +72,7 @@ public class HttpClient {
     public HttpResponse<JsonObject> getQuiz(String externalQuizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId))
+                .uri(URI.create("http://localhost:" + port + "/public/quiz/" + externalQuizId))
                 .build();
 
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());

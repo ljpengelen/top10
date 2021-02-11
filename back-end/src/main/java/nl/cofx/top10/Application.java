@@ -125,7 +125,10 @@ public class Application {
         router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
         var jwt = new Jwt(config.getJwtSecretKey());
         router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
-        router.route("/private/*").handler(new JwtSessionHandler(jwt));
+        router.route("/private/*")
+                .handler(new JwtSessionHandler(jwt))
+                .handler(new PrivateRouteHandler());
+        router.route("/public/*").handler(new JwtSessionHandler(jwt));
 
         log.info("Setting up HTTP server");
 

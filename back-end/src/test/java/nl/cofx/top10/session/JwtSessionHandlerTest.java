@@ -44,39 +44,33 @@ class JwtSessionHandlerTest {
     }
 
     @Test
-    public void rejectsRequestWithoutAuthorizationHeader() {
+    public void doesNotSetUserGivenNoAuthorizationHeader() {
         jwtSessionHandler.handle(routingContext);
 
-        verify(response).setStatusCode(400);
-        verify(response).end(new JsonObject()
-                .put("error", "Missing authorization header")
-                .toBuffer());
+        verify(routingContext).next();
+        verify(routingContext, never()).setUser(any());
     }
 
     @Test
-    public void rejectsRequestWithMalformedAuthorizationHeader() {
+    public void doesNotSetUserGivenMalformedAuthorizationHeader() {
         when(request.getHeader("Authorization")).thenReturn("Malformed value");
         jwtSessionHandler.handle(routingContext);
 
-        verify(response).setStatusCode(400);
-        verify(response).end(new JsonObject()
-                .put("error", "Malformed authorization header")
-                .toBuffer());
+        verify(routingContext).next();
+        verify(routingContext, never()).setUser(any());
     }
 
     @Test
-    public void rejectsRequestWithInvalidToken() {
+    public void doesNotSetUserGivenInvalidToken() {
         when(request.getHeader("Authorization")).thenReturn("Bearer abcd1234");
         jwtSessionHandler.handle(routingContext);
 
-        verify(response).setStatusCode(401);
-        verify(response).end(new JsonObject()
-                .put("error", "No session")
-                .toBuffer());
+        verify(routingContext).next();
+        verify(routingContext, never()).setUser(any());
     }
 
     @Test
-    public void acceptsRequestWithToken() {
+    public void setsUserGivenValidToken() {
         var token = Jwts.builder()
                 .setSubject(String.valueOf(ACCOUNT_ID))
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
@@ -84,8 +78,7 @@ class JwtSessionHandlerTest {
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         jwtSessionHandler.handle(routingContext);
 
-        verifyNoInteractions(response);
-
+        verify(routingContext).next();
         verify(routingContext).setUser(User.create(new JsonObject().put("accountId", ACCOUNT_ID)));
     }
 }

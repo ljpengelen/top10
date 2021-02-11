@@ -146,6 +146,8 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCreationRequestWithoutBody(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var response = httpClient.createQuiz(null);
 
         assertThat(response.statusCode()).isEqualTo(400);
@@ -156,6 +158,8 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCreationRequestWithBlankName(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var quiz = new JsonObject().put("deadline", DEADLINE);
         var response = httpClient.createQuiz(quiz);
 
@@ -167,6 +171,8 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCreationRequestWithInvalidDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var quiz = new JsonObject().put("name", QUIZ_NAME).put("deadline", "invalid date");
         var response = httpClient.createQuiz(quiz);
 
@@ -201,7 +207,7 @@ class QuizVerticlesIntegrationTest {
     }
 
     @Test
-    public void returnsSingleQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void returnsSingleQuizWhenLoggedIn(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
 
@@ -220,6 +226,31 @@ class QuizVerticlesIntegrationTest {
         assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
         assertThat(quiz.getInteger("personalListId")).isNotNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returnsSingleQuizWhenLoggedOut(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+        var createQuizResponse = httpClient.createQuiz(quiz());
+        userHandler.logOut();
+
+        var quizId = createQuizResponse.body().getInteger("id");
+        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var response = httpClient.getQuiz(externalQuizId);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        var quiz = response.body();
+        assertThat(quiz.getInteger("id")).isNotNull();
+        assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
+        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(quiz.getBoolean("isCreator")).isFalse();
+        assertThat(quiz.getBoolean("isActive")).isTrue();
+        assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
+        assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
+        assertThat(quiz.getInteger("personalListId")).isNull();
+        assertThat(quiz.getBoolean("personalListHasDraftStatus")).isNull();
 
         vertxTestContext.completeNow();
     }
@@ -251,10 +282,13 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsParticipationInUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var response = httpClient.participateInQuiz(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
         assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+
         vertxTestContext.completeNow();
     }
 
@@ -297,6 +331,8 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingParticipantsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var response = httpClient.getParticipants(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
@@ -438,6 +474,8 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingResultsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var response = httpClient.getQuizResults(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
@@ -488,6 +526,8 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void rejectsCompletionOfUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+
         var response = httpClient.completeQuiz(NON_EXISTING_EXTERNAL_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);

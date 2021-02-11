@@ -38,7 +38,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         router.route(HttpMethod.POST, "/private/quiz/:externalId/participate").handler(this::handleParticipate);
 
-        router.route(HttpMethod.GET, "/private/quiz/:externalId").handler(this::handleGetOne);
+        router.route(HttpMethod.GET, "/public/quiz/:externalId").handler(this::handleGetOne);
         router.route(HttpMethod.GET, "/private/quiz/:externalId/participants").handler(this::handleGetParticipants);
         router.route(HttpMethod.GET, "/private/quiz/:externalId/result").handler(this::handleGetResult);
 
@@ -130,7 +130,10 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
         log.debug(String.format("Get quiz \"%s\"", externalId));
 
-        var accountId = routingContext.user().principal().getInteger("accountId");
+        Integer accountId = null;
+        if (routingContext.user() != null) {
+            accountId = routingContext.user().principal().getInteger("accountId");
+        }
         var getQuizRequest = new JsonObject()
                 .put("accountId", accountId)
                 .put("externalId", externalId);
