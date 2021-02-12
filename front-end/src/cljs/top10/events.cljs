@@ -164,7 +164,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio [{:method :get
-                  :uri (str base-url "/private/quiz/" quiz-id)
+                  :uri (str base-url "/public/quiz/" quiz-id)
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
