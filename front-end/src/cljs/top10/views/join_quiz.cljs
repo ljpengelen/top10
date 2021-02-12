@@ -16,8 +16,8 @@
        "However, you need to log in before you can join."]
       [button {:color "primary"
                :variant "contained"
-               :on-click #(rf/dispatch [::events/log-in-and-participate-in-quiz externalId])}
-       "Log in and join"]]
+               :on-click #(rf/dispatch [::events/log-in])}
+       "Log in"]]
      [:<>
       [:h1 name]
       (cond
