@@ -98,10 +98,22 @@
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
+ ::log-in-with-google-succeeded
+ (fn [_ _]))
+
+(rf/reg-event-fx
+ ::log-in-with-google
+ (fn [_ _]
+   {:log-in-with-google {:on-success [::log-in-with-google-succeeded]
+                         :on-failure [::request-failed]}}))
+
+(rf/reg-event-fx
  ::log-in
  (fn [_ _]
-   {:log-in-with-google {:on-success [::log-in-with-back-end]
-                         :on-failure [::request-failed]}}))
+   {:async-flow {:first-dispatch [::log-in-with-google]
+                 :rules [{:when :seen?
+                          :events ::log-in-with-google-succeeded
+                          :dispatch-fn (fn [[_ id-token]] [[::log-in-with-back-end id-token]])}]}}))
 
 (rf/reg-event-fx
  ::log-out-with-back-end-succeeded
