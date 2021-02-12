@@ -122,14 +122,17 @@
 
 (rf/reg-event-fx
  ::log-in
- (fn [_ _]
+ (fn [_ [_ redirect-url]]
    {:async-flow {:first-dispatch [::check-status]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
                           :dispatch [::log-in-with-google]}
                          {:when :seen?
                           :events ::log-in-with-google-succeeded
-                          :dispatch-fn (fn [[_ id-token]] [[::log-in-with-back-end id-token]])
+                          :dispatch-fn (fn [[_ id-token]] [[::log-in-with-back-end id-token]])}
+                         {:when :seen?
+                          :events ::log-in-with-back-end-succeeded
+                          :dispatch (when redirect-url [::redirect redirect-url])
                           :halt? true}
                          {:when :seen-any-of?
                           :events [::session-check-failed ::log-in-with-google-failed ::log-in-with-back-end-failed]
@@ -279,9 +282,9 @@
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
- ::create-quiz-succeeded
- (fn [_ _]
-   {:redirect "/quizzes"}))
+ ::redirect
+ (fn [_ [_ url]]
+   {:redirect url}))
 
 (rf/reg-event-fx
  ::create-quiz
@@ -293,7 +296,7 @@
                  :params {:name name :deadline deadline}
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
-                 :on-success [::create-quiz-succeeded]
+                 :on-success [::redirect "quizzes"]
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-db
