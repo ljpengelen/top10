@@ -11,6 +11,7 @@
    [top10.views.home :refer [home-page]]
    [top10.views.personal-results :refer [personal-results-page-container]]
    [top10.views.quiz :refer [quiz-page-container]]
+   [top10.views.join-quiz :refer [join-quiz-page-container]]
    [top10.views.quiz-results :refer [quiz-results-page-container]]
    [top10.views.quizzes :refer [quizzes-page-container]]))
 
@@ -20,6 +21,7 @@
     :personal-results-page [personal-results-page-container]
     :quizzes-page [quizzes-page-container]
     :quiz-page [quiz-page-container]
+    :join-quiz-page [join-quiz-page-container]
     :quiz-results-page [quiz-results-page-container]
     :complete-quiz-page [complete-quiz-page-container]
     :create-quiz-page [create-quiz-page]
