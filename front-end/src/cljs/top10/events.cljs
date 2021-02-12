@@ -22,34 +22,31 @@
 (rf/reg-event-fx
  ::set-active-page
  (fn [{:keys [db]} [_ {:keys [page quiz-id list-id]} ]]
-   (let [db-with-page (assoc db :active-page page)
-         logged-in? (get-in db [:session :logged-in])]
-     (case page
-       :quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
-                    logged-in? (assoc :dispatch-n [[::get-quiz quiz-id]
-                                                   [::get-quiz-lists quiz-id]
-                                                   [::get-quiz-participants quiz-id]]))
-       :quiz-results-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
-                           logged-in? (assoc :dispatch [::get-quiz-results quiz-id]))
-       :complete-quiz-page (cond-> {:db (assoc db-with-page :active-quiz quiz-id)}
-                             logged-in? (assoc :dispatch [::get-quiz quiz-id]))
-       :quizzes-page (cond-> {:db db-with-page}
-                       logged-in? (assoc :dispatch [::get-quizzes]))
-       (:list-page :personal-list-page) (cond-> {:db (assoc db-with-page :active-list list-id)}
-                                          logged-in? (assoc :dispatch [::get-list list-id]))
-       :assign-list-page (cond-> {:db (-> db-with-page
-                                          (assoc :active-quiz quiz-id)
-                                          (assoc :active-list list-id))}
-                           logged-in? (assoc :dispatch-n [[::get-list list-id]
-                                                          [::get-quiz-participants quiz-id]]))
-       (:home-page :create-quiz-page) {:db db-with-page}))))
+   {:db (-> db
+            (assoc :active-page page)
+            (assoc :active-quiz quiz-id)
+            (assoc :active-list list-id))
+    :dispatch [::get-data-for-active-page]}))
 
-(rf/reg-event-db
- ::set-query
- (fn [db [_ [query params]]]
-   (-> db
-       (assoc :query query)
-       (assoc :query-params params))))
+(rf/reg-event-fx
+ ::get-data-for-active-page
+ (fn [{:keys [db]} _]
+   (let [active-page (:active-page db)
+         logged-in? (get-in db [:session :logged-in])
+         active-list-id (:active-list db)
+         active-quiz-id (:active-quiz db)]
+     (case active-page
+       :quiz-page (when logged-in? {:dispatch-n [[::get-quiz active-quiz-id]
+                                                 [::get-quiz-lists active-quiz-id]
+                                                 [::get-quiz-participants active-quiz-id]]})
+       :quiz-results-page (when logged-in? {:dispatch [::get-quiz-results active-quiz-id]})
+       :complete-quiz-page (when logged-in? {:dispatch [::get-quiz active-quiz-id]})
+       :join-quiz-page {:dispatch [::get-quiz active-quiz-id]}
+       :quizzes-page (when logged-in? {:dispatch [::get-quizzes]})
+       (:list-page :personal-list-page) (when logged-in? {:dispatch [::get-list active-list-id]})
+       :assign-list-page (when logged-in? {:dispatch-n [[::get-list active-list-id]
+                                                        [::get-quiz-participants active-quiz-id]]})
+       {}))))
 
 (rf/reg-event-fx
  ::session-check-succeeded
@@ -83,7 +80,8 @@
          new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
-      :db (assoc-in db [:session :logged-in] (= "SESSION_CREATED" status))})))
+      :db (assoc-in db [:session :logged-in] (= "SESSION_CREATED" status))
+      :dispatch [::get-data-for-active-page]})))
 
 (rf/reg-event-fx
  ::log-in-with-back-end
