@@ -17,7 +17,8 @@
     :async-flow {:first-dispatch [::check-status]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
-                          :dispatch [::enable-browser-navigation]}]}}))
+                          :dispatch [::enable-browser-navigation]
+                          :halt? true}]}}))
 
 (rf/reg-event-fx
  ::set-active-page
