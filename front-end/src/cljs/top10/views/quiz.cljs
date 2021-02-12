@@ -60,7 +60,7 @@
       (case personalListHasDraftStatus
         (true) [:p (str
                     "Remember, you still have to submit your personal top 10 for this quiz! "
-                    "You can only join the final round after you've submitted a top 10.")]
+                    "You can only take part in the final round after you've submitted a top 10.")]
         (false) [:p (str "You've already submitted your personal top 10 for this quiz.")]
         (nil) [button {:color "primary"
                        :on-click #(rf/dispatch [::events/participate-in-quiz externalId])
