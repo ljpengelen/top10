@@ -15,7 +15,7 @@
    [top10.views.base :refer [back-to-overview-button]]))
 
 (defn quiz-page [{:keys [name deadline deadline-has-passed? externalId isActive personalListId personalListHasDraftStatus]} number-of-participants lists]
-  [:div
+  [:<>
    [:h1 name]
    (cond
      (not isActive)
