@@ -143,11 +143,14 @@
       :db (assoc-in db [:session :logged-in] false)})))
 
 (rf/reg-event-fx
- ::log-out
+ ::log-out-with-back-end-failed
+ (fn [_ _]))
+
+(rf/reg-event-fx
+ ::log-out-with-backend
  [(rf/inject-cofx :csrf-token)]
  (fn [{:keys [csrf-token]} _]
-   {:log-out-with-google {:on-failure [::request-failed]}
-    :set-access-token nil
+   {:set-access-token nil
     :http-xhrio {:method :post
                  :uri (str base-url "/session/logOut")
                  :headers {csrf-token-header csrf-token}
@@ -155,7 +158,36 @@
                  :response-format (ajax/ring-response-format)
                  :with-credentials true
                  :on-success [::log-out-with-back-end-succeeded]
-                 :on-failure [::request-failed]}}))
+                 :on-failure [::log-out-with-back-end-failed]}}))
+
+(rf/reg-event-fx
+ ::log-out-with-google-succeeded
+ (fn [_ _]))
+
+(rf/reg-event-fx
+ ::log-out-with-google-failed
+ (fn [_ _]))
+
+(rf/reg-event-fx
+ ::log-out-with-google
+ (fn [_ _]
+   {:log-out-with-google {:on-success [::log-out-with-google-succeeded]
+                          :on-failure [::log-out-with-google-failed]}}))
+
+(rf/reg-event-fx
+ ::log-out
+ (fn [_ _]
+   {:async-flow {:first-dispatch [::check-status]
+                 :rules [{:when :seen?
+                          :events ::session-check-succeeded
+                          :dispatch-n [[::log-out-with-google] [::log-out-with-backend]]}
+                         {:when :seen-all-of?
+                          :events [::session-check-succeeded ::log-out-with-google-succeeded ::log-out-with-back-end-succeeded]
+                          :halt? true}
+                         {:when :seen-any-of?
+                          :events [::session-check-failed ::log-out-with-google-failed ::log-out-with-back-end-failed]
+                          :dispatch [::request-failed]
+                          :halt? true}]}}))
 
 (rf/reg-event-db
  ::get-quiz-succeeded
