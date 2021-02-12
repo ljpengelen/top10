@@ -394,13 +394,14 @@
                  :on-success [::assign-list-succeeded quiz-id]
                  :on-failure [::request-failed]}}))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::participate-in-quiz-succeeded
- (fn [db [_ response]]
+ (fn [{:keys [db]} [_ quiz-id response]]
    (let [personal-list-id (get-in response [:body :personalListId])]
-     (-> db
-         (assoc-in [:quiz :personalListId] personal-list-id)
-         (assoc-in [:quiz :personalListHasDraftStatus] true)))))
+     {:db (-> db
+              (assoc-in [:quiz :personalListId] personal-list-id)
+              (assoc-in [:quiz :personalListHasDraftStatus] true))
+      :redirect (str "/quiz/" quiz-id)})))
 
 (rf/reg-event-fx
  ::participate-in-quiz
@@ -411,7 +412,7 @@
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
-                 :on-success [::participate-in-quiz-succeeded]
+                 :on-success [::participate-in-quiz-succeeded quiz-id]
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
