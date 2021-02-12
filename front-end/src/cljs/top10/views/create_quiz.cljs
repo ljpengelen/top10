@@ -21,7 +21,10 @@
        [:p
         "Pick a name and a participation deadline for your new quiz. "
         "Everyone who wants to participate must have submitted their top 10 before the deadline has passed."]
-       [:p "After everyone has submitted their top 10, it's time to start matching people and top 10s."]
+       [:p
+        "After everyone has submitted their top 10, it's time to start matching people and top 10s. "
+        "You, the creator of this quiz, can end the quiz at any time. "
+        "Once you do that, the end results will be available for all participants."]
        [:div
         [mui-pickers-utils-provider {:utils dayjs-utils}
          [:form {:on-submit (fn [event]
