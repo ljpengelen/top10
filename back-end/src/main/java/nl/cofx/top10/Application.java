@@ -79,18 +79,21 @@ public class Application {
     private void deployVerticles(Jwt jwt, Promise<Void> result, Router router) {
         log.info("Deploying verticles");
 
+        var jdbcOptions = config.getJdbcOptions();
+        var jwtSecretKey = config.getJwtSecretKey();
+
         deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
                 .compose(migrationResult ->
                         CompositeFuture.all(List.of(
                                 deploy(new HeartbeatVerticle()),
-                                deploy(new GoogleAccountVerticle(config.getJdbcOptions())),
-                                deploy(new SessionVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
-                                deploy(new SessionStatusVerticle(jwt, router, config.getJwtSecretKey())),
+                                deploy(new GoogleAccountVerticle(jdbcOptions)),
+                                deploy(new SessionVerticle(googleIdTokenVerifier, router, jwtSecretKey)),
+                                deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey)),
                                 deploy(new QuizHttpVerticle(router)),
-                                deploy(new QuizEntityVerticle(config.getJdbcOptions())),
+                                deploy(new QuizEntityVerticle(jdbcOptions)),
                                 deploy(new ListHttpVerticle(router)),
-                                deploy(new ListEntityVerticle(config.getJdbcOptions())))))
-                .compose(deploymentResult -> deploy(new HealthCheckVerticle(router)))
+                                deploy(new ListEntityVerticle(jdbcOptions)))))
+                .compose(deploymentResult -> deploy(new HealthCheckVerticle(jdbcOptions, router)))
                 .onComplete(ar -> {
                     if (ar.succeeded()) {
                         result.complete();

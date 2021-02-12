@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.time.Duration;
+import java.time.Instant;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,6 +18,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.RandomPort;
+import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.http.JsonObjectBodyHandler;
 
 @Log4j2
@@ -24,6 +27,7 @@ import nl.cofx.top10.http.JsonObjectBodyHandler;
 public class HealthCheckVerticleTest {
 
     private static final String PATH = "/health";
+    private static final TestConfig TEST_CONFIG = new TestConfig();
 
     private final int port = RandomPort.get();
 
@@ -32,7 +36,7 @@ public class HealthCheckVerticleTest {
         var server = vertx.createHttpServer();
         var router = Router.router(vertx);
         server.requestHandler(router);
-        vertx.deployVerticle(new HealthCheckVerticle(router), deploymentResult -> {
+        vertx.deployVerticle(new HealthCheckVerticle(TEST_CONFIG.getJdbcOptions(), router), deploymentResult -> {
             if (deploymentResult.succeeded()) {
                 server.listen(port, vertxTestContext.completing());
             } else {
@@ -80,5 +84,21 @@ public class HealthCheckVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.body().getString("version")).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("Returns timestamp on every request")
+    public void returnsTimestamp() throws IOException, InterruptedException {
+        var httpClient = HttpClient.newHttpClient();
+        var request = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + port + PATH))
+                .build();
+        var response = httpClient.send(request, new JsonObjectBodyHandler());
+
+        var timestamp = response.body().getInstant("databaseTimestamp");
+        assertThat(timestamp).isNotNull();
+        var twoSecondFromNow = Instant.now().plus(Duration.ofSeconds(2));
+        assertThat(timestamp).isBefore(twoSecondFromNow);
     }
 }
