@@ -80,24 +80,24 @@ public class Application {
         log.info("Deploying verticles");
 
         deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
-                .onFailure(result::fail)
-                .onSuccess(migrationResult ->
+                .compose(migrationResult ->
                         CompositeFuture.all(List.of(
                                 deploy(new HeartbeatVerticle()),
-                                deploy(new HealthCheckVerticle(router)),
                                 deploy(new GoogleAccountVerticle(config.getJdbcOptions())),
                                 deploy(new SessionVerticle(googleIdTokenVerifier, router, config.getJwtSecretKey())),
                                 deploy(new SessionStatusVerticle(jwt, router, config.getJwtSecretKey())),
                                 deploy(new QuizHttpVerticle(router)),
                                 deploy(new QuizEntityVerticle(config.getJdbcOptions())),
                                 deploy(new ListHttpVerticle(router)),
-                                deploy(new ListEntityVerticle(config.getJdbcOptions())))).onComplete(ar -> {
-                            if (ar.succeeded()) {
-                                result.complete();
-                            } else {
-                                result.fail(ar.cause());
-                            }
-                        }));
+                                deploy(new ListEntityVerticle(config.getJdbcOptions())))))
+                .compose(deploymentResult -> deploy(new HealthCheckVerticle(router)))
+                .onComplete(ar -> {
+                    if (ar.succeeded()) {
+                        result.complete();
+                    } else {
+                        result.fail(ar.cause());
+                    }
+                });
     }
 
     public Future<Void> start() {
