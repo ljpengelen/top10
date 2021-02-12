@@ -17,7 +17,6 @@
 
 (defn- content [page-name]
   (case page-name
-    :home-page [home-page]
     :personal-results-page [personal-results-page-container]
     :quizzes-page [quizzes-page-container]
     :quiz-page [quiz-page-container]
@@ -28,7 +27,7 @@
     :list-page [list-page-container]
     :personal-list-page [personal-list-page-container]
     :assign-list-page [assign-list-page-container]
-    [:div]))
+    [home-page]))
 
 (defn main-panel []
   (let [active-page (rf/subscribe [::subs/active-page])]
