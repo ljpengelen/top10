@@ -15,7 +15,9 @@
  (fn [_ _]
    {:db db/default-db
     :async-flow {:first-dispatch [::check-status]
-                 :rules [{:when :seen? :events ::session-check-succeeded :dispatch [::enable-browser-navigation]}]}}))
+                 :rules [{:when :seen?
+                          :events ::session-check-succeeded
+                          :dispatch [::enable-browser-navigation]}]}}))
 
 (rf/reg-event-fx
  ::set-active-page
