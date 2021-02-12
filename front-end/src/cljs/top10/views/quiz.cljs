@@ -10,6 +10,7 @@
    [reagent-material-ui.core.table-head :refer [table-head]]
    [reagent-material-ui.core.table-row :refer [table-row]]
    [re-frame.core :as rf]
+   [top10.config :refer [front-end-base-url]]
    [top10.events :as events]
    [top10.subs :as subs]
    [top10.views.base :refer [back-to-overview-button]]))
@@ -56,7 +57,9 @@
       [:p
        (str
         "At the moment, this quiz has " number-of-participants " " (if (= number-of-participants 1) "participant" "participants") ". "
-        "Anyone who wants to join has until " deadline " to submit their personal top 10.")]
+        "Anyone who wants to join has until " deadline " to submit their personal top 10. "
+        "If you know anyone who might also want to join, just share the following URL: ")]
+      [:pre (str front-end-base-url "/#/quiz/" externalId "/join")]
       (case personalListHasDraftStatus
         (true) [:p (str
                     "Remember, you still have to submit your personal top 10 for this quiz! "

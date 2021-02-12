@@ -2,7 +2,7 @@
   (:require
    [ajax.core :as ajax]
    [re-frame.core :as rf]
-   [top10.config :refer [base-url csrf-token-header]]
+   [top10.config :refer [api-base-url csrf-token-header]]
    [top10.db :as db]))
 
 (rf/reg-event-fx
@@ -71,7 +71,7 @@
  ::check-status
  (fn [_ _]
    {:http-xhrio {:method :get
-                 :uri (str base-url "/session/status")
+                 :uri (str api-base-url "/session/status")
                  :response-format ring-json-response-format
                  :with-credentials true
                  :on-success [::session-check-succeeded]
@@ -97,7 +97,7 @@
  [(rf/inject-cofx :csrf-token)]
  (fn [{:keys [csrf-token]} [_ id-token]]
    {:http-xhrio {:method :post
-                 :uri (str base-url "/session/logIn")
+                 :uri (str api-base-url "/session/logIn")
                  :headers {csrf-token-header csrf-token}
                  :params {:token id-token :type "GOOGLE"}
                  :format (ajax/json-request-format)
@@ -156,7 +156,7 @@
  (fn [{:keys [csrf-token]} _]
    {:set-access-token nil
     :http-xhrio {:method :post
-                 :uri (str base-url "/session/logOut")
+                 :uri (str api-base-url "/session/logOut")
                  :headers {csrf-token-header csrf-token}
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
@@ -232,7 +232,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio [{:method :get
-                  :uri (str base-url "/public/quiz/" quiz-id)
+                  :uri (str api-base-url "/public/quiz/" quiz-id)
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
@@ -244,7 +244,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio [{:method :get
-                  :uri (str base-url "/private/quiz/" quiz-id "/list")
+                  :uri (str api-base-url "/private/quiz/" quiz-id "/list")
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
@@ -256,7 +256,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio [{:method :get
-                  :uri (str base-url "/private/quiz/" quiz-id "/participants")
+                  :uri (str api-base-url "/private/quiz/" quiz-id "/participants")
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format
@@ -274,7 +274,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} _]
    {:http-xhrio {:method :get
-                 :uri (str base-url "/private/quiz/")
+                 :uri (str api-base-url "/private/quiz/")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
@@ -291,7 +291,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ {:keys [name deadline]}]]
    {:http-xhrio {:method :post
-                 :uri (str base-url "/private/quiz")
+                 :uri (str api-base-url "/private/quiz")
                  :headers {"Authorization" (str "Bearer " access-token)}
                  :params {:name name :deadline deadline}
                  :format (ajax/json-request-format)
@@ -310,7 +310,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ list-id url]]
    {:http-xhrio {:method :post
-                 :uri (str base-url "/private/list/" list-id "/video")
+                 :uri (str api-base-url "/private/list/" list-id "/video")
                  :headers (authorization-header access-token)
                  :params {:url url}
                  :format (ajax/json-request-format)
@@ -330,7 +330,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ video-id]]
    {:http-xhrio {:method :delete
-                 :uri (str base-url "/private/video/" video-id)
+                 :uri (str api-base-url "/private/video/" video-id)
                  :headers (authorization-header access-token)
                  :params nil
                  :format (ajax/json-request-format)
@@ -352,7 +352,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ list-id]]
    {:http-xhrio {:method :get
-                 :uri (str base-url "/private/list/" list-id)
+                 :uri (str api-base-url "/private/list/" list-id)
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
@@ -369,7 +369,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ list-id]]
    {:http-xhrio {:method :put
-                 :uri (str base-url "/private/list/" list-id "/finalize")
+                 :uri (str api-base-url "/private/list/" list-id "/finalize")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
@@ -386,7 +386,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id list-id assignee-id]]
    {:http-xhrio {:method :put
-                 :uri (str base-url "/private/list/" list-id "/assign")
+                 :uri (str api-base-url "/private/list/" list-id "/assign")
                  :headers (authorization-header access-token)
                  :params {:assigneeId assignee-id}
                  :format (ajax/json-request-format)
@@ -408,7 +408,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio {:method :post
-                 :uri (str base-url "/private/quiz/" quiz-id "/participate")
+                 :uri (str api-base-url "/private/quiz/" quiz-id "/participate")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
@@ -425,7 +425,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio {:method :put
-                 :uri (str base-url "/private/quiz/" quiz-id "/complete")
+                 :uri (str api-base-url "/private/quiz/" quiz-id "/complete")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
@@ -443,7 +443,7 @@
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ quiz-id]]
    {:http-xhrio [{:method :get
-                  :uri (str base-url "/private/quiz/" quiz-id "/result")
+                  :uri (str api-base-url "/private/quiz/" quiz-id "/result")
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
                   :response-format ring-json-response-format

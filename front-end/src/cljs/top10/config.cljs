@@ -2,6 +2,8 @@
 
 (def debug? ^boolean goog.DEBUG)
 
-(def base-url "http://localhost:8080")
+(def api-base-url "http://localhost:8080")
+
+(def front-end-base-url "http://localhost:9500")
 
 (def csrf-token-header "x-csrf-token")
