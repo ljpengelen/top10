@@ -1,0 +1,7 @@
+---
+- hosts: dokku
+  remote_user: "{{ admin_username }}"
+  roles:
+    - print_affected_hosts
+    - upgrade_apt_packages
+    - secure_server

@@ -1,0 +1,23 @@
+---
+- hosts: dokku
+  vars:
+    apps:
+      - { name: top10-api, static: no }
+      - { name: top10, static: yes, port: 80 }
+    dokku_version: v0.23.4
+    public_keys:
+      - { id: admin, key: "{{ admin_public_key }}" }
+      - { id: deploy, key: "{{ git_public_key }}" }
+  remote_user: "{{ admin_username }}"
+  roles:
+    - print_affected_hosts
+    - install_dokku
+    - configure_dokku_apps
+  tasks:
+  - name: Install dokku-dockerfile plugin
+    become: yes
+    command: dokku plugin:install https://github.com/mimischi/dokku-dockerfile.git
+    args:
+      creates: /var/lib/dokku/plugins/available/dockerfile
+  - name: Configure dokku-dockerfile plugin
+    command: dokku dockerfile:set top10-api back-end/dockerfiles/deploy/Dockerfile

@@ -1,0 +1,20 @@
+---
+- name: Create admin user
+  become: yes
+  user:
+    name: "{{ admin_username }}"
+    groups: sudo
+    shell: /bin/bash
+
+- name: Set up authorized key for admin user
+  become: yes
+  authorized_key:
+    user: "{{ admin_username }}"
+    key: "{{ lookup('file', '~/.ssh/' + admin_public_key) }}"
+
+- name: Set up passwordless sudo for admin user
+  become: yes
+  template:
+    src: sudoers.d.j2
+    dest: "/etc/sudoers.d/{{ admin_username }}"
+    validate: visudo -cf %s
