@@ -15,19 +15,19 @@
 ## Set up (non-root) administrator
 
 1. Enter the folder `ansible`.
-1. Execute `ansible-playbook -i <environment> -e @secrets.yml set_up_admin_user.yml` to set up Dokku, where `<environment>` should be either `acc` or `prod`.
+1. Execute `ansible-playbook -i inventories/<environment> set_up_admin_user.yml` to set up Dokku, where `<environment>` should be either `acc` or `prod`.
 
 ## Secure SSH
 
 1. Enter the folder `ansible`.
-1. Execute `ansible-playbook -i <environment> -e @secrets.yml secure_server.yml` to set up Dokku, where `<environment>` should be either `acc` or `prod`.
+1. Execute `ansible-playbook -i inventories/<environment> secure_server.yml` to set up Dokku, where `<environment>` should be either `acc` or `prod`.
 
 After executing this playbook, you can no longer execute the previous one because the first playbook logs in as root.
 
 ## Set up Dokku
 
 1. Enter the folder `ansible`.
-1. Execute `ansible-playbook -i <environment> -e @secrets.yml dokku.yml` to set up Dokku, where `<environment>` should be either `acc` or `prod`.
+1. Execute `ansible-playbook -i inventories/<environment> dokku.yml` to set up Dokku, where `<environment>` should be either `acc` or `prod`.
 
 ## Giving Jenkins access to Dokku repositories
 

@@ -8,17 +8,6 @@ def withDockerNetwork(Closure inner) {
   }
 }
 
-def config = [
-  develop: [
-    sentryDsn: "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220",
-    sentryEnvironment: "staging",
-  ],
-  master: [
-    sentryDsn: "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220",
-    sentryEnvironment: "production",
-  ],
-]
-
 pipeline {
   agent none
 

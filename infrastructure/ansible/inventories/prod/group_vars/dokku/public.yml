@@ -1,0 +1,5 @@
+csrf_target: "https://top10.cofx.nl"
+http_port: 8080
+jdbc_postgres_use_ssl: true
+sentry_dsn: "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220"
+sentry_environment: prod
