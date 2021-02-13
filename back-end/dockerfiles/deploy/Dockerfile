@@ -20,8 +20,6 @@ RUN mkdir /app \
 
 WORKDIR /app
 
-COPY env_init.sh .
-
 COPY --from=COMPILATION_STAGE /app/target/top10*.jar /app/app.jar
 
 USER appuser
