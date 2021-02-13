@@ -1,5 +1,16 @@
-csrf_target: "https://top10.cofx.nl"
-http_port: 8080
-jdbc_postgres_use_ssl: true
-sentry_dsn: "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220"
-sentry_environment: prod
+public_environment_variables:
+  - app: top10-api
+    name: CSRF_TARGET
+    value: "https://top10.cofx.nl"
+  - app: top10-api
+    name: HTTP_PORT
+    value: 8080
+  - app: top10-api
+    name: JDBC_POSTGRES_USE_SSL
+    value: "True"
+  - app: top10-api
+    name: SENTRY_DSN
+    value: "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220"
+  - app: top10-api
+    name: SENTRY_ENVIRONMENT
+    value: prod
