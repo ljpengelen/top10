@@ -30,22 +30,14 @@ public class Config extends AbstractConfig {
     }
 
     protected JsonObject fetchJdbcOptions() {
-        var jdbcOptions = new JsonObject();
-        jdbcOptions.put("url", jdbcUrl);
-        jdbcOptions.put("user", jdbcUsername);
-        jdbcOptions.put("password", jdbcPassword);
-        jdbcOptions.put("ssl", fetchMandatoryString("JDBC_POSTGRES_USE_SSL"));
-
-        return jdbcOptions;
+        return new JsonObject()
+                .put("url", jdbcUrl)
+                .put("user", jdbcUsername)
+                .put("password", jdbcPassword)
+                .put("ssl", fetchMandatoryString("JDBC_POSTGRES_USE_SSL"));
     }
 
     private VertxOptions fetchVertxOptions() {
-        var inDevelopmentMode = "dev".equals(fetchMandatoryString("VERTXWEB_ENVIRONMENT"));
-
-        var vertxOptions = new VertxOptions();
-        vertxOptions.setHAEnabled(true);
-        vertxOptions.getFileSystemOptions().setFileCachingEnabled(!inDevelopmentMode);
-
-        return vertxOptions;
+        return new VertxOptions().setHAEnabled(true);
     }
 }
