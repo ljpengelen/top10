@@ -1,4 +1,4 @@
-# Greatest Hits
+# Top 10 - Front end
 
 A [re-frame](https://github.com/day8/re-frame) application designed to get to know people's musical taste.
 
@@ -57,11 +57,6 @@ A [re-frame](https://github.com/day8/re-frame) application designed to get to kn
 * [`test/cljs/front_end_v2/`](test/cljs/front_end_v2/): test files (ClojureScript,
 [cljs.test](https://clojurescript.org/tools/testing))
   - Only namespaces ending in `-test` (files `*_test.cljs`) are compiled and sent to the test runner
-
-### Editor/IDE
-
-Use your preferred editor or IDE that supports Clojure/ClojureScript development. See
-[Clojure tools](https://clojure.org/community/resources#_clojure_tools) for some popular options.
 
 ### Environment Setup
 
