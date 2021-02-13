@@ -26,3 +26,17 @@
       creates: /var/lib/dokku/plugins/available/dockerfile
   - name: Configure dokku-dockerfile plugin
     command: dokku dockerfile:set top10-api back-end/dockerfiles/deploy/Dockerfile
+
+  - name: Install dokku-postgres plugin
+    become: yes
+    command: dokku plugin:install https://github.com/dokku/dokku-postgres.git
+    args:
+      creates: /var/lib/dokku/plugins/available/postgres
+  - name: Configure dokku-postgres plugin
+    command: dokku postgres:create top10
+
+  - name: Install dokku-letsencrypt plugin
+    become: yes
+    command: dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
+    args:
+      creates: /var/lib/dokku/plugins/available/letsencrypt
