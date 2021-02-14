@@ -1,7 +1,8 @@
-/out/
+/dist
+/out
 /resources/public/css
-/resources/public/js/compiled/
-/target/
+/resources/public/js/compiled
+/target
 /*-init.clj
 /*.log
 
@@ -10,7 +11,7 @@
 /.lein-*
 /.nrepl-port
 
-/node_modules/
+/node_modules
 
 /shadow-cljs.edn
-/.shadow-cljs/
+/.shadow-cljs
