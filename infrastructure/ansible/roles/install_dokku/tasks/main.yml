@@ -1,3 +1,4 @@
 ---
 - include: install.yml
+- include: set_global_domain.yml
 - include: set_up_keys.yml
