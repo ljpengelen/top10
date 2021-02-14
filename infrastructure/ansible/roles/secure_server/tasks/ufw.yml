@@ -15,9 +15,13 @@
   become: yes
   command: ufw allow ssh
 
-- name: Allow incoming www traffic
+- name: Allow incoming http traffic
   become: yes
-  command: ufw allow www
+  command: ufw allow http
+
+- name: Allow incoming https traffic
+  become: yes
+  command: ufw allow https
 
 - name: Allow incoming traffic on port 8080
   become: yes
