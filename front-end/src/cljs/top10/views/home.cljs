@@ -9,7 +9,7 @@
   (let [checking-status @(rf/subscribe [::subs/checking-status])
         logged-in? @(rf/subscribe [::subs/logged-in?])]
     [:<>
-     [:h1 "Greatest Hits"]
+     [:h1 "Top 10 quiz"]
      (when-not checking-status
        (if logged-in?
          [button {:color "primary"
