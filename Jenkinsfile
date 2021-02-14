@@ -25,8 +25,8 @@ pipeline {
 
       steps {
         script {
-          def database = docker.build("db", "--pull -f dockerfiles/database/Dockerfile .")
-          def app = docker.build("app", "--pull -f dockerfiles/ci/Dockerfile .")
+          def database = docker.build("db", "--pull -f back-end/dockerfiles/database/Dockerfile .")
+          def app = docker.build("app", "--pull -f back-end/dockerfiles/ci/Dockerfile .")
 
           withDockerNetwork { n ->
             database.withRun("--network ${n} --name ${n}") { c ->
