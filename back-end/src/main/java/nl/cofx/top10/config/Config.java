@@ -33,8 +33,7 @@ public class Config extends AbstractConfig {
         return new JsonObject()
                 .put("url", jdbcUrl)
                 .put("user", jdbcUsername)
-                .put("password", jdbcPassword)
-                .put("ssl", fetchMandatoryString("JDBC_POSTGRES_USE_SSL"));
+                .put("password", jdbcPassword);
     }
 
     private VertxOptions fetchVertxOptions() {

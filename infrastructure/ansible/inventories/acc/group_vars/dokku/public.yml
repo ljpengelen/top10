@@ -6,9 +6,6 @@ public_environment_variables:
     name: HTTP_PORT
     value: 8080
   - app: top10-api
-    name: JDBC_POSTGRES_USE_SSL
-    value: "True"
-  - app: top10-api
     name: SENTRY_DSN
     value: "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220"
   - app: top10-api

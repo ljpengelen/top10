@@ -16,12 +16,9 @@ public class TestConfig extends Config {
 
     @Override
     protected JsonObject fetchJdbcOptions() {
-        var jdbcOptions = new JsonObject();
-        jdbcOptions.put("url", jdbcUrl);
-        jdbcOptions.put("user", jdbcUsername);
-        jdbcOptions.put("password", jdbcPassword);
-        jdbcOptions.put("ssl", fetchMandatoryString("TEST_JDBC_POSTGRES_USE_SSL"));
-
-        return jdbcOptions;
+        return new JsonObject()
+                .put("url", jdbcUrl)
+                .put("user", jdbcUsername)
+                .put("password", jdbcPassword);
     }
 }

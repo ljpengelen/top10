@@ -35,7 +35,6 @@ pipeline {
                 -e "JDBC_POSTGRES_URL=jdbc:postgresql://${n}:5432/top10-test"
                 -e "JDBC_POSTGRES_USERNAME=postgres"
                 -e "JDBC_POSTGRES_PASSWORD="
-                -e "JDBC_POSTGRES_USE_SSL=true"
               """) {
                 sh "mvn clean verify"
               }
