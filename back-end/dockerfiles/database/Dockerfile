@@ -1,3 +1,3 @@
 FROM postgres:11.5
 
-COPY init-db.sh /docker-entrypoint-initdb.d/
+COPY back-end/dockerfiles/database/init-db.sh /docker-entrypoint-initdb.d/
