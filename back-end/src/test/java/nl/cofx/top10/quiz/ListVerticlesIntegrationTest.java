@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.sql.*;
 import java.time.Instant;
+import java.time.Period;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +37,8 @@ class ListVerticlesIntegrationTest {
     private static final String EXTERNAL_ACCOUNT_ID_2 = "987654321";
 
     private static final String QUIZ_NAME = "Greatest Hits";
-    private static final Instant DEADLINE = Instant.now();
+    private static final Instant NOW = Instant.now();
+    private static final Instant ONE_WEEK_FROM_NOW = Instant.now().plus(Period.ofDays(7));
     private static final String URL_1 = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
     private static final String URL_2 = "https://www.youtube.com/watch?v=FAkj8KiHxjg";
     private static final String EMBEDDABLE_URL_1 = "https://www.youtube-nocookie.com/embed/RBgcN9lrZ3g";
@@ -113,7 +115,7 @@ class ListVerticlesIntegrationTest {
     private static JsonObject quiz() {
         return new JsonObject()
                 .put("name", QUIZ_NAME)
-                .put("deadline", DEADLINE);
+                .put("deadline", NOW);
     }
 
     private void deployVerticles(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -275,6 +277,32 @@ class ListVerticlesIntegrationTest {
         assertThat(body.getString("externalAssigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
         assertThat(body.getJsonArray("videos")).isEmpty();
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void returnsOnlyOwnListBeforeDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quizAfterDeadline = quiz().put("deadline", NOW);
+        var quizBeforeDeadline = quiz().put("deadline", ONE_WEEK_FROM_NOW);
+        var quizAfterDeadlineId = httpClient.createQuiz(quizAfterDeadline).body().getString("externalId");
+        var quizBeforeDeadlineId = httpClient.createQuiz(quizBeforeDeadline).body().getString("externalId");
+
+        userHandler.logIn(accountId2);
+
+        var listAfterDeadlineId = httpClient.participateInQuiz(quizAfterDeadlineId).body().getInteger("personalListId");
+        var listBeforeDeadlineId = httpClient.participateInQuiz(quizBeforeDeadlineId).body().getInteger("personalListId");
+
+        userHandler.logIn(accountId1);
+
+        var response = httpClient.getList(listAfterDeadlineId);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        response = httpClient.getList(listBeforeDeadlineId);
+
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Account \"%d\" cannot access list \"%d\"", accountId1, listBeforeDeadlineId));
 
         vertxTestContext.completeNow();
     }

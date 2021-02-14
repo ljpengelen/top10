@@ -26,7 +26,9 @@ public class ListRepository {
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url FROM video v WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
                                                                    + "JOIN list l2 ON l1.quiz_id = l2.quiz_id "
-                                                                   + "WHERE l1.account_id = ? AND l2.list_id = ?";
+                                                                   + "JOIN quiz q ON l1.quiz_id = q.quiz_id "
+                                                                   + "WHERE l1.account_id = ? AND l2.list_id = ? "
+                                                                   + "AND (q.deadline <= NOW() OR l1.list_id = l2.list_id)";
     private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(l.account_id) FROM list l "
                                                                         + "JOIN account a ON l.account_id = a.account_id "
                                                                         + "WHERE a.external_id = ? AND l.quiz_id = ?";
