@@ -50,3 +50,15 @@
     command: dokku plugin:install https://github.com/dokku/dokku-letsencrypt.git
     args:
       creates: /var/lib/dokku/plugins/available/letsencrypt
+  - name: Configure e-mail address for dokku-letsencrypt plugin
+    become: yes
+    command: dokku config:set --global DOKKU_LETSENCRYPT_EMAIL={{ letsencrypt_mail }}
+  - name: Request letsencrypt certificates
+    become: yes
+    command: dokku letsencrypt {{ item.name }}
+    args:
+      creates: /home/dokku/{{ item.name }}/letsencrypt
+    with_items: "{{ apps }}"
+  - name: Set up cronjob for automatic renewal of certificates
+    become: yes
+    command: dokku letsencrypt:cron-job --add
