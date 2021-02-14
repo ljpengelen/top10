@@ -60,7 +60,7 @@
                           :output-to "target/karma-test.js"}}}
   
   :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
-                              :default-command "karma"}
+                              :default-command "node_modules/.bin/karma"}
                      "open"  {:windows         ["cmd" "/c" "start"]
                               :macosx          "open"
                               :linux           "xdg-open"}}}
