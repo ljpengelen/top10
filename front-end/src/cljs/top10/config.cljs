@@ -2,8 +2,10 @@
 
 (def debug? ^boolean goog.DEBUG)
 
+(declare api-base-url-from-env)
 (def api-base-url (or (api-base-url-from-env)  "http://localhost:8080"))
 
+(declare front-end-base-url-from-env)
 (def front-end-base-url (or (front-end-base-url-from-env) "http://localhost:9500"))
 
 (def csrf-token-header "x-csrf-token")
