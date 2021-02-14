@@ -36,7 +36,9 @@ pipeline {
                 -e "JDBC_POSTGRES_USERNAME=postgres"
                 -e "JDBC_POSTGRES_PASSWORD="
               """) {
-                sh "mvn clean verify"
+                dir("back-end") {
+                  sh "mvn clean verify"
+                }
               }
             }
           }
@@ -45,16 +47,18 @@ pipeline {
 
       post {
         always {
-          publishCoverage adapters: [jacocoAdapter('target/site/jacoco/jacoco.xml')]
-          publishHTML target: [
+          dir("back-end") {
+            publishCoverage adapters: [jacocoAdapter('target/site/jacoco/jacoco.xml')]
+            publishHTML target: [
               allowMissing: false,
               alwaysLinkToLastBuild: false,
               keepAll: true,
               reportDir: 'target/site/jacoco',
               reportFiles: 'index.html',
               reportName: 'Coverage: Top 10 back end'
-          ]
-          junit "target/failsafe-reports/*.xml, target/surefire-reports/*.xml"
+            ]
+            junit "target/failsafe-reports/*.xml, target/surefire-reports/*.xml"
+          }
         }
       }
     }
