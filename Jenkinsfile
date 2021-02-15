@@ -32,7 +32,7 @@ pipeline {
             database.withRun("--network ${n} --name ${n}") { c ->
               app.inside("""
                 --network ${n}
-                -e "TEST_CSRF_TARGET=http://localhost:9500"
+                -e "TEST_CSRF_TARGET=http://localhost:8080"
                 -e "TEST_JDBC_POSTGRES_URL=jdbc:postgresql://${n}:5432/top10-test"
                 -e "TEST_JDBC_POSTGRES_USERNAME=postgres"
                 -e "TEST_JDBC_POSTGRES_PASSWORD="
