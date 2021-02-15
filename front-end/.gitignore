@@ -9,6 +9,7 @@
 .clj-kondo/.cache
 
 /.lein-*
+/.lsp
 /.nrepl-port
 
 /node_modules
