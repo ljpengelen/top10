@@ -93,7 +93,7 @@ pipeline {
       }
 
       steps {
-        dir("front end") {
+        dir("front-end") {
           sh "lein release"
         }
       }
