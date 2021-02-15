@@ -15,13 +15,9 @@ import nl.cofx.top10.quiz.dto.*;
 @Log4j2
 public class ListRepository {
 
-    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id, acc.external_id, acc.name FROM list l "
+    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id FROM list l "
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                                  + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
-                                                                  + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
-                                                                  + "WHERE q.external_id = ? AND "
-                                                                  + "(ass.account_id = ? OR ass.account_id IS NULL) AND "
-                                                                  + "NOT l.has_draft_status";
+                                                                  + "WHERE q.external_id = ? AND NOT l.has_draft_status";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url FROM video v WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
@@ -38,10 +34,10 @@ public class ListRepository {
             + "NATURAL JOIN quiz q "
             + "JOIN account a ON a.account_id = l.account_id "
             + "WHERE l.list_id = ?";
-    private static final String GET_ASSIGNMENT_TEMPLATE = "SELECT acc.external_id, acc.name FROM list l "
-                                                          + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
-                                                          + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
-                                                          + "WHERE l.list_id = ? and ass.account_id = ?";
+    private static final String GET_ASSIGNMENTS_TEMPLATE = "SELECT l.list_id, acc.external_id, acc.name FROM list l "
+                                                           + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+                                                           + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
+                                                           + "WHERE l.list_id = ANY (?) and ass.account_id = ?";
     private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE =
             "SELECT l.list_id, l.has_draft_status, l.quiz_id, q.external_id AS external_quiz_id, l.account_id FROM video v "
             + "NATURAL RIGHT JOIN list l "
@@ -55,10 +51,10 @@ public class ListRepository {
                                                        + "ON CONFLICT (list_id, account_id) DO "
                                                        + "UPDATE SET assignee_id = EXCLUDED.assignee_id";
 
-    public Future<ListsDto> getAllListsForQuiz(SQLConnection connection, String externalId, Integer accountId) {
-        var promise = Promise.<ListsDto> promise();
+    public Future<List<ListDto>> getAllListsForQuiz(SQLConnection connection, String externalId) {
+        var promise = Promise.<List<ListDto>> promise();
 
-        var parameters = new JsonArray().add(externalId).add(accountId);
+        var parameters = new JsonArray().add(externalId);
         connection.queryWithParams(GET_ALL_LISTS_FOR_QUIZ_TEMPLATE, parameters, asyncLists -> {
             if (asyncLists.failed()) {
                 handleFailure(promise, GET_ALL_LISTS_FOR_QUIZ_TEMPLATE, parameters, asyncLists);
@@ -70,14 +66,10 @@ public class ListRepository {
             var listDtos = asyncLists.result().getRows().stream()
                     .map(row -> ListDto.builder()
                             .id(row.getInteger("list_id"))
-                            .externalAssigneeId(row.getString("external_id"))
-                            .assigneeName(row.getString("name"))
                             .build())
                     .collect(Collectors.toList());
 
-            promise.complete(ListsDto.builder()
-                    .lists(listDtos)
-                    .build());
+            promise.complete(listDtos);
         });
 
         return promise.future();
@@ -177,30 +169,30 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<AssignmentDto> getAssignment(SQLConnection connection, Integer listId, Integer accountId) {
-        var promise = Promise.<AssignmentDto> promise();
+    public Future<Map<Integer, AssignmentDto>> getAssignments(SQLConnection connection, Integer accountId, int... listIds) {
+        var promise = Promise.<Map<Integer, AssignmentDto>> promise();
 
-        var parameters = new JsonArray().add(listId).add(accountId);
-        connection.querySingleWithParams(GET_ASSIGNMENT_TEMPLATE, parameters, asyncAssignment -> {
-            if (asyncAssignment.failed()) {
-                handleFailure(promise, GET_ASSIGNMENT_TEMPLATE, parameters, asyncAssignment);
+        var parameters = new JsonArray().add(listIds).add(accountId);
+        connection.queryWithParams(GET_ASSIGNMENTS_TEMPLATE, parameters, asyncAssignments -> {
+            if (asyncAssignments.failed()) {
+                handleFailure(promise, GET_ASSIGNMENTS_TEMPLATE, parameters, asyncAssignments);
                 return;
             }
 
-            log.debug("Retrieved assignment");
+            log.debug("Retrieved assignments");
 
-            var row = asyncAssignment.result();
-            if (row == null) {
-                log.debug("No assignment found for list ID \"{}\" and account ID \"{}\"", listId, accountId);
-                promise.complete(AssignmentDto.builder().build());
-            } else {
+            var assignmentsForLists = new HashMap<Integer, AssignmentDto>();
+
+            asyncAssignments.result().getRows().forEach(row -> {
+                var listId = row.getInteger("list_id");
                 var assignmentDto = AssignmentDto.builder()
-                        .externalAssigneeId(row.getString(0))
-                        .assigneeName(row.getString(1))
+                        .externalAssigneeId(row.getString("external_id"))
+                        .assigneeName(row.getString("name"))
                         .build();
-                log.debug("Retrieved assignment by list ID \"{}\" and account ID \"{}\": \"{}\"", listId, accountId, assignmentDto);
-                promise.complete(assignmentDto);
-            }
+                assignmentsForLists.put(listId, assignmentDto);
+            });
+
+            promise.complete(assignmentsForLists);
         });
 
         return promise.future();

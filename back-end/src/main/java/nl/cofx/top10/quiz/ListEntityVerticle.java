@@ -52,8 +52,31 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var externalId = body.getString("externalId");
         var accountId = body.getInteger("accountId");
 
-        withTransaction(connection -> listRepository.getAllListsForQuiz(connection, externalId, accountId))
-                .onSuccess(getAllListsRequest::reply)
+        withTransaction(connection ->
+                listRepository.getAllListsForQuiz(connection, externalId).compose(listDtos -> {
+                    var listIds = listDtos.stream()
+                            .map(ListDto::getId)
+                            .mapToInt(i -> i)
+                            .toArray();
+                    return listRepository.getAssignments(connection, accountId, listIds)
+                            .compose(assignmentsForLists -> Future.succeededFuture(listDtos.stream()
+                                    .map(listDto -> {
+                                        var listId = listDto.getId();
+                                        var assignment = assignmentsForLists.get(listId);
+                                        if (assignment != null) {
+                                            return listDto.toBuilder()
+                                                    .assigneeName(assignment.getAssigneeName())
+                                                    .externalAssigneeId(assignment.getExternalAssigneeId())
+                                                    .build();
+                                        } else {
+                                            return listDto;
+                                        }
+                                    }).collect(Collectors.toList())));
+                }))
+                .onSuccess(listDtos ->
+                        getAllListsRequest.reply(ListsDto.builder()
+                                .lists(listDtos)
+                                .build()))
                 .onFailure(cause -> handleFailure(cause, getAllListsRequest));
     }
 
@@ -83,11 +106,17 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection -> listRepository.getList(connection, listId)
                 .compose(list ->
-                        listRepository.getAssignment(connection, listId, accountId).compose(assignment ->
-                                Future.succeededFuture(list.toBuilder()
-                                        .externalAssigneeId(assignment.getExternalAssigneeId())
-                                        .assigneeName(assignment.getAssigneeName())
-                                        .build()))).compose(list ->
+                        listRepository.getAssignments(connection, accountId, listId).compose(assignments -> {
+                            var assignment = assignments.get(listId);
+                            if (assignment != null) {
+                                return Future.succeededFuture(list.toBuilder()
+                                        .externalAssigneeId(assignments.get(listId).getExternalAssigneeId())
+                                        .assigneeName(assignments.get(listId).getAssigneeName())
+                                        .build());
+                            } else {
+                                return Future.succeededFuture(list);
+                            }
+                        })).compose(list ->
                         listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
                                 listRepository.getVideosForLists(connection, list.getId()).compose(videosForList ->
                                         Future.succeededFuture(list.toBuilder()
