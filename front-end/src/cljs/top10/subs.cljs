@@ -1,7 +1,6 @@
 (ns top10.subs
-  (:require
-   ["dayjs" :as dayjs]
-   [re-frame.core :as rf]))
+  (:require ["dayjs" :as dayjs]
+            [re-frame.core :as rf]))
 
 (rf/reg-sub
  ::active-page
@@ -74,6 +73,12 @@
  :<- [::quiz-participants]
  (fn [quiz-participants _]
    (count quiz-participants)))
+
+(rf/reg-sub
+ ::participants-with-lists
+ :<- [::quiz-participants]
+ (fn [quiz-participants _]
+   (filter #(not (:listHasDraftStatus %)) quiz-participants)))
 
 (rf/reg-sub
  ::quiz-lists

@@ -1,13 +1,12 @@
 (ns top10.views.assign-list
-  (:require
-   ["@material-ui/core" :refer [TextField]]
-   [reagent.core :as r]
-   [reagent-material-ui.core.button :refer [button]]
-   [reagent-material-ui.core.grid :refer [grid]]
-   [reagent-material-ui.lab.autocomplete :refer [autocomplete]]
-   [re-frame.core :as rf]
-   [top10.events :as events]
-   [top10.subs :as subs]))
+  (:require ["@material-ui/core" :refer [TextField]]
+            [re-frame.core :as rf]
+            [reagent-material-ui.core.button :refer [button]]
+            [reagent-material-ui.core.grid :refer [grid]]
+            [reagent-material-ui.lab.autocomplete :refer [autocomplete]]
+            [reagent.core :as r]
+            [top10.events :as events]
+            [top10.subs :as subs]))
 
 (defn assign-list-page []
   (let [assignee (r/atom nil)]
@@ -50,4 +49,4 @@
    @(rf/subscribe [::subs/active-quiz])
    @(rf/subscribe [::subs/active-list])
    @(rf/subscribe [::subs/videos])
-   @(rf/subscribe [::subs/quiz-participants])])
+   @(rf/subscribe [::subs/participants-with-lists])])
