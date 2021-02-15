@@ -1,5 +1,8 @@
 package nl.cofx.top10.config;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
+
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import nl.cofx.top10.RandomPort;
@@ -20,5 +23,16 @@ public class TestConfig extends Config {
                 .put("url", jdbcUrl)
                 .put("user", jdbcUsername)
                 .put("password", jdbcPassword);
+    }
+
+    @Override
+    protected String fetchMandatoryString(String name) {
+        var value = System.getenv(name);
+
+        if (StringUtils.isBlank(value)) {
+            return RandomStringUtils.random(10);
+        }
+
+        return value;
     }
 }

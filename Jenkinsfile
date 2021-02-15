@@ -32,14 +32,10 @@ pipeline {
             database.withRun("--network ${n} --name ${n}") { c ->
               app.inside("""
                 --network ${n}
-                -e "CSRF_TARGET=http://localhost:9500"
-                -e "GOOGLE_OAUTH2_CLIENT_ID=1234"
-                -e "GOOGLE_OAUTH2_CLIENT_SECRET=abcdefg"
-                -e "HTTP_PORT=8080"
-                -e "JDBC_POSTGRES_URL=jdbc:postgresql://${n}:5432/top10-test"
-                -e "JDBC_POSTGRES_USERNAME=postgres"
-                -e "JDBC_POSTGRES_PASSWORD="
-                -e "JWT_ENCODED_SECRET_KEY=wJKyygT7gWXwhe9rGCm8IJGziEZjAXMEff+wkQv0rFiN0Nw8PuG5XMKmdGAw5nL09Jy+1TpiOZrQ9tt4rS/PuA=="
+                -e "TEST_CSRF_TARGET=http://localhost:9500"
+                -e "TEST_JDBC_POSTGRES_URL=jdbc:postgresql://${n}:5432/top10-test"
+                -e "TEST_JDBC_POSTGRES_USERNAME=postgres"
+                -e "TEST_JDBC_POSTGRES_PASSWORD="
               """) {
                 dir("back-end") {
                   sh "mvn clean verify"
