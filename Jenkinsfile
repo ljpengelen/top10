@@ -95,6 +95,7 @@ pipeline {
       steps {
         dir("front-end") {
           sh "lein release"
+          sh "lein garden once"
         }
       }
     }
