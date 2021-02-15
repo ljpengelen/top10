@@ -29,7 +29,7 @@ public class QuizRepository {
     private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) "
                                                        + "VALUES (?, (SELECT quiz_id from quiz WHERE external_id = ?), true) "
                                                        + "ON CONFLICT DO NOTHING";
-    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.external_id, a.name FROM account a "
+    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.external_id, a.name, l.has_draft_status FROM account a "
                                                             + "JOIN list l ON l.account_id = a.account_id "
                                                             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                             + "WHERE q.external_id = ?";
@@ -271,6 +271,7 @@ public class QuizRepository {
     private JsonObject participantArrayToJsonObject(JsonArray array) {
         return new JsonObject()
                 .put("id", array.getString(0))
-                .put("name", array.getString(1));
+                .put("name", array.getString(1))
+                .put("listHasDraftStatus", array.getBoolean(2));
     }
 }

@@ -325,6 +325,7 @@ class QuizVerticlesIntegrationTest {
         var participant = body.getJsonObject(0);
         assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
         assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
+        assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
     }
