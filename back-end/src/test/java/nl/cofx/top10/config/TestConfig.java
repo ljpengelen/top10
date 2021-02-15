@@ -1,7 +1,6 @@
 package nl.cofx.top10.config;
 
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.*;
 
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
@@ -34,5 +33,16 @@ public class TestConfig extends Config {
         }
 
         return value;
+    }
+
+    @Override
+    protected int fetchMandatoryInt(String name) {
+        var value = System.getenv(name);
+
+        if (StringUtils.isBlank(value)) {
+            return RandomUtils.nextInt();
+        }
+
+        return Integer.parseInt(value);
     }
 }
