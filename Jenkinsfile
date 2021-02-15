@@ -64,5 +64,20 @@ pipeline {
         }
       }
     }
+
+    stage("Test front end") {
+      agent {
+        dockerfile {
+          additionalBuildArgs "--pull"
+          filename "front-end/dockerfiles/ci/Dockerfile"
+        }
+      }
+
+      steps {
+        dir("front-end") {
+          sh "lein ci"
+        }
+      }
+    }
   }
 }
