@@ -89,7 +89,7 @@ pipeline {
 
       environment {
         API_BASE_URL = "https://top10-api.cofx.nl"
-        FRONT_END_BASE_URL = "https://top10-api.cofx.nl"
+        FRONT_END_BASE_URL = "https://top10.cofx.nl"
       }
 
       steps {
