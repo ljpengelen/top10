@@ -1,22 +1,29 @@
 (ns top10.views.home
-  (:require
-   [reagent-material-ui.core.button :refer [button]]
-   [re-frame.core :as rf]
-   [top10.events :as events]
-   [top10.subs :as subs]))
+  (:require [re-frame.core :as rf]
+            [reagent-material-ui.core.button :refer [button]]
+            [reagent-material-ui.core.grid :refer [grid]]
+            [top10.events :as events]
+            [top10.subs :as subs]))
 
 (defn home-page []
-  (let [checking-status @(rf/subscribe [::subs/checking-status])
-        logged-in? @(rf/subscribe [::subs/logged-in?])]
+  (let [logged-in? @(rf/subscribe [::subs/logged-in?])]
     [:<>
-     [:h1 "Top 10 quiz"]
-     (when-not checking-status
-       (if logged-in?
-         [button {:color "primary"
-                  :variant "contained"
-                  :on-click #(rf/dispatch [::events/log-out])}
-          "Log out"]
+     [:h1 "Top 10"]
+     [grid {:container true :direction "row" :spacing 2}
+      (if logged-in?
+        [:<>
+         [grid {:item true}
+          [button {:color "primary"
+                   :variant "contained"
+                   :on-click #(rf/dispatch [::events/log-out])}
+           "Log out"]]
+         [grid {:item true}
+          [button {:color "primary"
+                   :variant "contained"
+                   :href "#/quizzes"}
+           "Go to quiz overview"]]]
+        [grid {:item true}
          [button {:color "primary"
                   :variant "contained"
                   :on-click #(rf/dispatch [::events/log-in "/quizzes"])}
-          "Log in"]))]))
+          "Log in"]])]]))
