@@ -1,8 +1,20 @@
 package nl.cofx.top10.config;
 
+import javax.crypto.SecretKey;
+
 import org.apache.commons.lang3.StringUtils;
 
-public class AbstractConfig {
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+
+abstract public class AbstractConfig {
+
+    protected SecretKey fetchJwtSecretKey(String name) {
+        var encodedSecretKey = fetchMandatoryString(name);
+        var decodedSecretKey = Decoders.BASE64.decode(encodedSecretKey);
+
+        return Keys.hmacShaKeyFor(decodedSecretKey);
+    }
 
     protected String fetchOptionalString(String name) {
         return System.getenv(name);

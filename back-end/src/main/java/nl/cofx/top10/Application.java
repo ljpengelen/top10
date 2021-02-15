@@ -17,6 +17,7 @@ import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.account.GoogleAccountVerticle;
 import nl.cofx.top10.config.Config;
+import nl.cofx.top10.config.ProdConfig;
 import nl.cofx.top10.eventbus.MessageCodecs;
 import nl.cofx.top10.healthcheck.HealthCheckVerticle;
 import nl.cofx.top10.heartbeat.HeartbeatVerticle;
@@ -54,7 +55,7 @@ public class Application {
     }
 
     public static void main(String[] args) {
-        var config = new Config();
+        var config = new ProdConfig();
         var vertx = Vertx.vertx(config.getVertxOptions());
         var app = new Application(config, vertx);
         app.start().onComplete(ar -> {
