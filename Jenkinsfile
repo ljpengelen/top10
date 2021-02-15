@@ -110,9 +110,9 @@ pipeline {
         sh "mkdir -p deploy-front-end/dist"
         sh "mkdir -p deploy-front-end/dist/css"
         sh "mkdir -p deploy-front-end/dist/js/compiled"
-        sh "cp front-end/resources/index.html deploy-front-end/dist"
-        sh "cp front-end/resources/css/screen.css deploy-front-end/dist/css"
-        sh "cp front-end/resources/js/compiled/app.js deploy-front-end/dist/js/compiled"
+        sh "cp front-end/resources/public/index.html deploy-front-end/dist"
+        sh "cp front-end/resources/public/css/screen.css deploy-front-end/dist/css"
+        sh "cp front-end/resources/public/js/compiled/app.js deploy-front-end/dist/js/compiled"
         sh "touch deploy-front-end/.static"
         sh "cd deploy-front-end && git add . && git commit -m \"Deploy\" --allow-empty && git push"
       }
