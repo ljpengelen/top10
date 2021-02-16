@@ -44,8 +44,7 @@
                                                :preloads [devtools.preload]}}
 
                                :devtools {:http-root "resources/public"
-                                          :http-port 9500
-                                          }}
+                                          :http-port 9500}}
                          :browser-test
                          {:target :browser-test
                           :ns-regexp "-test$"
