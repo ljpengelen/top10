@@ -15,24 +15,36 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.http.JsonObjectBodyHandler;
 
+@Log4j2
 @ExtendWith(VertxExtension.class)
 class ErrorHandlersTest {
 
-    private final int port = RandomPort.get();
+    private int port;
 
     private Router router;
 
     @BeforeEach
-    public void setUp(Vertx vertx) {
+    public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
         router = Router.router(vertx);
         ErrorHandlers.configure(router);
 
-        var server = vertx.createHttpServer();
+        var server = vertx.createHttpServer(RandomPort.httpServerOptions());
         server.requestHandler(router);
 
-        server.listen(port);
+        server.listen().onComplete(asyncServer -> {
+            if (asyncServer.failed()) {
+                vertxTestContext.failNow(asyncServer.cause());
+                return;
+            }
+
+            port = asyncServer.result().actualPort();
+            log.info("Using port {}", port);
+            vertxTestContext.completeNow();
+        });
     }
 
     @Test

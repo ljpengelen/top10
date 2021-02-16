@@ -33,21 +33,30 @@ class SessionVerticleTest extends AbstractVerticleTest {
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
 
-    private final int port = RandomPort.get();
+    private int port;
 
     @BeforeEach
     public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
-        var server = vertx.createHttpServer();
+        var server = vertx.createHttpServer(RandomPort.httpServerOptions());
         var router = Router.router(vertx);
+
         ErrorHandlers.configure(router);
         server.requestHandler(router);
+
         vertx.deployVerticle(new SessionVerticle(googleIdTokenVerifier, router, SECRET_KEY), deploymentResult -> {
             if (deploymentResult.succeeded()) {
-                server.listen(port, vertxTestContext.completing());
+                server.listen().onComplete(asyncServer -> {
+                    if (asyncServer.failed()) {
+                        vertxTestContext.failNow(asyncServer.cause());
+                        return;
+                    }
+
+                    port = asyncServer.result().actualPort();
+                    log.info("Using port {}", port);
+                    vertxTestContext.completeNow();
+                });
             } else {
-                var cause = deploymentResult.cause();
-                log.error("Failed to deploy verticle", cause);
-                vertxTestContext.failNow(cause);
+                vertxTestContext.failNow(deploymentResult.cause());
             }
         });
     }

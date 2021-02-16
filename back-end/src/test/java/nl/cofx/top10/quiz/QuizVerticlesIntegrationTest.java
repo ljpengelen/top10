@@ -16,12 +16,15 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.*;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.eventbus.MessageCodecs;
 import nl.cofx.top10.http.HttpClient;
 import nl.cofx.top10.migration.MigrationVerticle;
 
+@Log4j2
 @ExtendWith(VertxExtension.class)
 class QuizVerticlesIntegrationTest {
 
@@ -37,8 +40,8 @@ class QuizVerticlesIntegrationTest {
     private static final String EXTERNAL_ACCOUNT_ID_1 = "123456789";
     private static final String EXTERNAL_ACCOUNT_ID_2 = "987654321";
 
-    private final int port = RandomPort.get();
-    private final HttpClient httpClient = new HttpClient(port);
+    private int port;
+    private HttpClient httpClient;
     private final UserHandler userHandler = new UserHandler();
 
     private int accountId1;
@@ -93,7 +96,7 @@ class QuizVerticlesIntegrationTest {
     }
 
     private void deployVerticles(Vertx vertx, VertxTestContext vertxTestContext) {
-        var server = vertx.createHttpServer();
+        var server = vertx.createHttpServer(RandomPort.httpServerOptions());
         var router = Router.router(vertx);
         server.requestHandler(router);
 
@@ -104,8 +107,18 @@ class QuizVerticlesIntegrationTest {
         vertx.deployVerticle(new QuizHttpVerticle(router));
         vertx.deployVerticle(new ListHttpVerticle(router));
         vertx.deployVerticle(new ListEntityVerticle(TEST_CONFIG.getJdbcOptions()));
-        vertxTestContext.completeNow();
-        server.listen(port);
+
+        server.listen().onComplete(asyncServer -> {
+            if (asyncServer.failed()) {
+                vertxTestContext.failNow(asyncServer.cause());
+                return;
+            }
+
+            port = asyncServer.result().actualPort();
+            log.info("Using port {}", port);
+            httpClient = new HttpClient(port);
+            vertxTestContext.completeNow();
+        });
     }
 
     @Test
