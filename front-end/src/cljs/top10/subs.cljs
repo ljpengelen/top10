@@ -32,7 +32,7 @@
 (rf/reg-sub
  ::quiz
  (fn [db _]
-   (if-let [quiz (:quiz db)]
+   (when-let [quiz (:quiz db)]
      (extend-quiz quiz))))
 
 (rf/reg-sub
