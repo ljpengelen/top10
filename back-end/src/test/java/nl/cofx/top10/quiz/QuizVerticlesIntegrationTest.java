@@ -51,7 +51,7 @@ class QuizVerticlesIntegrationTest {
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
         var verticle = new MigrationVerticle(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
         var deploymentOptions = new DeploymentOptions().setWorker(true);
-        vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.completing());
+        vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.succeedingThenComplete());
 
         MessageCodecs.register(vertx.eventBus());
     }

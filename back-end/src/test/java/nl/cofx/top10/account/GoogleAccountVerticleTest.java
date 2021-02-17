@@ -29,7 +29,7 @@ class GoogleAccountVerticleTest {
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
         var verticle = new MigrationVerticle(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
         var deploymentOptions = new DeploymentOptions().setWorker(true);
-        vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.completing());
+        vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.succeedingThenComplete());
     }
 
     @BeforeEach
@@ -43,7 +43,7 @@ class GoogleAccountVerticleTest {
     @BeforeEach
     public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         eventBus = vertx.eventBus();
-        vertx.deployVerticle(new GoogleAccountVerticle(TEST_CONFIG.getJdbcOptions()), vertxTestContext.completing());
+        vertx.deployVerticle(new GoogleAccountVerticle(TEST_CONFIG.getJdbcOptions()), vertxTestContext.succeedingThenComplete());
     }
 
     @Test

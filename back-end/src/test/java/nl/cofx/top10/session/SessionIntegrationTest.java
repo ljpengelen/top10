@@ -50,7 +50,7 @@ public class SessionIntegrationTest {
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
         var application = new Application(config, googleIdTokenVerifier, vertx);
-        application.start().onComplete(vertxTestContext.completing());
+        application.start().onComplete(vertxTestContext.succeedingThenComplete());
     }
 
     @Test

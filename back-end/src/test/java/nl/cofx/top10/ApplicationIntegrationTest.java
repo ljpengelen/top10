@@ -19,7 +19,7 @@ class ApplicationIntegrationTest {
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
         var application = new Application(config, vertx);
-        application.start().onComplete(vertxTestContext.completing());
+        application.start().onComplete(vertxTestContext.succeedingThenComplete());
     }
 
     @Test
