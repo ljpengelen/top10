@@ -2,7 +2,7 @@
 
 (def default-db
   {:active-page :blank
-   :logged-in false
+   :logged-in? false
    :quizzes []
    :quiz-lists []
    :quiz-participants []

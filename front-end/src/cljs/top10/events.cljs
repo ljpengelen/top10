@@ -31,21 +31,18 @@
 (rf/reg-event-fx
  ::get-data-for-active-page
  (fn [{:keys [db]} _]
-   (let [active-page (:active-page db)
-         logged-in? (:logged-in db)
-         active-list-id (:active-list db)
-         active-quiz-id (:active-quiz db)]
+   (let [{:keys [active-page logged-in? active-list active-quiz]} db]
      (case active-page
-       :quiz-page (when logged-in? {:dispatch-n [[::get-quiz active-quiz-id]
-                                                 [::get-quiz-lists active-quiz-id]
-                                                 [::get-quiz-participants active-quiz-id]]})
-       :quiz-results-page (when logged-in? {:dispatch [::get-quiz-results active-quiz-id]})
-       :complete-quiz-page (when logged-in? {:dispatch [::get-quiz active-quiz-id]})
-       :join-quiz-page {:dispatch [::get-quiz active-quiz-id]}
+       :quiz-page (when logged-in? {:dispatch-n [[::get-quiz active-quiz]
+                                                 [::get-quiz-lists active-quiz]
+                                                 [::get-quiz-participants active-quiz]]})
+       :quiz-results-page (when logged-in? {:dispatch [::get-quiz-results active-quiz]})
+       :complete-quiz-page (when logged-in? {:dispatch [::get-quiz active-quiz]})
+       :join-quiz-page {:dispatch [::get-quiz active-quiz]}
        :quizzes-page (when logged-in? {:dispatch [::get-quizzes]})
-       (:list-page :personal-list-page) (when logged-in? {:dispatch [::get-list active-list-id]})
-       :assign-list-page (when logged-in? {:dispatch-n [[::get-list active-list-id]
-                                                        [::get-quiz-participants active-quiz-id]]})
+       (:list-page :personal-list-page) (when logged-in? {:dispatch [::get-list active-list]})
+       :assign-list-page (when logged-in? {:dispatch-n [[::get-list active-list]
+                                                        [::get-quiz-participants active-quiz]]})
        {}))))
 
 (rf/reg-event-fx
@@ -56,7 +53,7 @@
          new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
-      :db (assoc db :logged-in (= "VALID_SESSION" status))})))
+      :db (assoc db :logged-in? (= "VALID_SESSION" status))})))
 
 (def ring-json-response-format (ajax/ring-response-format {:format (ajax/json-response-format {:keywords? true})}))
 
@@ -82,7 +79,7 @@
          new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
-      :db (assoc-in db [:session :logged-in] (= "SESSION_CREATED" status))
+      :db (assoc db :logged-in? (= "SESSION_CREATED" status))
       :dispatch [::get-data-for-active-page]})))
 
 (rf/reg-event-fx
@@ -141,7 +138,7 @@
  (fn [{:keys [db]} [_ response]]
    (let [new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-csrf-token new-csrf-token
-      :db (assoc-in db [:session :logged-in] false)})))
+      :db (assoc db :logged-in? false)})))
 
 (rf/reg-event-fx
  ::log-out-with-back-end-failed

@@ -88,7 +88,7 @@
 (rf/reg-sub
  ::logged-in?
  (fn [db _]
-   (:logged-in db)))
+   (:logged-in? db)))
 
 (rf/reg-sub
  ::quiz-results
