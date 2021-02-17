@@ -28,7 +28,6 @@
                                     "test/js"
                                     "resources/public/css"]
 
-
   :garden {:builds [{:id           "screen"
                      :source-paths ["src/clj"]
                      :stylesheet   top10.css/screen
@@ -75,13 +74,10 @@
                             ["shadow" "compile" "karma-test"]
                             ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
 
-  :profiles
-  {:dev
-   {:dependencies [[binaryage/devtools "1.0.2"]]
-    :source-paths ["dev"]}
+  :profiles  {:dev
+              {:dependencies [[binaryage/devtools "1.0.2"]]
+               :source-paths ["dev"]}
 
-   :prod {}
-   
-}
+              :prod {}}
 
   :prep-tasks [["garden" "once"]])
