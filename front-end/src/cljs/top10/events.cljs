@@ -1,9 +1,8 @@
 (ns top10.events
-  (:require
-   [ajax.core :as ajax]
-   [re-frame.core :as rf]
-   [top10.config :refer [api-base-url csrf-token-header]]
-   [top10.db :as db]))
+  (:require [ajax.core :as ajax]
+            [re-frame.core :as rf]
+            [top10.config :refer [api-base-url csrf-token-header]]
+            [top10.db :as db]))
 
 (rf/reg-event-fx
  ::enable-browser-navigation
@@ -33,7 +32,7 @@
  ::get-data-for-active-page
  (fn [{:keys [db]} _]
    (let [active-page (:active-page db)
-         logged-in? (get-in db [:session :logged-in])
+         logged-in? (:logged-in db)
          active-list-id (:active-list db)
          active-quiz-id (:active-quiz db)]
      (case active-page
@@ -57,9 +56,7 @@
          new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
-      :db (-> db
-              (assoc-in [:session :logged-in] (= "VALID_SESSION" status))
-              (assoc-in [:session :checking-status] false))})))
+      :db (assoc db :logged-in (= "VALID_SESSION" status))})))
 
 (def ring-json-response-format (ajax/ring-response-format {:format (ajax/json-response-format {:keywords? true})}))
 

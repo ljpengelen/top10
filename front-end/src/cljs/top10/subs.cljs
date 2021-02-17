@@ -86,21 +86,9 @@
    (:quiz-lists db)))
 
 (rf/reg-sub
- ::session
- (fn [db _]
-   (:session db)))
-
-(rf/reg-sub
- ::checking-status
- :<- [::session]
- (fn [session _]
-   (:checking-status session)))
-
-(rf/reg-sub
  ::logged-in?
- :<- [::session]
- (fn [session _]
-   (:logged-in session)))
+ (fn [db _]
+   (:logged-in db)))
 
 (rf/reg-sub
  ::quiz-results
