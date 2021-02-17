@@ -10,25 +10,30 @@
             [top10.views.list :refer [list-page-container]]
             [top10.views.personal-list :refer [personal-list-page-container]]
             [top10.views.personal-results :refer [personal-results-page-container]]
+            [top10.views.please-log-in :refer [please-log-in-page]]
             [top10.views.quiz :refer [quiz-page-container]]
             [top10.views.quiz-results :refer [quiz-results-page-container]]
             [top10.views.quizzes :refer [quizzes-page-container]]))
 
-(defn- content [page-name]
+(defn- secure-content [logged-in? content]
+  (if logged-in? [content] [please-log-in-page]))
+
+(defn- content [page-name logged-in?]
   (case page-name
     :blank nil
-    :personal-results-page [personal-results-page-container]
-    :quizzes-page [quizzes-page-container]
-    :quiz-page [quiz-page-container]
+    :personal-results-page (secure-content logged-in? personal-results-page-container)
+    :quizzes-page (secure-content logged-in? quizzes-page-container)
+    :quiz-page (secure-content logged-in? quiz-page-container)
     :join-quiz-page [join-quiz-page-container]
-    :quiz-results-page [quiz-results-page-container]
-    :complete-quiz-page [complete-quiz-page-container]
-    :create-quiz-page [create-quiz-page]
-    :list-page [list-page-container]
-    :personal-list-page [personal-list-page-container]
-    :assign-list-page [assign-list-page-container]
+    :quiz-results-page (secure-content logged-in? quiz-results-page-container)
+    :complete-quiz-page (secure-content logged-in? complete-quiz-page-container)
+    :create-quiz-page (secure-content logged-in? create-quiz-page)
+    :list-page (secure-content logged-in? list-page-container)
+    :personal-list-page (secure-content logged-in? personal-list-page-container)
+    :assign-list-page (secure-content logged-in? assign-list-page-container)
     [home-page]))
 
 (defn main-panel []
-  (let [active-page (rf/subscribe [::subs/active-page])]
-    [base-page [content @active-page]]))
+  (let [active-page @(rf/subscribe [::subs/active-page])
+        logged-in? @(rf/subscribe [::subs/logged-in?])]
+    [base-page [content active-page logged-in?]]))
