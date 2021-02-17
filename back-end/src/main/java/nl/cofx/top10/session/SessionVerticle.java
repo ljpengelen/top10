@@ -62,10 +62,12 @@ public class SessionVerticle extends AbstractVerticle {
                 routingContext.fail(new InternalServerErrorException(errorMessage, reply.cause()));
             }
 
-            var accountId = (int) reply.result().body();
+            var account = (JsonObject) reply.result().body();
             var jwt = Jwts.builder()
                     .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
-                    .setSubject(String.valueOf(accountId))
+                    .setSubject(String.valueOf(account.getInteger("accountId")))
+                    .claim("name", account.getString("name"))
+                    .claim("emailAddress", account.getString("emailAddress"))
                     .signWith(secretKey, SignatureAlgorithm.HS512)
                     .compact();
 
@@ -77,7 +79,7 @@ public class SessionVerticle extends AbstractVerticle {
             routingContext.response()
                     .putHeader("content-type", "application/json")
                     .addCookie(cookie)
-                    .end(sessionCreated(jwt));
+                    .end(sessionCreated(jwt, account));
         });
     }
 
@@ -125,10 +127,12 @@ public class SessionVerticle extends AbstractVerticle {
         }
     }
 
-    private Buffer sessionCreated(String jwt) {
+    private Buffer sessionCreated(String jwt, JsonObject account) {
         return new JsonObject()
                 .put("status", "SESSION_CREATED")
                 .put("token", jwt)
+                .put("name", account.getString("name"))
+                .put("emailAddress", account.getString("emailAddress"))
                 .toBuffer();
     }
 }

@@ -28,6 +28,8 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/status";
     private static final String USER_ID = "userId";
+    private static final String NAME = "Jane Doe";
+    private static final String EMAIL_ADDRESS = "jane.doe@example.com";
     private static final String COOKIE_NAME = "jwt";
     private static final int FIVE_SECONDS_IN_MILLISECONDS = 5000;
 
@@ -95,6 +97,8 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
     public void returnsAccessTokenGivenSessionCookie() throws IOException, InterruptedException {
         var token = Jwts.builder()
                 .setSubject(USER_ID)
+                .claim("name", NAME)
+                .claim("emailAddress", EMAIL_ADDRESS)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
 
@@ -107,8 +111,11 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body().getString("status")).isEqualTo("VALID_SESSION");
-        assertThat(response.body().getString("token")).isNotBlank();
+        var body = response.body();
+        assertThat(body.getString("status")).isEqualTo("VALID_SESSION");
+        assertThat(body.getString("token")).isNotBlank();
+        assertThat(body.getString("name")).isEqualTo(NAME);
+        assertThat(body.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
     }
 
     @Test

@@ -23,6 +23,9 @@ class GoogleAccountVerticleTest {
 
     private static final TestConfig TEST_CONFIG = new TestConfig();
 
+    private static final String NAME = "John Doe";
+    private static final String EMAIL_ADDRESS = "john.doe@example.com";
+
     private EventBus eventBus;
 
     @BeforeAll
@@ -50,12 +53,18 @@ class GoogleAccountVerticleTest {
     public void createsAccount(VertxTestContext vertxTestContext) {
         var googleUserData = new JsonObject()
                 .put("id", "abcd")
-                .put("name", "John Doe")
-                .put("emailAddress", "john.doe@example.com");
-        eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncAccountId -> {
+                .put("name", NAME)
+                .put("emailAddress", EMAIL_ADDRESS);
+        eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncAccount -> {
             vertxTestContext.verify(() -> {
-                assertThat(asyncAccountId.succeeded()).isTrue();
-                assertThat(asyncAccountId.result().body()).isNotNull();
+                assertThat(asyncAccount.succeeded()).isTrue();
+                var body = asyncAccount.result().body();
+                assertThat(body).isNotNull();
+                assertThat(body).isInstanceOf(JsonObject.class);
+                var jsonObject = (JsonObject) body;
+                assertThat(jsonObject.getInteger("accountId")).isNotNull();
+                assertThat(jsonObject.getString("name")).isEqualTo(NAME);
+                assertThat(jsonObject.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
             });
             vertxTestContext.completeNow();
         });
@@ -65,17 +74,23 @@ class GoogleAccountVerticleTest {
     public void retrievesExistingAccount(VertxTestContext vertxTestContext) {
         var googleUserData = new JsonObject()
                 .put("id", "abcd")
-                .put("name", "John Doe")
-                .put("emailAddress", "john.doe@example.com");
-        eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncNewAccountId -> {
+                .put("name", NAME)
+                .put("emailAddress", EMAIL_ADDRESS);
+        eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncNewAccount -> {
+            var newAccount = asyncNewAccount.result().body();
             vertxTestContext.verify(() -> {
-                assertThat(asyncNewAccountId.succeeded()).isTrue();
-                assertThat(asyncNewAccountId.result().body()).isNotNull();
+                assertThat(asyncNewAccount.succeeded()).isTrue();
+                assertThat(newAccount).isNotNull();
+                assertThat(newAccount).isInstanceOf(JsonObject.class);
+                var jsonObject = (JsonObject) newAccount;
+                assertThat(jsonObject.getInteger("accountId")).isNotNull();
+                assertThat(jsonObject.getString("name")).isEqualTo(NAME);
+                assertThat(jsonObject.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
             });
-            eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncExistingAccountId -> {
+            eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncExistingAccount -> {
                 vertxTestContext.verify(() -> {
-                    assertThat(asyncExistingAccountId.succeeded()).isTrue();
-                    assertThat(asyncExistingAccountId.result().body()).isEqualTo(asyncNewAccountId.result().body());
+                    assertThat(asyncExistingAccount.succeeded()).isTrue();
+                    assertThat(asyncExistingAccount.result().body()).isEqualTo(newAccount);
                 });
                 vertxTestContext.completeNow();
             });

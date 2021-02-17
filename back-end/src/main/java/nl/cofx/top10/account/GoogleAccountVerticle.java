@@ -18,7 +18,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
 
     public static final String GOOGLE_LOGIN_ADDRESS = "google.login.accountId";
 
-    private static final String GET_ACCOUNT_ID_TEMPLATE = "SELECT a.account_id FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
+    private static final String GET_ACCOUNT_TEMPLATE = "SELECT a.account_id, a.name, a.email_address FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
     private static final String UPDATE_STATISTICS_TEMPLATE = "UPDATE account SET last_login_at = NOW(), number_of_logins = number_of_logins + 1 WHERE account_id = ?";
     private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins, external_id) VALUES (?, ?, NOW(), NOW(), 1, ?)";
     private static final String CREATE_GOOGLE_ACCOUNT_TEMPLATE = "INSERT INTO google_account (account_id, google_account_id) VALUES (?, ?)";
@@ -37,34 +37,40 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
     private void handle(Message<JsonObject> googleUserDataMessage) {
         var googleUserData = googleUserDataMessage.body();
         var googleId = googleUserData.getString("id");
-        getAccountId(googleId).onComplete(asyncAccountId -> {
-            if (asyncAccountId.failed()) {
-                log.error("Unable to retrieve account ID for Google ID \"{}\"", googleId, asyncAccountId.cause());
-                googleUserDataMessage.fail(500, "Unable to retrieve account ID");
+        getAccount(googleId).onComplete(asyncAccount -> {
+            if (asyncAccount.failed()) {
+                log.error("Unable to retrieve account for Google ID \"{}\"", googleId, asyncAccount.cause());
+                googleUserDataMessage.fail(500, "Unable to retrieve account");
                 return;
             }
 
-            var accountId = asyncAccountId.result();
-            if (accountId != null) {
-                log.debug("Retrieved account ID for Google ID");
-                updateStatisticsForAccount(accountId).onComplete(asyncUpdate -> {
+            var account = asyncAccount.result();
+            if (account != null) {
+                log.debug("Retrieved account for Google ID");
+                updateStatisticsForAccount(account.getInteger("accountId")).onComplete(asyncUpdate -> {
                     if (asyncUpdate.failed()) {
-                        log.error("Unable to update login statistics for account \"{}\"", accountId, asyncUpdate.cause());
+                        log.error("Unable to update login statistics for account \"{}\"", account, asyncUpdate.cause());
                     } else {
                         log.debug("Updated login statistics for account");
                     }
-                    googleUserDataMessage.reply(accountId);
+                    googleUserDataMessage.reply(account);
                 });
                 return;
             }
 
             log.debug("Creating account linked with Google ID");
+            var name = googleUserData.getString("name");
+            var emailAddress = googleUserData.getString("emailAddress");
             withTransaction(connection ->
-                    createAccount(connection, googleUserData.getString("name"), googleUserData.getString("emailAddress")).compose(newAccountId ->
+                    createAccount(connection, name, emailAddress).compose(newAccountId ->
                             linkAccountWithGoogleId(connection, newAccountId, googleUserData.getString("id")))
             ).onSuccess(newAccountId -> {
                 log.debug("Created account linked with Google ID");
-                googleUserDataMessage.reply(newAccountId);
+                var newAccount = new JsonObject()
+                        .put("accountId", newAccountId)
+                        .put("name", name)
+                        .put("emailAddress", emailAddress);
+                googleUserDataMessage.reply(newAccount);
             }).onFailure(cause -> {
                 var errorMessage = "Unable to create account linked with Google ID";
                 log.error(errorMessage, cause);
@@ -73,28 +79,31 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
         });
     }
 
-    private Future<Integer> getAccountId(String googleId) {
-        var promise = Promise.<Integer> promise();
+    private Future<JsonObject> getAccount(String googleId) {
+        var promise = Promise.<JsonObject> promise();
 
         var params = new JsonArray().add(googleId);
-        sqlClient.querySingleWithParams(GET_ACCOUNT_ID_TEMPLATE, params, asyncResult -> {
+        sqlClient.querySingleWithParams(GET_ACCOUNT_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();
-                log.error("Unable to execute query \"{}\"", GET_ACCOUNT_ID_TEMPLATE, cause);
+                log.error("Unable to execute query \"{}\"", GET_ACCOUNT_TEMPLATE, cause);
                 promise.fail(asyncResult.cause());
                 return;
             }
 
             var result = asyncResult.result();
             if (result == null) {
-                log.debug("Query \"{}\" produced no result", GET_ACCOUNT_ID_TEMPLATE);
+                log.debug("Query \"{}\" produced no result", GET_ACCOUNT_TEMPLATE);
                 promise.complete(null);
                 return;
             }
 
-            var accountId = asyncResult.result().getInteger(0);
-            log.debug("Query \"{}\" produced result \"{}\"", GET_ACCOUNT_ID_TEMPLATE, accountId);
-            promise.complete(accountId);
+            var account = new JsonObject()
+                    .put("accountId", result.getInteger(0))
+                    .put("name", result.getString(1))
+                    .put("emailAddress", result.getString(2));
+            log.debug("Query \"{}\" produced result \"{}\"", GET_ACCOUNT_TEMPLATE, account);
+            promise.complete(account);
         });
 
         return promise.future();

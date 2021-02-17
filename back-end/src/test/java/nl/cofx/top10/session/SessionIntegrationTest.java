@@ -31,6 +31,8 @@ import nl.cofx.top10.http.*;
 public class SessionIntegrationTest {
 
     private static final String CSRF_TOKEN_HEADER_NAME = "x-csrf-token";
+    private static final String NAME = "Jane Doe";
+    private static final String EMAIL_ADDRESS = "jane.doe@example.org";
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
     private final TestConfig config = new TestConfig();
@@ -88,8 +90,8 @@ public class SessionIntegrationTest {
     public void handlesLogin() throws GeneralSecurityException, IOException, InterruptedException {
         var payload = mock(GoogleIdToken.Payload.class);
         when(payload.getSubject()).thenReturn("googleId");
-        when(payload.getEmail()).thenReturn("jane.doe@example.org");
-        when(payload.get("name")).thenReturn("Jane Doe");
+        when(payload.getEmail()).thenReturn(EMAIL_ADDRESS);
+        when(payload.get("name")).thenReturn(NAME);
         var googleIdToken = mock(GoogleIdToken.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
         var validGoogleIdToken = "validGoogleIdToken";
@@ -139,13 +141,19 @@ public class SessionIntegrationTest {
         var logInResponse = httpClient.send(logInRequest, new JsonObjectBodyHandler());
 
         assertThat(logInResponse.statusCode()).isEqualTo(200);
-        assertThat(logInResponse.body().getString("status")).isEqualTo("SESSION_CREATED");
-        var accessToken = logInResponse.body().getString("token");
+        var body = logInResponse.body();
+        assertThat(body.getString("status")).isEqualTo("SESSION_CREATED");
+        var accessToken = body.getString("token");
         assertThat(accessToken).isNotBlank();
+        assertThat(body.getString("name")).isEqualTo(NAME);
+        assertThat(body.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
 
         getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
 
-        assertThat(getStatusResponse.body().getString("status")).isEqualTo("VALID_SESSION");
+        body = getStatusResponse.body();
+        assertThat(body.getString("status")).isEqualTo("VALID_SESSION");
+        assertThat(body.getString("name")).isEqualTo(NAME);
+        assertThat(body.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
 
         allQuizzesRequest = HttpRequest.newBuilder()
                 .GET()

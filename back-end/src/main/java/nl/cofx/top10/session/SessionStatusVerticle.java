@@ -66,10 +66,15 @@ public class SessionStatusVerticle extends AbstractVerticle {
 
         log.debug("Extending expiration date of session cookie");
 
-        var subject = jws.getBody().getSubject();
+        var body = jws.getBody();
+        var subject = body.getSubject();
+        var name = (String) body.get("name");
+        var emailAddress = (String) body.get("emailAddress");
         var jwt = Jwts.builder()
                 .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
                 .setSubject(subject)
+                .claim("name", name)
+                .claim("emailAddress", emailAddress)
                 .signWith(secretKey, SignatureAlgorithm.HS512)
                 .compact();
 
@@ -81,13 +86,15 @@ public class SessionStatusVerticle extends AbstractVerticle {
         log.debug("Setting new session cookie");
 
         response.addCookie(newCookie);
-        response.end(validSession(jwt));
+        response.end(validSession(jwt, name, emailAddress));
     }
 
-    private Buffer validSession(String token) {
+    private Buffer validSession(String token, String name, String emailAddress) {
         return new JsonObject()
                 .put("status", "VALID_SESSION")
                 .put("token", token)
+                .put("name", name)
+                .put("emailAddress", emailAddress)
                 .toBuffer();
     }
 }

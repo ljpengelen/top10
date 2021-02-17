@@ -23,6 +23,8 @@ import nl.cofx.top10.jwt.Jwt;
 class JwtSessionHandlerTest {
 
     private static final int ACCOUNT_ID = 1234;
+    private static final String NAME = "Jeff Doe";
+    private static final String EMAIL_ADDRESS = "jeff.doe@example.com";
 
     private static final String ENCODED_SECRET_KEY = "FsJtRGG84NM7BNewGo5AXvg6GJ1DKedDJjkirpDEAOtVgdi6j3f+THdeEika6v3dB8N4DO0fywkd+JK2A5eKLQ==";
     private static final SecretKey SECRET_KEY = Keys.hmacShaKeyFor(Decoders.BASE64.decode(ENCODED_SECRET_KEY));
@@ -73,12 +75,17 @@ class JwtSessionHandlerTest {
     public void setsUserGivenValidToken() {
         var token = Jwts.builder()
                 .setSubject(String.valueOf(ACCOUNT_ID))
+                .claim("name", NAME)
+                .claim("emailAddress", EMAIL_ADDRESS)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
                 .compact();
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         jwtSessionHandler.handle(routingContext);
 
         verify(routingContext).next();
-        verify(routingContext).setUser(User.create(new JsonObject().put("accountId", ACCOUNT_ID)));
+        verify(routingContext).setUser(User.create(new JsonObject()
+                .put("accountId", ACCOUNT_ID)
+                .put("name", NAME)
+                .put("emailAddress", EMAIL_ADDRESS)));
     }
 }

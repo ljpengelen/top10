@@ -30,6 +30,8 @@ class SessionVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/logIn";
     private static final int INTERNAL_ID = 1234;
+    private static final String NAME = "John Doe";
+    private static final String EMAIL_ADDRESS = "john.doe@example.com";
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
 
@@ -133,7 +135,11 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var validTokenString = "validTokenString";
         when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
 
-        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(INTERNAL_ID));
+        vertx.eventBus().consumer("google.login.accountId", message ->
+                message.reply(new JsonObject()
+                        .put("accountId", INTERNAL_ID)
+                        .put("name", NAME)
+                        .put("emailAddress", EMAIL_ADDRESS)));
 
         var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
@@ -154,6 +160,8 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var body = claims.getBody();
         assertThat(body).isNotNull();
         assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
+        assertThat(body.get("name")).isEqualTo(NAME);
+        assertThat(body.get("emailAddress")).isEqualTo(EMAIL_ADDRESS);
     }
 
     @Test
@@ -168,7 +176,11 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var validTokenString = "validTokenString";
         when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
 
-        vertx.eventBus().consumer("google.login.accountId", message -> message.reply(INTERNAL_ID));
+        vertx.eventBus().consumer("google.login.accountId", message ->
+                message.reply(new JsonObject()
+                        .put("accountId", INTERNAL_ID)
+                        .put("name", NAME)
+                        .put("emailAddress", EMAIL_ADDRESS)));
 
         var httpClient = HttpClient.newHttpClient();
         var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
@@ -188,5 +200,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var body = claims.getBody();
         assertThat(body).isNotNull();
         assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
+        assertThat(body.get("name")).isEqualTo(NAME);
+        assertThat(body.get("emailAddress")).isEqualTo(EMAIL_ADDRESS);
     }
 }
