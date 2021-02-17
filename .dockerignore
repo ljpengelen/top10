@@ -1,6 +1,7 @@
 .git
 **/.clj-kondo/.cache
 **/.idea
+**/.lsp
 **/.mvn
 **/.shadow-cljs
 **/node_modules
