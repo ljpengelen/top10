@@ -1,7 +1,7 @@
 (ns top10.db)
 
 (def default-db
-  {:active-page :home-page
+  {:active-page :blank
    :logged-in false
    :quizzes []
    :quiz-lists []
