@@ -121,3 +121,18 @@
  ::dialog-title
  (fn [db _]
    (get-in db [:dialog :title])))
+
+(rf/reg-sub
+ ::loading-quizzes?
+ (fn [db _]
+   (:loading-quizzes? db)))
+
+(rf/reg-sub
+ ::loading-quiz?
+ (fn [db _]
+   (:loading-quiz? db)))
+
+(rf/reg-sub
+ ::loading-quiz-results?
+ (fn [db _]
+   (:loading-quiz-results? db)))

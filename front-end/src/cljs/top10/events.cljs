@@ -191,7 +191,7 @@
  ::get-quiz-succeeded
  (fn [db [_ response]]
    (let [quiz (:body response)]
-     (assoc db :quiz quiz))))
+     (assoc db :quiz quiz :loading-quiz? false))))
 
 (rf/reg-event-db
  ::get-quiz-lists-succeeded
@@ -224,8 +224,9 @@
 (rf/reg-event-fx
  ::get-quiz
  [(rf/inject-cofx :access-token)]
- (fn [{:keys [access-token]} [_ quiz-id]]
-   {:http-xhrio [{:method :get
+ (fn [{:keys [access-token db]} [_ quiz-id]]
+   {:db (assoc db :loading-quiz? true)
+    :http-xhrio [{:method :get
                   :uri (str api-base-url "/public/quiz/" quiz-id)
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)
@@ -261,13 +262,14 @@
  ::get-quizzes-succeeded
  (fn [db [_ response]]
    (let [quizzes (:body response)]
-     (assoc db :quizzes quizzes))))
+     (assoc db :quizzes quizzes :loading-quizzes? false))))
 
 (rf/reg-event-fx
  ::get-quizzes
  [(rf/inject-cofx :access-token)]
- (fn [{:keys [access-token]} _]
-   {:http-xhrio {:method :get
+ (fn [{:keys [access-token db]} _]
+   {:db (assoc db :loading-quizzes? true)
+    :http-xhrio {:method :get
                  :uri (str api-base-url "/private/quiz/")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
@@ -430,13 +432,14 @@
  ::get-quiz-results-succeeded
  (fn [db [_ response]]
    (let [quiz-results (:body response)]
-     (assoc db :quiz-results quiz-results))))
+     (assoc db :quiz-results quiz-results :loading-quiz-results? false))))
 
 (rf/reg-event-fx
  ::get-quiz-results
  [(rf/inject-cofx :access-token)]
- (fn [{:keys [access-token]} [_ quiz-id]]
-   {:http-xhrio [{:method :get
+ (fn [{:keys [access-token db]} [_ quiz-id]]
+   {:db (assoc db :loading-quiz-results? true)
+    :http-xhrio [{:method :get
                   :uri (str api-base-url "/private/quiz/" quiz-id "/result")
                   :headers (authorization-header access-token)
                   :format (ajax/json-request-format)

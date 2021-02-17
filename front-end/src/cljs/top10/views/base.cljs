@@ -1,14 +1,8 @@
 (ns top10.views.base
-  (:require
-   [re-frame.core :as rf]
-   [reagent-material-ui.core.button :refer [button]]
-   [reagent-material-ui.core.dialog :refer [dialog]]
-   [reagent-material-ui.core.dialog-actions :refer [dialog-actions]]
-   [reagent-material-ui.core.dialog-content :refer [dialog-content]]
-   [reagent-material-ui.core.dialog-content-text :refer [dialog-content-text]]
-   [reagent-material-ui.core.dialog-title :refer [dialog-title]]
-   [top10.events :as events]
-   [top10.subs :as subs]))
+  (:require [re-frame.core :as rf]
+            [reagent-material-ui.components :refer [button dialog dialog-actions dialog-content dialog-content-text dialog-title]]
+            [top10.events :as events]
+            [top10.subs :as subs]))
 
 (defn back-to-overview-button []
   [button {:href "#/quizzes"} "Show quiz overview"])
