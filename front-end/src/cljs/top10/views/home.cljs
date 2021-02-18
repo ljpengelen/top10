@@ -45,4 +45,4 @@
           [button {:color "primary"
                    :variant "contained"
                    :on-click #(rf/dispatch [::events/log-in "/quizzes"])}
-           "Log in"]])]]]))
+           "Log in with Google"]])]]]))

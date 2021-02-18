@@ -17,7 +17,7 @@
         [button {:color "primary"
                  :variant "contained"
                  :on-click #(rf/dispatch [::events/log-in])}
-         "Log in"]]
+         "Log in with Google"]]
        [:<>
         [:h1 name]
         (cond
