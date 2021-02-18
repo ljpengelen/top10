@@ -13,7 +13,7 @@
  ::initialize
  (fn [_ _]
    {:db db/default-db
-    :async-flow {:first-dispatch [::check-status]
+    :async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
                           :dispatch [::enable-browser-navigation]
@@ -62,7 +62,7 @@
  (fn [_ _]))
 
 (rf/reg-event-fx
- ::check-status
+ ::check-session
  (fn [_ _]
    {:http-xhrio {:method :get
                  :uri (str api-base-url "/session/status")
@@ -117,7 +117,7 @@
 (rf/reg-event-fx
  ::log-in
  (fn [_ [_ redirect-url]]
-   {:async-flow {:first-dispatch [::check-status]
+   {:async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
                           :dispatch [::log-in-with-google]}
@@ -175,7 +175,7 @@
 (rf/reg-event-fx
  ::log-out
  (fn [_ _]
-   {:async-flow {:first-dispatch [::check-status]
+   {:async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
                           :dispatch-n [[::log-out-with-google] [::log-out-with-backend]]}
