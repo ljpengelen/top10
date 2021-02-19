@@ -10,13 +10,46 @@
    {:enable-browser-navigation nil}))
 
 (rf/reg-event-fx
+ ::google-init-finished
+ (fn [_ _]))
+
+(rf/reg-event-fx
+ ::google-init
+ (fn [_ _]
+   {:google-init {:on-success [::google-init-finished]
+                  :on-failure [::google-init-finished]}}))
+
+(rf/reg-event-fx
+ ::google-status-logged-in
+ (fn [_ [_ _]]))
+
+(rf/reg-event-fx
+ ::google-status-logged-out
+ (fn [_ _]))
+
+(rf/reg-event-fx
+ ::google-status-check
+ (fn [_ _]
+   {:google-status-check {:logged-in ::google-status-logged-in
+                          :logged-out ::google-status-logged-out}}))
+
+(rf/reg-event-fx
  ::initialize
  (fn [_ _]
    {:db db/default-db
     :async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
-                          :dispatch [::enable-browser-navigation]
+                          :dispatch-n [[::google-init] [::enable-browser-navigation]]}
+                         {:when :seen?
+                          :events ::google-init-finished
+                          :dispatch [::google-status-check]}
+                         {:when :seen?
+                          :events ::google-status-logged-out
+                          :halt? true}
+                         {:when :seen?
+                          :events ::google-status-logged-in
+                          :dispatch-fn (fn [[_ id-token]] [[::log-in-with-back-end id-token]])
                           :halt? true}]}}))
 
 (rf/reg-event-fx

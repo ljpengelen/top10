@@ -13,35 +13,6 @@
     </noscript>
     <div id="app"></div>
     <script src="https://apis.google.com/js/platform.js"></script>
-    <script>
-      gapi.load('auth2', function () {
-        gapi.auth2.init().then(function () {}, function () {
-          console.error("Initialization of auth2 failed");
-        });
-      });
-
-      function getIdToken(googleUser) {
-        return googleUser.getAuthResponse().id_token;
-      }
-
-      function signIn(success, failure) {
-        var googleAuth = gapi.auth2.getAuthInstance();
-
-        if (googleAuth.isSignedIn.get()) {
-          success(getIdToken(googleAuth.currentUser.get()));
-          return;
-        }
-
-        googleAuth.signIn().then(function (googleUser) {
-          success(getIdToken(googleUser));
-        }, failure);
-      }
-
-      function signOut(success, failure) {
-        var googleAuth = gapi.auth2.getAuthInstance();
-        googleAuth.signOut().then(success, failure);
-      }
-    </script>
     <script src="js/compiled/app.js"></script>
   </body>
 </html>

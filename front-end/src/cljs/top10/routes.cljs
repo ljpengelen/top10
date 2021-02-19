@@ -1,11 +1,10 @@
 (ns top10.routes
   (:require-macros [secretary.core :refer [defroute]])
   (:import [goog.history EventType Html5History])
-  (:require
-   [secretary.core :as secretary]
-   [goog.events :as gevents]
-   [re-frame.core :as rf]
-   [top10.events :as events]))
+  (:require [goog.events :as gevents]
+            [re-frame.core :as rf]
+            [secretary.core :as secretary]
+            [top10.events :as events]))
 
 (def history (Html5History.))
 
@@ -29,4 +28,5 @@
   (defroute "/list/:id/personal" [id] (rf/dispatch [::events/set-active-page {:page :personal-list-page :list-id id}]))
   (defroute "/quiz/:quiz-id/list/:list-id/assign" [quiz-id list-id]
     (rf/dispatch [::events/set-active-page {:page :assign-list-page :quiz-id quiz-id :list-id list-id}]))
+  (defroute "*" {* :*} (rf/dispatch [::events/set-active-page {:page :home-page}]))
   (set-up-browser-navigation!))
