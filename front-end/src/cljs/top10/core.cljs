@@ -22,6 +22,6 @@
 
 (defn init []
   (dev-setup)
-  (routes/app-routes)
+  (routes/configure-routes)
   (rf/dispatch-sync [::events/initialize])
   (mount-root))

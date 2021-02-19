@@ -12,7 +12,7 @@
                                      :path-exists? secretary/locate-route})
   (accountant/dispatch-current!))
 
-(defn app-routes []
+(defn configure-routes []
   (defroute "/" [] (rf/dispatch [::events/set-active-page {:page :home-page}]))
   (defroute "/oauth2" {{:keys [code state]} :query-params} (rf/dispatch [::events/log-in code state]))
   (defroute "/quizzes" [] (rf/dispatch [::events/set-active-page {:page :quizzes-page}]))
