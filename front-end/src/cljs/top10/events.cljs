@@ -292,7 +292,7 @@
                  :params {:name name :deadline deadline}
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
-                 :on-success [::redirect "quizzes"]
+                 :on-success [::redirect "/quizzes"]
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-db
