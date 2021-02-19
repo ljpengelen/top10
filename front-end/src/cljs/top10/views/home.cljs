@@ -1,7 +1,6 @@
 (ns top10.views.home
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.core.button :refer [button]]
-            [reagent-material-ui.core.grid :refer [grid]]
+            [reagent-material-ui.components :refer [button grid]]
             [top10.events :as events]
             [top10.subs :as subs]))
 
@@ -39,7 +38,7 @@
           [grid {:item true}
            [button {:color "primary"
                     :variant "contained"
-                    :href "#/quizzes"}
+                    :href "/quizzes"}
             "Go to quiz overview"]]]
          [grid {:item true}
           [button {:color "primary"

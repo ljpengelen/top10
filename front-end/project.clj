@@ -11,6 +11,7 @@
                  [day8.re-frame/async-flow-fx "0.1.0"]
                  [day8.re-frame/http-fx "0.2.1"]
                  [clj-commons/secretary "1.2.4"]
+                 [venantius/accountant "0.2.5"]
                  [garden "1.3.10"]
                  [ns-tracker "0.4.0"]]
 

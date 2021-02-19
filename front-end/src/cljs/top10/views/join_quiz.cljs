@@ -44,7 +44,7 @@
           :else
           [:<>
            [:p "It looks like you've already joined this quiz."]
-           [button {:href (str "#/quiz/" externalId) :color "primary" :variant "contained"} "View quiz"]])])))
+           [button {:href (str "/quiz/" externalId) :color "primary" :variant "contained"} "View quiz"]])])))
 
 (defn join-quiz-page-container []
   [join-quiz-page @(rf/subscribe [::subs/loading-quiz?]) @(rf/subscribe [::subs/logged-in?]) @(rf/subscribe [::subs/quiz])])

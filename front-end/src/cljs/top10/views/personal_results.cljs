@@ -1,17 +1,8 @@
 (ns top10.views.personal-results
-  (:require
-   [reagent-material-ui.core.button :refer [button]]
-   [reagent-material-ui.core.grid :refer [grid]]
-   [reagent-material-ui.core.link :refer [link]]
-   [reagent-material-ui.core.table :refer [table]]
-   [reagent-material-ui.core.table-body :refer [table-body]]
-   [reagent-material-ui.core.table-cell :refer [table-cell]]
-   [reagent-material-ui.core.table-container :refer [table-container]]
-   [reagent-material-ui.core.table-head :refer [table-head]]
-   [reagent-material-ui.core.table-row :refer [table-row]]
-   [re-frame.core :as rf]
-   [top10.events :as events]
-   [top10.subs :as subs]))
+  (:require [re-frame.core :as rf]
+            [reagent-material-ui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
+            [top10.events :as events]
+            [top10.subs :as subs]))
 
 (defn personal-results-page [{:keys [name correctAssignments incorrectAssignments]}]
   [:div
@@ -33,7 +24,7 @@
            [table-cell "✅"]
            [table-cell assigneeName]
            [table-cell assigneeName]
-           [table-cell [link {:href (str "#/list/" listId) :color "primary"} "Show top 10"]]])
+           [table-cell [link {:href (str "/list/" listId) :color "primary"} "Show top 10"]]])
         (for [{:keys [listId assigneeName creatorName]} incorrectAssignments]
           ^{:key listId}
           [table-row

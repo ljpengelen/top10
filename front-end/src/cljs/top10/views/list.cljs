@@ -1,9 +1,7 @@
 (ns top10.views.list
-  (:require
-   [reagent-material-ui.core.button :refer [button]]
-   [reagent-material-ui.core.grid :refer [grid]]
-   [re-frame.core :as rf]
-   [top10.subs :as subs]))
+  (:require [re-frame.core :as rf]
+            [reagent-material-ui.components :refer [button grid]]
+            [top10.subs :as subs]))
 
 (defn list-page [quiz-id creator-name has-draft-status? videos]
   [:<>
@@ -19,7 +17,7 @@
                    :frameBorder "0"
                    :src (:url video)}]]))
     [grid {:item true}
-     [button {:href (str "#/quiz/" quiz-id "/results")} "Back to quiz results"]]]])
+     [button {:href (str "/quiz/" quiz-id "/results")} "Back to quiz results"]]]])
 
 (defn list-page-container []
   [list-page

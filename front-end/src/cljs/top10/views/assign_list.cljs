@@ -1,8 +1,7 @@
 (ns top10.views.assign-list
   (:require ["@material-ui/core" :refer [TextField]]
             [re-frame.core :as rf]
-            [reagent-material-ui.core.button :refer [button]]
-            [reagent-material-ui.core.grid :refer [grid]]
+            [reagent-material-ui.components :refer [button grid]]
             [reagent-material-ui.lab.autocomplete :refer [autocomplete]]
             [reagent.core :as r]
             [top10.events :as events]
@@ -42,7 +41,7 @@
                        :type "submit"
                        :variant "contained"} "Assign"]]
              [grid {:item true}
-              [button {:href (str "#/quiz/" quiz-id)} "Back to quiz"]]]]]]]]])))
+              [button {:href (str "/quiz/" quiz-id)} "Back to quiz"]]]]]]]]])))
 
 (defn assign-list-page-container []
   [assign-list-page

@@ -5,7 +5,7 @@
             [top10.subs :as subs]))
 
 (defn back-to-overview-button []
-  [button {:href "#/quizzes"} "Show quiz overview"])
+  [button {:href "/quizzes"} "Show quiz overview"])
 
 (defn event-value [^js/Event e] (.. e -target -value))
 
