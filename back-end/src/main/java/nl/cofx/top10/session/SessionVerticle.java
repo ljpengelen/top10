@@ -9,8 +9,6 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.AbstractVerticle;
@@ -29,7 +27,7 @@ import nl.cofx.top10.*;
 @RequiredArgsConstructor
 public class SessionVerticle extends AbstractVerticle {
 
-    private final GoogleIdTokenVerifier googleIdTokenVerifier;
+    private final GoogleOauth2 googleOauth2;
     private final Router router;
     private final SecretKey secretKey;
 
@@ -55,7 +53,7 @@ public class SessionVerticle extends AbstractVerticle {
             throw new ValidationException(String.format("Invalid login type \"%s\"", loginType));
         }
 
-        var googleUserData = getGoogleUserData(requestBody.getString("token"));
+        var googleUserData = getGoogleUserData(requestBody.getString("code"));
         vertx.eventBus().request(GOOGLE_LOGIN_ADDRESS, googleUserData, reply -> {
             if (reply.failed()) {
                 var errorMessage = String.format("Unable to retrieve account ID for Google ID \"%s\"", googleUserData.getString("id"));
@@ -97,24 +95,19 @@ public class SessionVerticle extends AbstractVerticle {
                 .end();
     }
 
-    private JsonObject getGoogleUserData(String idTokenString) {
+    private JsonObject getGoogleUserData(String code) {
         log.debug("Verifying Google ID token");
 
-        try {
-            var googleIdToken = googleIdTokenVerifier.verify(idTokenString);
-            if (googleIdToken != null) {
-                log.debug("Valid Google ID token");
-                var payload = googleIdToken.getPayload();
-                return new JsonObject()
-                        .put("name", payload.get("name"))
-                        .put("emailAddress", payload.getEmail())
-                        .put("id", payload.getSubject());
-            } else {
-                throw new InvalidCredentialsException(String.format("Invalid Google ID token: \"%s\"", idTokenString));
-            }
-        } catch (Exception e) {
-            log.warn("Exception occurred while validating Google ID token", e);
-            throw new InvalidCredentialsException(String.format("Unable to verify Google ID token \"%s\"", idTokenString));
+        var googleIdToken = googleOauth2.getIdToken(code);
+        if (googleIdToken != null) {
+            log.debug("Valid Google ID token");
+            var payload = googleIdToken.getPayload();
+            return new JsonObject()
+                    .put("name", payload.get("name"))
+                    .put("emailAddress", payload.getEmail())
+                    .put("id", payload.getSubject());
+        } else {
+            throw new InvalidCredentialsException(String.format("Invalid authorization code: \"%s\"", code));
         }
     }
 

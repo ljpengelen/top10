@@ -8,13 +8,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.security.GeneralSecurityException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -33,7 +31,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
     private static final String NAME = "John Doe";
     private static final String EMAIL_ADDRESS = "john.doe@example.com";
 
-    private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
+    private final GoogleOauth2 googleOauth2 = mock(GoogleOauth2.class);
 
     private int port;
 
@@ -45,7 +43,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
         ErrorHandlers.configure(router);
         server.requestHandler(router);
 
-        vertx.deployVerticle(new SessionVerticle(googleIdTokenVerifier, router, SECRET_KEY), deploymentResult -> {
+        vertx.deployVerticle(new SessionVerticle(googleOauth2, router, SECRET_KEY), deploymentResult -> {
             if (deploymentResult.succeeded()) {
                 server.listen().onComplete(asyncServer -> {
                     if (asyncServer.failed()) {
@@ -90,12 +88,12 @@ class SessionVerticleTest extends AbstractVerticleTest {
     }
 
     @Test
-    public void rejectsRequestWithUnverifiableToken() throws GeneralSecurityException, IOException, InterruptedException {
-        var unverifiableTokenString = "unverifiableTokenString";
-        when(googleIdTokenVerifier.verify(unverifiableTokenString)).thenThrow(new RuntimeException("Unverifiable token"));
+    public void rejectsRequestWithInvalidAuthorizationCode() throws IOException, InterruptedException {
+        var invalidAuthorizationCode = "invalidAuthorizationCode";
+        when(googleOauth2.getIdToken(invalidAuthorizationCode)).thenReturn(null);
 
         var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", unverifiableTokenString);
+        var requestBody = new JsonObject().put("type", "GOOGLE").put("code", invalidAuthorizationCode);
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(requestBody))
                 .uri(URI.create("http://localhost:" + port + PATH))
@@ -103,28 +101,11 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(401);
-        assertThat(response.body().getString("error")).isEqualTo("Unable to verify Google ID token \"unverifiableTokenString\"");
+        assertThat(response.body().getString("error")).isEqualTo("Invalid authorization code: \"invalidAuthorizationCode\"");
     }
 
     @Test
-    public void rejectsRequestWithInvalidToken() throws GeneralSecurityException, IOException, InterruptedException {
-        var invalidTokenString = "invalidTokenString";
-        when(googleIdTokenVerifier.verify(invalidTokenString)).thenReturn(null);
-
-        var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", invalidTokenString);
-        var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(requestBody))
-                .uri(URI.create("http://localhost:" + port + PATH))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
-
-        assertThat(response.statusCode()).isEqualTo(401);
-        assertThat(response.body().getString("error")).isEqualTo("Unable to verify Google ID token \"invalidTokenString\"");
-    }
-
-    @Test
-    public void setsCookieGivenValidGoogleIdToken(Vertx vertx) throws GeneralSecurityException, IOException, InterruptedException {
+    public void setsCookieGivenValidGoogleIdToken(Vertx vertx) throws IOException, InterruptedException {
         var googleIdToken = mock(GoogleIdToken.class);
         var payload = mock(GoogleIdToken.Payload.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
@@ -132,8 +113,8 @@ class SessionVerticleTest extends AbstractVerticleTest {
         when(payload.getEmail()).thenReturn("john.doe@example.com");
         when(payload.get("name")).thenReturn("John Doe");
 
-        var validTokenString = "validTokenString";
-        when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
+        var validAuthorizationCode = "validAuthorizationCode";
+        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
 
         vertx.eventBus().consumer("google.login.accountId", message ->
                 message.reply(new JsonObject()
@@ -142,7 +123,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
                         .put("emailAddress", EMAIL_ADDRESS)));
 
         var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
+        var requestBody = new JsonObject().put("type", "GOOGLE").put("code", validAuthorizationCode);
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(requestBody))
                 .uri(URI.create("http://localhost:" + port + PATH))
@@ -165,7 +146,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
     }
 
     @Test
-    public void returnsAccessTokenGivenValidGoogleIdToken(Vertx vertx) throws GeneralSecurityException, IOException, InterruptedException {
+    public void returnsAccessTokenGivenValidGoogleIdToken(Vertx vertx) throws IOException, InterruptedException {
         var googleIdToken = mock(GoogleIdToken.class);
         var payload = mock(GoogleIdToken.Payload.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
@@ -173,8 +154,8 @@ class SessionVerticleTest extends AbstractVerticleTest {
         when(payload.getEmail()).thenReturn("john.doe@example.com");
         when(payload.get("name")).thenReturn("John Doe");
 
-        var validTokenString = "validTokenString";
-        when(googleIdTokenVerifier.verify(validTokenString)).thenReturn(googleIdToken);
+        var validAuthorizationCode = "validAuthorizationCode";
+        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
 
         vertx.eventBus().consumer("google.login.accountId", message ->
                 message.reply(new JsonObject()
@@ -183,7 +164,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
                         .put("emailAddress", EMAIL_ADDRESS)));
 
         var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("token", validTokenString);
+        var requestBody = new JsonObject().put("type", "GOOGLE").put("code", validAuthorizationCode);
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(requestBody))
                 .uri(URI.create("http://localhost:" + port + PATH))

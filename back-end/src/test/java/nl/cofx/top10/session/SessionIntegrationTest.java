@@ -17,7 +17,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -34,7 +33,7 @@ public class SessionIntegrationTest {
     private static final String NAME = "Jane Doe";
     private static final String EMAIL_ADDRESS = "jane.doe@example.org";
 
-    private final GoogleIdTokenVerifier googleIdTokenVerifier = mock(GoogleIdTokenVerifier.class);
+    private final GoogleOauth2 googleOauth2 = mock(GoogleOauth2.class);
     private final TestConfig config = new TestConfig();
 
     @BeforeEach
@@ -51,7 +50,7 @@ public class SessionIntegrationTest {
 
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
-        var application = new Application(config, googleIdTokenVerifier, vertx);
+        var application = new Application(config, googleOauth2, vertx);
         application.start().onComplete(vertxTestContext.succeedingThenComplete());
     }
 
@@ -87,15 +86,15 @@ public class SessionIntegrationTest {
     }
 
     @Test
-    public void handlesLogin() throws GeneralSecurityException, IOException, InterruptedException {
+    public void handlesLogin() throws IOException, InterruptedException {
         var payload = mock(GoogleIdToken.Payload.class);
         when(payload.getSubject()).thenReturn("googleId");
         when(payload.getEmail()).thenReturn(EMAIL_ADDRESS);
         when(payload.get("name")).thenReturn(NAME);
         var googleIdToken = mock(GoogleIdToken.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
-        var validGoogleIdToken = "validGoogleIdToken";
-        when(googleIdTokenVerifier.verify(validGoogleIdToken)).thenReturn(googleIdToken);
+        var validAuthorizationCode = "validGoogleAuthorizationCode";
+        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
 
         var httpClient = HttpClient.newBuilder()
                 .cookieHandler(CookieHandler.getDefault())
@@ -133,7 +132,7 @@ public class SessionIntegrationTest {
         var logInRequest = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject()
                         .put("type", "GOOGLE")
-                        .put("token", validGoogleIdToken)))
+                        .put("code", validAuthorizationCode)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
                 .header(CSRF_TOKEN_HEADER_NAME, csrfToken)
@@ -166,15 +165,15 @@ public class SessionIntegrationTest {
     }
 
     @Test
-    public void handlesLogout() throws GeneralSecurityException, IOException, InterruptedException {
+    public void handlesLogout() throws IOException, InterruptedException {
         var payload = mock(GoogleIdToken.Payload.class);
         when(payload.getSubject()).thenReturn("googleId");
         when(payload.getEmail()).thenReturn("jane.doe@example.org");
         when(payload.get("name")).thenReturn("Jane Doe");
         var googleIdToken = mock(GoogleIdToken.class);
         when(googleIdToken.getPayload()).thenReturn(payload);
-        var validGoogleIdToken = "validGoogleIdToken";
-        when(googleIdTokenVerifier.verify(validGoogleIdToken)).thenReturn(googleIdToken);
+        var validAuthorizationCode = "validAuthorizationCode";
+        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
 
         var httpClient = HttpClient.newBuilder()
                 .cookieHandler(CookieHandler.getDefault())
@@ -193,7 +192,7 @@ public class SessionIntegrationTest {
         var logInRequest = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject()
                         .put("type", "GOOGLE")
-                        .put("token", validGoogleIdToken)))
+                        .put("code", validAuthorizationCode)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
                 .header(CSRF_TOKEN_HEADER_NAME, csrfToken)

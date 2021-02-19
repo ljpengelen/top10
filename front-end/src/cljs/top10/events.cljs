@@ -10,46 +10,13 @@
    {:enable-browser-navigation nil}))
 
 (rf/reg-event-fx
- ::google-init-finished
- (fn [_ _]))
-
-(rf/reg-event-fx
- ::google-init
- (fn [_ _]
-   {:google-init {:on-success [::google-init-finished]
-                  :on-failure [::google-init-finished]}}))
-
-(rf/reg-event-fx
- ::google-status-logged-in
- (fn [_ [_ _]]))
-
-(rf/reg-event-fx
- ::google-status-logged-out
- (fn [_ _]))
-
-(rf/reg-event-fx
- ::google-status-check
- (fn [_ _]
-   {:google-status-check {:logged-in ::google-status-logged-in
-                          :logged-out ::google-status-logged-out}}))
-
-(rf/reg-event-fx
  ::initialize
  (fn [_ _]
    {:db db/default-db
     :async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
-                          :dispatch-n [[::google-init] [::enable-browser-navigation]]}
-                         {:when :seen?
-                          :events ::google-init-finished
-                          :dispatch [::google-status-check]}
-                         {:when :seen?
-                          :events ::google-status-logged-out
-                          :halt? true}
-                         {:when :seen?
-                          :events ::google-status-logged-in
-                          :dispatch-fn (fn [[_ id-token]] [[::log-in-with-back-end id-token]])
+                          :dispatch [::enable-browser-navigation]
                           :halt? true}]}}))
 
 (rf/reg-event-fx
@@ -122,11 +89,11 @@
 (rf/reg-event-fx
  ::log-in-with-back-end
  [(rf/inject-cofx :csrf-token)]
- (fn [{:keys [csrf-token]} [_ id-token]]
+ (fn [{:keys [csrf-token]} [_ code]]
    {:http-xhrio {:method :post
                  :uri (str api-base-url "/session/logIn")
                  :headers {csrf-token-header csrf-token}
-                 :params {:token id-token :type "GOOGLE"}
+                 :params {:code code :type "GOOGLE"}
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
                  :with-credentials true
@@ -134,36 +101,19 @@
                  :on-failure [::log-in-with-back-end-failed]}}))
 
 (rf/reg-event-fx
- ::log-in-with-google-succeeded
- (fn [_ _]))
-
-(rf/reg-event-fx
- ::log-in-with-google-failed
- (fn [_ _]))
-
-(rf/reg-event-fx
- ::log-in-with-google
- (fn [_ _]
-   {:log-in-with-google {:on-success [::log-in-with-google-succeeded]
-                         :on-failure [::log-in-with-google-failed]}}))
-
-(rf/reg-event-fx
  ::log-in
- (fn [_ [_ redirect-url]]
+ (fn [_ [_ code redirect-url]]
    {:async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
-                          :dispatch [::log-in-with-google]}
-                         {:when :seen?
-                          :events ::log-in-with-google-succeeded
-                          :dispatch-fn (fn [[_ id-token]] [[::log-in-with-back-end id-token]])}
+                          :dispatch [::log-in-with-back-end code]}
                          {:when :seen?
                           :events ::log-in-with-back-end-succeeded
                           :dispatch (when redirect-url [::redirect redirect-url])
                           :halt? true}
                          {:when :seen-any-of?
-                          :events [::session-check-failed ::log-in-with-google-failed ::log-in-with-back-end-failed]
-                          :dispatch [::request-failed]
+                          :events [::session-check-failed ::log-in-with-back-end-failed]
+                          :dispatch-n [[::request-failed] [::redirect "/"]]
                           :halt? true}]}}))
 
 (rf/reg-event-fx
@@ -192,31 +142,17 @@
                  :on-failure [::log-out-with-back-end-failed]}}))
 
 (rf/reg-event-fx
- ::log-out-with-google-succeeded
- (fn [_ _]))
-
-(rf/reg-event-fx
- ::log-out-with-google-failed
- (fn [_ _]))
-
-(rf/reg-event-fx
- ::log-out-with-google
- (fn [_ _]
-   {:log-out-with-google {:on-success [::log-out-with-google-succeeded]
-                          :on-failure [::log-out-with-google-failed]}}))
-
-(rf/reg-event-fx
  ::log-out
  (fn [_ _]
    {:async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
-                          :dispatch-n [[::log-out-with-google] [::log-out-with-backend]]}
+                          :dispatch [::log-out-with-backend]}
                          {:when :seen-all-of?
-                          :events [::session-check-succeeded ::log-out-with-google-succeeded ::log-out-with-back-end-succeeded]
+                          :events [::session-check-succeeded ::log-out-with-back-end-succeeded]
                           :halt? true}
                          {:when :seen-any-of?
-                          :events [::session-check-failed ::log-out-with-google-failed ::log-out-with-back-end-failed]
+                          :events [::session-check-failed ::log-out-with-back-end-failed]
                           :dispatch [::request-failed]
                           :halt? true}]}}))
 

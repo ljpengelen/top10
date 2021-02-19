@@ -3,17 +3,13 @@ package nl.cofx.top10;
 import static nl.cofx.top10.session.JwtSessionHandler.AUTHORIZATION_HEADER_NAME;
 import static nl.cofx.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
 
-import java.util.*;
-
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import java.util.List;
+import java.util.Set;
 
 import io.vertx.core.*;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.account.GoogleAccountVerticle;
 import nl.cofx.top10.config.Config;
@@ -32,25 +28,16 @@ import nl.cofx.top10.session.csrf.CsrfTokenHandler;
 public class Application {
 
     private final Config config;
-    private final GoogleIdTokenVerifier googleIdTokenVerifier;
+    private final GoogleOauth2 googleOauth2;
     private final Vertx vertx;
 
     public Application(Config config, Vertx vertx) {
-        this(config, createGoogleIdTokenVerifier(config), vertx);
+        this(config, new GoogleOauth2(config), vertx);
     }
 
-    @SneakyThrows
-    private static GoogleIdTokenVerifier createGoogleIdTokenVerifier(Config config) {
-        var httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        var jsonFactory = new JacksonFactory();
-        return new GoogleIdTokenVerifier.Builder(httpTransport, jsonFactory)
-                .setAudience(Collections.singletonList(config.getGoogleOauth2ClientId()))
-                .build();
-    }
-
-    public Application(Config config, GoogleIdTokenVerifier googleIdTokenVerifier, Vertx vertx) {
+    public Application(Config config, GoogleOauth2 googleOauth2, Vertx vertx) {
         this.config = config;
-        this.googleIdTokenVerifier = googleIdTokenVerifier;
+        this.googleOauth2 = googleOauth2;
         this.vertx = vertx;
     }
 
@@ -88,7 +75,7 @@ public class Application {
                         CompositeFuture.all(List.of(
                                 deploy(new HeartbeatVerticle()),
                                 deploy(new GoogleAccountVerticle(jdbcOptions)),
-                                deploy(new SessionVerticle(googleIdTokenVerifier, router, jwtSecretKey)),
+                                deploy(new SessionVerticle(googleOauth2, router, jwtSecretKey)),
                                 deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey)),
                                 deploy(new QuizHttpVerticle(router)),
                                 deploy(new QuizEntityVerticle(jdbcOptions)),

@@ -3,7 +3,7 @@
             [reagent-material-ui.core.button :refer [button]]
             [top10.events :as events]
             [top10.subs :as subs]
-            [top10.views.base :refer [back-to-overview-button]]))
+            [top10.views.base :refer [back-to-overview-button log-in-url]]))
 
 (defn join-quiz-page [loading-quiz? logged-in? {:keys [name externalId deadline deadline-has-passed? isActive personalListHasDraftStatus]}]
    (when-not loading-quiz?
@@ -16,7 +16,7 @@
          "However, you need to log in before you can join."]
         [button {:color "primary"
                  :variant "contained"
-                 :on-click #(rf/dispatch [::events/log-in])}
+                 :href (log-in-url)}
          "Log in with Google"]]
        [:<>
         [:h1 name]

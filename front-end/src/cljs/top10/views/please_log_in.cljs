@@ -1,8 +1,6 @@
 (ns top10.views.please-log-in
-  (:require [re-frame.core :as rf]
-            [reagent-material-ui.core.button :refer [button]]
-            [reagent-material-ui.core.grid :refer [grid]]
-            [top10.events :as events]))
+  (:require [reagent-material-ui.components :refer [button grid]]
+            [top10.views.base :refer [log-in-url]]))
 
 (defn please-log-in-page []
   [:<>
@@ -14,5 +12,5 @@
     [grid {:item true}
      [button {:color "primary"
               :variant "contained"
-              :on-click #(rf/dispatch [::events/log-in])}
+              :href (log-in-url)}
       "Log in with Google"]]]])

@@ -13,6 +13,8 @@ public interface Config {
 
     String getGoogleOauth2ClientSecret();
 
+    String getGoogleOauth2RedirectUri();
+
     int getHttpPort();
 
     String getJdbcUrl();

@@ -2,7 +2,8 @@
   (:require [re-frame.core :as rf]
             [reagent-material-ui.components :refer [button grid]]
             [top10.events :as events]
-            [top10.subs :as subs]))
+            [top10.subs :as subs]
+            [top10.views.base :refer [log-in-url]]))
 
 (defn home-page []
   (let [logged-in? @(rf/subscribe [::subs/logged-in?])]
@@ -43,5 +44,5 @@
          [grid {:item true}
           [button {:color "primary"
                    :variant "contained"
-                   :on-click #(rf/dispatch [::events/log-in "/quizzes"])}
+                   :href (log-in-url "/quizzes")}
            "Log in with Google"]])]]]))
