@@ -9,12 +9,12 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLConnection;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.ConflictException;
 import nl.cofx.top10.NotFoundException;
 import nl.cofx.top10.quiz.dto.*;
 
-@Slf4j
+@Log4j2
 public class QuizRepository {
 
     private static final String GET_ALL_QUIZZES_TEMPLATE =

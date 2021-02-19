@@ -4,9 +4,9 @@ import java.net.ServerSocket;
 
 import io.vertx.core.http.HttpServerOptions;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
+import lombok.extern.log4j.Log4j2;
 
-@Slf4j
+@Log4j2
 public class RandomPort {
 
     @SneakyThrows
