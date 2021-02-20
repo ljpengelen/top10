@@ -13,7 +13,8 @@
                  [clj-commons/secretary "1.2.4"]
                  [venantius/accountant "0.2.5"]
                  [garden "1.3.10"]
-                 [ns-tracker "0.4.0"]]
+                 [ns-tracker "0.4.0"]
+                 [digest "1.4.10"]]
 
   :plugins [[lein-shadow "0.3.1"]
             [lein-garden "0.3.0"]
@@ -36,7 +37,6 @@
                                     :pretty-print? true}}]}
 
   :shadow-cljs {:nrepl {:port 8777}
-                
                 :builds {:app {:target :browser
                                :output-dir "resources/public/js/compiled"
                                :asset-path "/js/compiled"
@@ -60,6 +60,11 @@
                               :macosx          "open"
                               :linux           "xdg-open"}}}
 
+  :dist {:source-root "resources/public"
+         :target-root "dist"
+         :index "index.html"
+         :files ["css/screen.css" "js/compiled/app.js"]}
+
   :aliases {"watch"        ["with-profile" "dev" "do"
                             ["shadow" "watch" "app" "browser-test" "karma-test"]]
             "release"      ["with-profile" "prod" "do"
@@ -69,7 +74,8 @@
                             ["shell" "open" "target/build-report.html"]]
             "ci"           ["with-profile" "prod" "do"
                             ["shadow" "compile" "karma-test"]
-                            ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
+                            ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]
+            "dist"          ["run" "-m" "top10.dist/dist" :project/dist]}
 
   :profiles  {:dev
               {:dependencies [[binaryage/devtools "1.0.2"]]
