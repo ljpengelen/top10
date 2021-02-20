@@ -80,14 +80,6 @@ pipeline {
       }
     }
 
-    stage("Deploy back end") {
-      agent any
-
-      steps {
-        sh "git push -f dokku@cofx.nl:top10-api HEAD:refs/heads/master"
-      }
-    }
-
     stage("Build front end") {
       agent {
         dockerfile {
@@ -108,6 +100,14 @@ pipeline {
           sh "lein release"
           sh "lein dist"
         }
+      }
+    }
+
+    stage("Deploy back end") {
+      agent any
+
+      steps {
+        sh "git push -f dokku@cofx.nl:top10-api HEAD:refs/heads/master"
       }
     }
 
