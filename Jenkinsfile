@@ -75,6 +75,7 @@ pipeline {
 
       steps {
         dir("front-end") {
+          sh "rm -f node_modules && ln -s /app/node_modules node_modules"
           sh "lein ci"
         }
       }
@@ -96,6 +97,7 @@ pipeline {
 
       steps {
         dir("front-end") {
+          sh "rm -f node_modules && ln -s /app/node_modules node_modules"
           sh "lein clean"
           sh "lein garden once"
           sh "lein release"
