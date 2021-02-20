@@ -15,7 +15,7 @@
        [:<>
         [:p (str "This quiz has ended")]
         [back-to-overview-button]]
-       (and deadline-has-passed? personalListHasDraftStatus)
+       (and deadline-has-passed? (or (nil? personalListHasDraftStatus) personalListHasDraftStatus))
        [:<>
         [:p (str
              "This quiz has reached the final round, "
