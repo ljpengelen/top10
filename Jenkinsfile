@@ -104,7 +104,7 @@ pipeline {
         dir("front-end") {
           sh "lein clean"
           sh "lein release"
-          sh "lein garden once"
+          sh "lein dist"
         }
       }
     }
@@ -117,11 +117,7 @@ pipeline {
         sh "git clone dokku@cofx.nl:top10 deploy-front-end"
         sh "rm -rf deploy-front-end/dist"
         sh "mkdir -p deploy-front-end/dist"
-        sh "mkdir -p deploy-front-end/dist/css"
-        sh "mkdir -p deploy-front-end/dist/js/compiled"
-        sh "cp front-end/resources/public/index.html deploy-front-end/dist"
-        sh "cp front-end/resources/public/css/screen.css deploy-front-end/dist/css"
-        sh "cp front-end/resources/public/js/compiled/app.js deploy-front-end/dist/js/compiled"
+        sh "cp -R front-end/dist/* deploy-front-end/dist"
         sh "touch deploy-front-end/.static"
         sh "cd deploy-front-end && git add . && git commit -m \"Deploy\" --allow-empty && git push"
       }
