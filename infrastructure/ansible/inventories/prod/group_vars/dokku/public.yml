@@ -11,3 +11,6 @@ public_environment_variables:
   - app: top10-api
     name: SENTRY_ENVIRONMENT
     value: prod
+  - app: top10-api
+    name: GOOGLE_OAUTH2_REDIRECT_URI
+    value: https://top10.cofx.nl/oauth2

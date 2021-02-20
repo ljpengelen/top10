@@ -98,6 +98,8 @@ pipeline {
       environment {
         API_BASE_URL = "https://top10-api.cofx.nl"
         FRONT_END_BASE_URL = "https://top10.cofx.nl"
+        OAUTH2_CLIENT_ID = "442497309318-72n7detrn1ne7bprs59fv8lsm6hsfivh.apps.googleusercontent.com"
+        OAUTH2_REDIRECT_URI = "https://top10.cofx.nl/oauth2"
       }
 
       steps {
