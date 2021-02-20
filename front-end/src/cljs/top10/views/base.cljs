@@ -12,14 +12,14 @@
 
 (defn log-in-url
   ([]
-   (log-in-url (js/encodeURIComponent (js/window.location.href.replace js/window.location.origin ""))))
+   (log-in-url (js/window.location.href.replace js/window.location.origin "")))
   ([landing-page]
    (str
     "https://accounts.google.com/o/oauth2/v2/auth?"
     "response_type=code&"
     "scope=openid email profile&"
     "redirect_uri=" config/oauth2-redirect-uri "&"
-    "state=" landing-page "&"
+    "state=" (js/encodeURIComponent landing-page) "&"
     "client_id=" config/oauth2-client-id)))
 
 (defn base-page [content]
