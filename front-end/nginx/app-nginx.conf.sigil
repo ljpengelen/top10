@@ -27,7 +27,7 @@ http {
       add_header Cache-Control "no-store, no-cache, must-revalidate";
     }
 
-    location ~* \.(css|js)$ {
+    location ~* \.(css|ico|js)$ {
       expires 1y;
       add_header Cache-Control "public";
     }

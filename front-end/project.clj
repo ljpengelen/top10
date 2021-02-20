@@ -63,7 +63,7 @@
   :dist {:source-root "resources/public"
          :target-root "dist"
          :index "index.html"
-         :files ["css/screen.css" "js/compiled/app.js"]}
+         :files ["favicon.ico" "css/screen.css" "js/compiled/app.js"]}
 
   :aliases {"watch"        ["with-profile" "dev" "do"
                             ["shadow" "watch" "app" "browser-test" "karma-test"]]
