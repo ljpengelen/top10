@@ -22,6 +22,8 @@ WORKDIR /app
 
 COPY --from=COMPILATION_STAGE /app/target/top10*.jar /app/app.jar
 
+COPY --from=COMPILATION_STAGE /app/CHECKS .
+
 USER appuser
 
 ARG DEPLOY_REVISION=untracked
