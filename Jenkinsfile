@@ -121,6 +121,7 @@ pipeline {
         sh "mkdir -p deploy-front-end/dist"
         sh "cp -R front-end/dist/* deploy-front-end/dist"
         sh "touch deploy-front-end/.static"
+        sh "cp front-end/nginx/app-nginx.conf.sigil deploy-front-end"
         sh "cd deploy-front-end && git add . && git commit -m \"Deploy\" --allow-empty && git push"
       }
     }
