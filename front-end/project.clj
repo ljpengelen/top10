@@ -42,21 +42,17 @@
                                :asset-path "/js/compiled"
                                :modules {:app {:init-fn top10.core/init
                                                :preloads [devtools.preload]}}
-
                                :devtools {:http-root "resources/public"
                                           :http-port 9500}}
-                         :browser-test
-                         {:target :browser-test
-                          :ns-regexp "-test$"
-                          :runner-ns shadow.test.browser
-                          :test-dir "target/browser-test"
-                          :devtools {:http-root "target/browser-test"
-                                     :http-port 9600}}
-
-                         :karma-test
-                         {:target :karma
-                          :ns-regexp "-test$"
-                          :output-to "target/karma-test.js"}}}
+                         :browser-test {:target :browser-test
+                                        :ns-regexp "-test$"
+                                        :runner-ns shadow.test.browser
+                                        :test-dir "target/browser-test"
+                                        :devtools {:http-root "target/browser-test"
+                                                   :http-port 9600}}
+                         :karma-test {:target :karma
+                                      :ns-regexp "-test$"
+                                      :output-to "target/karma-test.js"}}}
   
   :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
                               :default-command "node_modules/.bin/karma"}
