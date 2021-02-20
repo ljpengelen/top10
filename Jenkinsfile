@@ -102,8 +102,7 @@ pipeline {
 
       steps {
         dir("front-end") {
-          sh "rm -f resources/public/js/compiled/app.js"
-          sh "rm -f resources/public/css/screen.css"
+          sh "lein clean"
           sh "lein release"
           sh "lein garden once"
         }
