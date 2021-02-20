@@ -97,6 +97,7 @@ pipeline {
       steps {
         dir("front-end") {
           sh "lein clean"
+          sh "lein garden once"
           sh "lein release"
           sh "lein dist"
         }

@@ -16,8 +16,7 @@
                  [ns-tracker "0.4.0"]
                  [digest "1.4.10"]]
 
-  :plugins [[lein-shadow "0.3.1"]
-            [lein-garden "0.3.0"]
+  :plugins [[lein-garden "0.3.0"]
             [lein-shell "0.5.0"]]
 
   :min-lein-version "2.9.0"
@@ -35,24 +34,6 @@
                      :stylesheet   top10.css/screen
                      :compiler     {:output-to     "resources/public/css/screen.css"
                                     :pretty-print? true}}]}
-
-  :shadow-cljs {:nrepl {:port 8777}
-                :builds {:app {:target :browser
-                               :output-dir "resources/public/js/compiled"
-                               :asset-path "/js/compiled"
-                               :modules {:app {:init-fn top10.core/init
-                                               :preloads [devtools.preload]}}
-                               :devtools {:http-root "resources/public"
-                                          :http-port 9500}}
-                         :browser-test {:target :browser-test
-                                        :ns-regexp "-test$"
-                                        :runner-ns shadow.test.browser
-                                        :test-dir "target/browser-test"
-                                        :devtools {:http-root "target/browser-test"
-                                                   :http-port 9600}}
-                         :karma-test {:target :karma
-                                      :ns-regexp "-test$"
-                                      :output-to "target/karma-test.js"}}}
   
   :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
                               :default-command "node_modules/.bin/karma"}
@@ -65,22 +46,19 @@
          :index "index.html"
          :files ["favicon.ico" "css/screen.css" "js/compiled/app.js"]}
 
-  :aliases {"watch"        ["with-profile" "dev" "do"
-                            ["shadow" "watch" "app" "browser-test" "karma-test"]]
+  :aliases {"watch"        ["with-profile" "dev" "pdo"
+                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "watch" "app" "browser-test"]
+                            ["open" "http://localhost:9500"]]
             "release"      ["with-profile" "prod" "do"
-                            ["shadow" "release" "app"]]
+                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "release" "app"]]
             "build-report" ["with-profile" "prod" "do"
-                            ["shadow" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
+                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
                             ["shell" "open" "target/build-report.html"]]
             "ci"           ["with-profile" "prod" "do"
-                            ["shadow" "compile" "karma-test"]
+                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "compile" "karma-test"]
                             ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]
             "dist"          ["run" "-m" "top10.dist/dist" :project/dist]}
 
-  :profiles  {:dev
-              {:dependencies [[binaryage/devtools "1.0.2"]]
-               :source-paths ["dev"]}
-
-              :prod {}}
-
-  :prep-tasks [["garden" "once"]])
+  :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]]
+                    :source-paths ["dev"]}
+              :prod {}})

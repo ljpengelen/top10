@@ -19,8 +19,11 @@ RUN wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add
 
 WORKDIR /app
 
-COPY front-end/project.clj ./
+COPY front-end/project.clj .
+COPY front-end/shadow-cljs.edn .
 COPY front-end/package* ./
 COPY front-end/src/cljs/deps.cljs ./src/cljs/deps.cljs
 
-RUN lein shadow npm-deps app
+RUN npm install
+
+RUN npx shadow-cljs npm-deps app
