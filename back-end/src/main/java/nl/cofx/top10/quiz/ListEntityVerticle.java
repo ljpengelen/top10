@@ -130,6 +130,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var body = addVideoRequest.body();
         var listId = body.getInteger("listId");
         var url = body.getString("url");
+        var referenceId = body.getString("referenceId");
         var accountId = body.getInteger("accountId");
 
         withTransaction(connection ->
@@ -142,7 +143,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                         log.debug("Account \"{}\" cannot assign to finalized list \"{}\"", accountId, listId);
                         return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" is finalized", listId)));
                     } else {
-                        return listRepository.addVideo(connection, listId, url);
+                        return listRepository.addVideo(connection, listId, url, referenceId);
                     }
                 }))
                 .onSuccess(addVideoRequest::reply)

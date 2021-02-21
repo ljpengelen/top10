@@ -15,11 +15,13 @@ public class VideoDto {
 
     Integer id;
     String url;
+    String referenceId;
 
     public static VideoDto fromJsonObject(JsonObject jsonObject) {
         return VideoDto.builder()
                 .id(jsonObject.getInteger("id"))
                 .url(jsonObject.getString("url"))
+                .referenceId(jsonObject.getString("referenceId"))
                 .build();
     }
 
@@ -37,7 +39,8 @@ public class VideoDto {
     public JsonObject toJsonObject() {
         return new JsonObject()
                 .put("id", id)
-                .put("url", url);
+                .put("url", url)
+                .put("referenceId", referenceId);
     }
 
     public static JsonArray toJsonArray(List<VideoDto> videoDtos) {

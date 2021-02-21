@@ -141,6 +141,7 @@ public class ListHttpVerticle extends AbstractVerticle {
                     .end(new JsonObject()
                             .put("id", videoId)
                             .put("url", addRequest.getString("url"))
+                            .put("referenceId", addRequest.getString("referenceId"))
                             .toBuffer());
         });
     }
@@ -179,11 +180,13 @@ public class ListHttpVerticle extends AbstractVerticle {
         }
 
         var url = YouTubeUrl.toEmbeddableUrl(submittedUrl);
+        var referenceId = YouTubeUrl.extractVideoId(submittedUrl);
 
         return new JsonObject()
                 .put("accountId", accountId)
                 .put("listId", listId)
-                .put("url", url);
+                .put("url", url)
+                .put("referenceId", referenceId);
     }
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {

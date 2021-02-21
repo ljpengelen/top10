@@ -18,7 +18,7 @@ public class YouTubeUrl {
         return EMBEDDABLE_PREFIX + extractVideoId(url);
     }
 
-    private String extractVideoId(String url) {
+    public String extractVideoId(String url) {
         if (url.startsWith(LONG_URL_PREFIX)) {
             var matcher = LONG_URL_PATTERN.matcher(url);
             if (matcher.find()) {

@@ -24,7 +24,8 @@ class ListsDtoMessageCodecTest {
                 .hasDraftStatus(true)
                 .videos(List.of(VideoDto.builder()
                         .id(654)
-                        .url("http://www.example.org")
+                        .url("http://www.example.org/abcde")
+                        .referenceId("abcde")
                         .build()))
                 .build();
         var listsDto = ListsDto.builder()

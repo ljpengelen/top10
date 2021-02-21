@@ -19,7 +19,7 @@ public class ListRepository {
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                                   + "WHERE q.external_id = ? AND NOT l.has_draft_status";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
-    private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url FROM video v WHERE v.list_id = ANY (?)";
+    private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, v.reference_id FROM video v WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
                                                                    + "JOIN list l2 ON l1.quiz_id = l2.quiz_id "
                                                                    + "JOIN quiz q ON l1.quiz_id = q.quiz_id "
@@ -43,7 +43,7 @@ public class ListRepository {
             + "NATURAL RIGHT JOIN list l "
             + "NATURAL JOIN quiz q "
             + "WHERE v.video_id = ?";
-    private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url) VALUES (?, ?) ON CONFLICT DO NOTHING";
+    private static final String ADD_VIDEO_TEMPLATE = "INSERT INTO video (list_id, url, reference_id) VALUES (?, ?, ?) ON CONFLICT DO NOTHING";
     private static final String DELETE_VIDEO_TEMPLATE = "DELETE FROM video WHERE video_id = ?";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) "
@@ -125,6 +125,7 @@ public class ListRepository {
                 var videoDto = VideoDto.builder()
                         .id(row.getInteger("video_id"))
                         .url(row.getString("url"))
+                        .referenceId(row.getString("reference_id"))
                         .build();
                 videosForLists.get(listId).add(videoDto);
             });
@@ -230,10 +231,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Integer> addVideo(SQLConnection connection, Integer listId, String url) {
+    public Future<Integer> addVideo(SQLConnection connection, Integer listId, String url, String referenceId) {
         var promise = Promise.<Integer> promise();
 
-        var parameters = new JsonArray().add(listId).add(url);
+        var parameters = new JsonArray().add(listId).add(url).add(referenceId);
         connection.updateWithParams(ADD_VIDEO_TEMPLATE, parameters, asyncAddVideo -> {
             if (asyncAddVideo.failed()) {
                 handleFailure(promise, ADD_VIDEO_TEMPLATE, parameters, asyncAddVideo);

@@ -41,7 +41,9 @@ class ListVerticlesIntegrationTest {
     private static final String URL_1 = "https://www.youtube.com/watch?v=RBgcN9lrZ3g&list=PLsn6N7S-aJO3KeJnHmiT3rUcmZqesaj_b&index=9";
     private static final String URL_2 = "https://www.youtube.com/watch?v=FAkj8KiHxjg";
     private static final String EMBEDDABLE_URL_1 = "https://www.youtube-nocookie.com/embed/RBgcN9lrZ3g";
+    private static final String REFERENCE_ID_1 = "RBgcN9lrZ3g";
     private static final String EMBEDDABLE_URL_2 = "https://www.youtube-nocookie.com/embed/FAkj8KiHxjg";
+    private static final String REFERENCE_ID_2 = "FAkj8KiHxjg";
 
     private int port;
     private HttpClient httpClient;
@@ -230,6 +232,7 @@ class ListVerticlesIntegrationTest {
         var video = videos.getJsonObject(0);
         assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+        assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
         vertxTestContext.completeNow();
     }
@@ -260,6 +263,7 @@ class ListVerticlesIntegrationTest {
         var video = videos.getJsonObject(0);
         assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+        assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
         vertxTestContext.completeNow();
     }
@@ -366,6 +370,7 @@ class ListVerticlesIntegrationTest {
         var body = addVideoResponse.body();
         assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+        assertThat(body.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
         addVideoResponse = httpClient.addVideo(listId, URL_2);
 
@@ -373,6 +378,7 @@ class ListVerticlesIntegrationTest {
         body = addVideoResponse.body();
         assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_2);
+        assertThat(body.getString("referenceId")).isEqualTo(REFERENCE_ID_2);
 
         var listResponse = httpClient.getList(listId);
 
@@ -384,9 +390,11 @@ class ListVerticlesIntegrationTest {
         var video = videos.getJsonObject(0);
         assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+        assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
         video = videos.getJsonObject(1);
         assertThat(video.getInteger("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_2);
+        assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_2);
 
         vertxTestContext.completeNow();
     }
@@ -402,6 +410,7 @@ class ListVerticlesIntegrationTest {
         var body = addVideoResponse.body();
         assertThat(body.getInteger("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
+        assertThat(body.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
         httpClient.finalizeList(listId);
 
