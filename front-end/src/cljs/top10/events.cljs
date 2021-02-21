@@ -17,6 +17,10 @@
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
                           :dispatch [::enable-browser-navigation]
+                          :halt? true}
+                         {:when :seen?
+                          :events ::session-check-failed
+                          :dispatch-n [[::enable-browser-navigation] [::request-failed]]
                           :halt? true}]}}))
 
 (rf/reg-event-fx
