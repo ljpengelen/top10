@@ -1,5 +1,6 @@
 (ns top10.views.base
-  (:require [re-frame.core :as rf]
+  (:require [clojure.string :as string]
+            [re-frame.core :as rf]
             [reagent-material-ui.components :refer [button dialog dialog-actions dialog-content dialog-content-text dialog-title]]
             [top10.config :as config]
             [top10.events :as events]
@@ -21,6 +22,23 @@
     "redirect_uri=" config/oauth2-redirect-uri "&"
     "state=" (js/encodeURIComponent landing-page) "&"
     "client_id=" config/oauth2-client-id)))
+
+(defn iframe [url]
+  [:iframe {:allow "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            :allowFullScreen true
+            :frameBorder "0"
+            :src url}])
+
+(def video-url-prefix "https://www.youtube-nocookie.com/embed/")
+
+(defn embedded-video
+  ([video]
+   (iframe (str video-url-prefix (:referenceId video))))
+  ([first-video videos]
+   (let [first-video-id (:referenceId first-video)
+         ids (map :referenceId videos)
+         joined-ids (string/join "," ids)]
+     (iframe (str video-url-prefix first-video-id "?playlist=" joined-ids)))))
 
 (defn base-page [content]
   (let [show-dialog? @(rf/subscribe [::subs/show-dialog?])

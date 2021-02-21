@@ -1,5 +1,6 @@
 (ns top10.css
-  (:require [garden.def :refer [defstyles]]))
+  (:require [garden.def :refer [defstyles]]
+            [garden.selectors :refer [&]]))
 
 (defstyles screen
   [[:h1 {:color "#000"
@@ -12,13 +13,14 @@
            :margin "0 auto"
            :max-width "40rem"
            :padding "4rem 2rem"}]
-   [:.ytEmbeddedContainer {:height "0"
-                           :max-width "100%"
+   [:.ytEmbeddedContainer {:margin-bottom "8px"
                            :overflow "hidden"
                            :padding-bottom "56.25% !important"
-                           :position "relative"}]
-   [:.ytEmbedded {:height "100%"
-                  :left "0"
-                  :position "absolute"
-                  :top "0"
-                  :width "100%"}]])
+                           :position "relative"
+                           :width "100%"}
+    [(& :.MuiGrid-item) {:margin "8px 8px 0"}]
+    [:iframe {:height "100%"
+              :left "0"
+              :position "absolute"
+              :top "0"
+              :width "100%"}]]])

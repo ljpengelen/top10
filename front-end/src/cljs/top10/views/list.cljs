@@ -1,23 +1,19 @@
 (ns top10.views.list
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button grid]]
-            [top10.subs :as subs]))
+            [reagent-material-ui.components :refer [button]]
+            [top10.subs :as subs]
+            [top10.views.base :refer [embedded-video]]))
 
 (defn list-page [quiz-id creator-name has-draft-status? videos]
   [:<>
    [:h1 creator-name]
-   [grid {:container true :direction "column" :spacing 2}
-    (if has-draft-status?
-      [:p "This person did not submit a top 10 for this quiz."]
-      (for [video videos]
-        ^{:key (:id video)}
-        [grid {:item true}
-         [:iframe {:allow "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                   :allowFullScreen true
-                   :frameBorder "0"
-                   :src (:url video)}]]))
-    [grid {:item true}
-     [button {:href (str "/quiz/" quiz-id "/results")} "Back to quiz results"]]]])
+   (if has-draft-status?
+     [:p (str creator-name " did not submit a top 10 for this quiz.")]
+     [:<>
+      [:p (str creator-name " submitted these 10 songs for this quiz.")]
+      [:div {:class "ytEmbeddedContainer"}
+       [embedded-video (first videos) videos]]])
+   [button {:href (str "/quiz/" quiz-id "/results")} "Back to quiz results"]])
 
 (defn list-page-container []
   [list-page
