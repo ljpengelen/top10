@@ -46,9 +46,8 @@
          :index "index.html"
          :files ["favicon.ico" "css/screen.css" "js/compiled/app.js"]}
 
-  :aliases {"watch"        ["with-profile" "dev" "pdo"
-                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "watch" "app" "browser-test"]
-                            ["open" "http://localhost:9500"]]
+  :aliases {"watch"        ["with-profile" "dev" "do"
+                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "watch" "app" "browser-test"]]
             "release"      ["with-profile" "prod" "do"
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "release" "app"]]
             "build-report" ["with-profile" "prod" "do"
