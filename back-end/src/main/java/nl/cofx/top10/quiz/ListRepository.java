@@ -17,7 +17,8 @@ public class ListRepository {
 
     private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id FROM list l "
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                                  + "WHERE q.external_id = ? AND NOT l.has_draft_status";
+                                                                  + "WHERE q.external_id = ? AND NOT l.has_draft_status "
+                                                                  + "ORDER BY RANDOM()";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, v.reference_id FROM video v WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "

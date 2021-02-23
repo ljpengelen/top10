@@ -32,7 +32,8 @@ public class QuizRepository {
     private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.external_id, a.name, l.has_draft_status FROM account a "
                                                             + "JOIN list l ON l.account_id = a.account_id "
                                                             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                            + "WHERE q.external_id = ?";
+                                                            + "WHERE q.external_id = ? "
+                                                            + "ORDER BY a.external_id";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
             "SELECT ass.list_id, "
             + "assigner_acc.external_id AS external_assigner_id, assigner_acc.name AS assigner_name, "
