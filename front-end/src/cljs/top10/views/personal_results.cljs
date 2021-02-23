@@ -31,7 +31,7 @@
            [table-cell "❌"]
            [table-cell assigneeName]
            [table-cell creatorName]
-           [table-cell listId]])]]]]
+           [table-cell [link {:href (str "/list/" listId) :color "primary"} "Show top 10"]]])]]]]
     [grid {:item true}
      [button {:on-click #(rf/dispatch [::events/show-quiz-results])} "Back to quiz results"]]]])
 
