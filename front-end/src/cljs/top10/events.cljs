@@ -311,7 +311,7 @@
  ::get-list-succeeded
  (fn [db [_ response]]
    (let [list (:body response)
-         active-quiz (:externalQuizId list)]
+         active-quiz (:quizId list)]
      (-> db
          (assoc :list list)
          (assoc :active-quiz active-quiz)))))
@@ -422,10 +422,10 @@
 
 (rf/reg-event-db
  ::show-personal-results
- (fn [db [_ external-account-id]]
+ (fn [db [_ account-id]]
    (-> db
        (assoc :active-page :personal-results-page)
-       (assoc :external-account-id external-account-id))))
+       (assoc :account-id account-id))))
 
 (rf/reg-event-db
  ::show-quiz-results

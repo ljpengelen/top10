@@ -15,14 +15,13 @@ class QuizzesDtoMessageCodecTest {
     @Test
     public void encodesQuizzesDto() {
         var quizDto = QuizDto.builder()
-                .id(123)
+                .id("123")
                 .name("abcd")
                 .isActive(true)
-                .creatorId(456)
+                .creatorId("456")
                 .isCreator(false)
                 .deadline(Instant.now())
-                .externalId("efgh")
-                .personalListId(789)
+                .personalListId("789")
                 .personalListHasDraftStatus(true)
                 .build();
         var quizzesDto = QuizzesDto.builder()

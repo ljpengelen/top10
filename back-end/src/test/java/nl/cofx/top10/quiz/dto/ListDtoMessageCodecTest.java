@@ -15,16 +15,15 @@ class ListDtoMessageCodecTest {
     @Test
     public void encodesListDto() {
         var listDto = ListDto.builder()
-                .id(123)
-                .creatorId(456)
+                .id("123")
+                .creatorId("456")
                 .creatorName("John Doe")
-                .externalAssigneeId("abcd")
+                .assigneeId("abcd")
                 .isActiveQuiz(true)
-                .quizId(321)
-                .externalQuizId("pqr")
+                .quizId("321")
                 .hasDraftStatus(true)
                 .videos(List.of(VideoDto.builder()
-                        .id(654)
+                        .id("654")
                         .url("http://www.example.org")
                         .build()))
                 .build();

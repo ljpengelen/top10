@@ -13,13 +13,13 @@ import lombok.Value;
 @Builder
 public class VideoDto {
 
-    Integer id;
+    String id;
     String url;
     String referenceId;
 
     public static VideoDto fromJsonObject(JsonObject jsonObject) {
         return VideoDto.builder()
-                .id(jsonObject.getInteger("id"))
+                .id(jsonObject.getString("id"))
                 .url(jsonObject.getString("url"))
                 .referenceId(jsonObject.getString("referenceId"))
                 .build();

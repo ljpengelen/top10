@@ -10,25 +10,23 @@ import lombok.Value;
 @Builder
 public class QuizDto {
 
-    Integer id;
+    String id;
     String name;
     boolean isActive;
-    Integer creatorId;
+    String creatorId;
     boolean isCreator;
     Instant deadline;
-    String externalId;
-    Integer personalListId;
+    String personalListId;
     Boolean personalListHasDraftStatus;
 
     public static QuizDto fromJsonObject(JsonObject jsonObject) {
         return QuizDto.builder()
-                .id(jsonObject.getInteger("id"))
+                .id(jsonObject.getString("id"))
                 .name(jsonObject.getString("name"))
                 .isActive(jsonObject.getBoolean("isActive"))
-                .creatorId(jsonObject.getInteger("creatorId"))
+                .creatorId(jsonObject.getString("creatorId"))
                 .deadline(jsonObject.getInstant("deadline"))
-                .externalId(jsonObject.getString("externalId"))
-                .personalListId(jsonObject.getInteger("personalListId"))
+                .personalListId(jsonObject.getString("personalListId"))
                 .personalListHasDraftStatus(jsonObject.getBoolean("personalListHasDraftStatus"))
                 .build();
     }
@@ -40,8 +38,7 @@ public class QuizDto {
                 .put("isActive", isActive)
                 .put("creatorId", creatorId)
                 .put("isCreator", isCreator)
-                .put("deadline", deadline)
-                .put("externalId", externalId);
+                .put("deadline", deadline);
 
         if (personalListId != null) {
             jsonObject.put("personalListId", personalListId);

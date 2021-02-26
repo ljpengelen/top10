@@ -6,7 +6,7 @@
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button]]))
 
-(defn quiz-page [loading-quiz? {:keys [name deadline deadline-has-passed? externalId isActive personalListId personalListHasDraftStatus]} number-of-participants lists]
+(defn quiz-page [loading-quiz? {:keys [name deadline deadline-has-passed? id isActive personalListId personalListHasDraftStatus]} number-of-participants lists]
   (when-not loading-quiz?
     [:<>
      [:h1 name]
@@ -37,11 +37,11 @@
               [table-cell "Assigned to"]
               [table-cell "Action"]]]
             [table-body
-             (for [{:keys [id assigneeName]} lists]
+             (for [{list-id :id assigneeName :assigneeName} lists]
                ^{:key id}
                [table-row
                 [table-cell (or assigneeName "Not assigned yet")]
-                [table-cell [link {:href (str "/quiz/" externalId "/list/" id "/assign") :color "primary"} "Assign"]]])]]]]
+                [table-cell [link {:href (str "/quiz/" id "/list/" list-id "/assign") :color "primary"} "Assign"]]])]]]]
          [grid {:item true}
           [back-to-overview-button]]]]
        (not deadline-has-passed?)
@@ -51,14 +51,14 @@
           "At the moment, this quiz has " number-of-participants " " (if (= number-of-participants 1) "participant" "participants") ". "
           "Anyone who wants to join has until " deadline " to submit their personal top 10. "
           "If you know anyone who might also want to join, just share the following URL: ")]
-        [:pre (str front-end-base-url "/quiz/" externalId "/join")]
+        [:pre (str front-end-base-url "/quiz/" id "/join")]
         (case personalListHasDraftStatus
           (true) [:p (str
                       "Remember, you still have to submit your personal top 10 for this quiz! "
                       "You can only take part in the final round after you've submitted a top 10.")]
           (false) [:p (str "You've already submitted your personal top 10 for this quiz.")]
           (nil) [button {:color "primary"
-                         :on-click #(rf/dispatch [::events/participate-in-quiz externalId])
+                         :on-click #(rf/dispatch [::events/participate-in-quiz id])
                          :variant "contained"}
                  "Participate in quiz"])
         (when (some? personalListHasDraftStatus)

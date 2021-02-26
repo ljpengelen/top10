@@ -14,26 +14,26 @@ class ResultSummaryDtoTest {
                 .personalResults(Map.of(
                         "4",
                         PersonalResultDto.builder()
-                                .externalAccountId("4")
+                                .accountId("4")
                                 .name("FourA")
                                 .correctAssignment(assignment())
                                 .build(),
                         "5",
                         PersonalResultDto.builder()
-                                .externalAccountId("5")
+                                .accountId("5")
                                 .name("FourB")
                                 .correctAssignment(assignment())
                                 .build(),
                         "3",
                         PersonalResultDto.builder()
-                                .externalAccountId("3")
+                                .accountId("3")
                                 .name("Three")
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
                                 .build(),
                         "1",
                         PersonalResultDto.builder()
-                                .externalAccountId("1")
+                                .accountId("1")
                                 .name("OneA")
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
@@ -41,12 +41,12 @@ class ResultSummaryDtoTest {
                                 .build(),
                         "6",
                         PersonalResultDto.builder()
-                                .externalAccountId("6")
+                                .accountId("6")
                                 .name("Six")
                                 .build(),
                         "2",
                         PersonalResultDto.builder()
-                                .externalAccountId("2")
+                                .accountId("2")
                                 .name("OneB")
                                 .correctAssignment(assignment())
                                 .correctAssignment(assignment())
@@ -56,37 +56,37 @@ class ResultSummaryDtoTest {
 
         assertThat(resultSummaryDto.getRanking()).containsExactly(
                 RankingEntryDto.builder()
-                        .externalAccountId("1")
+                        .accountId("1")
                         .name("OneA")
                         .rank(1)
                         .numberOfCorrectAssignments(3)
                         .build(),
                 RankingEntryDto.builder()
-                        .externalAccountId("2")
+                        .accountId("2")
                         .name("OneB")
                         .rank(1)
                         .numberOfCorrectAssignments(3)
                         .build(),
                 RankingEntryDto.builder()
-                        .externalAccountId("3")
+                        .accountId("3")
                         .name("Three")
                         .rank(3)
                         .numberOfCorrectAssignments(2)
                         .build(),
                 RankingEntryDto.builder()
-                        .externalAccountId("4")
+                        .accountId("4")
                         .name("FourA")
                         .rank(4)
                         .numberOfCorrectAssignments(1)
                         .build(),
                 RankingEntryDto.builder()
-                        .externalAccountId("5")
+                        .accountId("5")
                         .name("FourB")
                         .rank(4)
                         .numberOfCorrectAssignments(1)
                         .build(),
                 RankingEntryDto.builder()
-                        .externalAccountId("6")
+                        .accountId("6")
                         .name("Six")
                         .rank(6)
                         .numberOfCorrectAssignments(0)

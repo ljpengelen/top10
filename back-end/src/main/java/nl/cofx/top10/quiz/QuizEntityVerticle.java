@@ -41,7 +41,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         eventBus.consumer(GET_PARTICIPANTS_ADDRESS, this::handleGetAllParticipants);
     }
 
-    private void handleGetAll(Message<Integer> getAllQuizzesRequest) {
+    private void handleGetAll(Message<String> getAllQuizzesRequest) {
         var accountId = getAllQuizzesRequest.body();
         withConnection(connection -> quizRepository.getAllQuizzes(connection, accountId))
                 .onSuccess(getAllQuizzesRequest::reply)
@@ -50,26 +50,26 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetOne(Message<JsonObject> getOneQuizRequest) {
         var body = getOneQuizRequest.body();
-        var externalId = body.getString("externalId");
-        var accountId = body.getInteger("accountId");
-        withConnection(connection -> quizRepository.getQuiz(connection, externalId, accountId))
+        var quizId = body.getString("quizId");
+        var accountId = body.getString("accountId");
+        withConnection(connection -> quizRepository.getQuiz(connection, quizId, accountId))
                 .onSuccess(getOneQuizRequest::reply)
                 .onFailure(cause -> handleFailure(cause, getOneQuizRequest));
     }
 
     private void handleGetResult(Message<JsonObject> getQuizResultRequest) {
         var body = getQuizResultRequest.body();
-        var externalId = body.getString("externalId");
-        var accountId = body.getInteger("accountId");
+        var quizId = body.getString("quizId");
+        var accountId = body.getString("accountId");
         withTransaction(connection ->
-                quizRepository.getQuiz(connection, externalId, accountId).compose(quiz -> {
+                quizRepository.getQuiz(connection, quizId, accountId).compose(quiz -> {
                     if (quiz.isActive()) {
-                        var message = String.format("Quiz with external ID \"%s\" is still active", externalId);
+                        var message = String.format("Quiz \"%s\" is still active", quizId);
                         log.debug(message);
                         return Future.failedFuture(new ForbiddenException(message));
                     } else {
-                        log.debug(String.format("Quiz with external ID \"%s\" is no longer active", externalId));
-                        return quizRepository.getQuizResult(connection, externalId);
+                        log.debug(String.format("Quiz \"%s\" is no longer active", quizId));
+                        return quizRepository.getQuizResult(connection, quizId);
                     }
                 }))
                 .onSuccess(getQuizResultRequest::reply)
@@ -78,32 +78,32 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleCreate(Message<JsonObject> createRequest) {
         var body = createRequest.body();
-        var creatorId = body.getInteger("creatorId");
+        var creatorId = body.getString("creatorId");
         var name = body.getString("name");
         var deadline = body.getInstant("deadline");
-        var externalId = body.getString("externalId");
 
         withTransaction(connection ->
-                quizRepository.createQuiz(connection, name, creatorId, deadline, externalId).compose(quizId ->
-                        quizRepository.createList(connection, creatorId, externalId))
-        ).onSuccess(nothing -> {
+                quizRepository.createQuiz(connection, name, creatorId, deadline).compose(quizId ->
+                        quizRepository.createList(connection, creatorId, quizId).compose(listId ->
+                                Future.succeededFuture(quizId)))
+        ).onSuccess(quizId -> {
             log.debug("Created quiz");
-            createRequest.reply(null);
+            createRequest.reply(quizId);
         }).onFailure(cause -> handleFailure(cause, createRequest));
     }
 
     private void handleComplete(Message<JsonObject> completeRequest) {
         var body = completeRequest.body();
-        var accountId = body.getInteger("accountId");
-        var externalId = body.getString("externalId");
+        var accountId = body.getString("accountId");
+        var quizId = body.getString("quizId");
 
-        withTransaction(connection -> quizRepository.getQuiz(connection, externalId, accountId).compose(quiz -> {
+        withTransaction(connection -> quizRepository.getQuiz(connection, quizId, accountId).compose(quiz -> {
             if (accountId.equals(quiz.getCreatorId())) {
-                log.debug("Account \"{}\" is creator of quiz with external ID \"{}\"", accountId, externalId);
-                return quizRepository.completeQuiz(connection, accountId, externalId);
+                log.debug("Account \"{}\" is creator of quiz \"{}\"", accountId, quizId);
+                return quizRepository.completeQuiz(connection, accountId, quizId);
             } else {
-                log.debug("Account \"{}\" is not creator of quiz with external ID \"{}\"", accountId, externalId);
-                return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" is not allowed to close quiz with external ID \"%s\"", accountId, externalId)));
+                log.debug("Account \"{}\" is not creator of quiz \"{}\"", accountId, quizId);
+                return Future.failedFuture(new ForbiddenException(String.format("Account \"%s\" is not allowed to close quiz \"%s\"", accountId, quizId)));
             }
         })).onSuccess(nothing -> {
             log.debug("Successfully completed quiz");
@@ -113,12 +113,12 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleParticipate(Message<JsonObject> participateRequest) {
         var body = participateRequest.body();
-        var accountId = body.getInteger("accountId");
-        var externalId = body.getString("externalId");
+        var accountId = body.getString("accountId");
+        var quizId = body.getString("quizId");
 
         withTransaction(connection ->
-                quizRepository.getQuiz(connection, externalId, accountId).compose(quiz ->
-                        quizRepository.createList(connection, accountId, externalId)))
+                quizRepository.getQuiz(connection, quizId, accountId).compose(quiz ->
+                        quizRepository.createList(connection, accountId, quizId)))
                 .onSuccess(listId -> {
                     log.debug("Successfully let account participate in quiz");
                     participateRequest.reply(listId);
@@ -128,11 +128,11 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetAllParticipants(Message<JsonObject> getAllParticipantsRequest) {
         var body = getAllParticipantsRequest.body();
-        var externalId = body.getString("externalId");
-        var accountId = body.getInteger("accountId");
+        var quizId = body.getString("quizId");
+        var accountId = body.getString("accountId");
         withTransaction(connection ->
-                quizRepository.getQuiz(connection, externalId, accountId)
-                        .compose(quiz -> quizRepository.getAllParticipants(connection, externalId)))
+                quizRepository.getQuiz(connection, quizId, accountId)
+                        .compose(quiz -> quizRepository.getAllParticipants(connection, quizId)))
                 .onSuccess(getAllParticipantsRequest::reply)
                 .onFailure(cause -> handleFailure(cause, getAllParticipantsRequest));
     }

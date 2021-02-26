@@ -33,52 +33,52 @@ public class HttpClient {
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> participateInQuiz(String externalId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> participateInQuiz(String quizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .POST(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalId + "/participate"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + quizId + "/participate"))
                 .build();
 
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> getQuizResults(String externalQuizId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> getQuizResults(String quizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/result"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + quizId + "/result"))
                 .build();
 
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<String> getParticipants(String externalQuizId) throws IOException, InterruptedException {
+    public HttpResponse<String> getParticipants(String quizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/participants"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + quizId + "/participants"))
                 .build();
 
         return HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    public HttpResponse<JsonObject> completeQuiz(String externalQuizId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> completeQuiz(String quizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .PUT(HttpRequest.BodyPublishers.noBody())
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/complete"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + quizId + "/complete"))
                 .build();
 
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> getQuiz(String externalQuizId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> getQuiz(String quizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/public/quiz/" + externalQuizId))
+                .uri(URI.create("http://localhost:" + port + "/public/quiz/" + quizId))
                 .build();
 
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> finalizeList(int listId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> finalizeList(String listId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .PUT(HttpRequest.BodyPublishers.noBody())
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId + "/finalize"))
@@ -87,7 +87,7 @@ public class HttpClient {
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> addVideo(int listId, String url) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> addVideo(String listId, String url) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject().put("url", url)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId + "/video"))
@@ -96,7 +96,7 @@ public class HttpClient {
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> deleteVideo(int videoId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> deleteVideo(String videoId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .DELETE()
                 .uri(URI.create("http://localhost:" + port + "/private/video/" + videoId))
@@ -105,9 +105,9 @@ public class HttpClient {
         return HTTP_CLIENT.send(request, new JsonObjectBodyHandler());
     }
 
-    public HttpResponse<JsonObject> assignList(int listId, String externalAccountId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> assignList(String listId, String accountId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
-                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", externalAccountId)))
+                .PUT(BodyPublisher.ofJsonObject(new JsonObject().put("assigneeId", accountId)))
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId + "/assign"))
                 .build();
 
@@ -123,16 +123,16 @@ public class HttpClient {
         return HTTP_CLIENT.send(request, new JsonArrayBodyHandler());
     }
 
-    public HttpResponse<JsonArray> getLists(String externalQuizId) throws IOException, InterruptedException {
+    public HttpResponse<JsonArray> getLists(String quizId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .GET()
-                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + externalQuizId + "/list"))
+                .uri(URI.create("http://localhost:" + port + "/private/quiz/" + quizId + "/list"))
                 .build();
 
         return HTTP_CLIENT.send(request, new JsonArrayBodyHandler());
     }
 
-    public HttpResponse<JsonObject> getList(int listId) throws IOException, InterruptedException {
+    public HttpResponse<JsonObject> getList(String listId) throws IOException, InterruptedException {
         var request = HttpRequest.newBuilder()
                 .GET()
                 .uri(URI.create("http://localhost:" + port + "/private/list/" + listId))

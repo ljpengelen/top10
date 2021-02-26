@@ -20,8 +20,8 @@
            [table-cell "Number of correct assignments"]
            [table-cell "Action"]]]
          [table-body
-          (for [{:keys [externalAccountId rank name numberOfCorrectAssignments]} ranking]
-            ^{:key externalAccountId}
+          (for [{:keys [accountId rank name numberOfCorrectAssignments]} ranking]
+            ^{:key accountId}
             [table-row
              [table-cell rank]
              [table-cell name]
@@ -30,7 +30,7 @@
                                 :color "primary"
                                 :on-click (fn [event]
                                             (.preventDefault event)
-                                            (rf/dispatch [::events/show-personal-results externalAccountId]))}
+                                            (rf/dispatch [::events/show-personal-results accountId]))}
                           "Show details"]]])]]]]
       [grid {:item true}
        [back-to-overview-button]]])])

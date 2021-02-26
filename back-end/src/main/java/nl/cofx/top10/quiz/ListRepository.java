@@ -1,13 +1,16 @@
 package nl.cofx.top10.quiz;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+import java.util.stream.*;
+
+import org.postgresql.util.PGobject;
 
 import io.vertx.core.*;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLConnection;
+import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.*;
 import nl.cofx.top10.quiz.dto.*;
@@ -17,8 +20,8 @@ public class ListRepository {
 
     private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id FROM list l "
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                                  + "WHERE q.external_id = ? AND NOT l.has_draft_status "
-                                                                  + "ORDER BY RANDOM()";
+                                                                  + "WHERE q.quiz_id = ? AND NOT l.has_draft_status "
+                                                                  + "ORDER BY list_id";
     private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
     private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, v.reference_id FROM video v WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
@@ -28,19 +31,19 @@ public class ListRepository {
                                                                    + "AND (q.deadline <= NOW() OR l1.list_id = l2.list_id)";
     private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(l.account_id) FROM list l "
                                                                         + "JOIN account a ON l.account_id = a.account_id "
-                                                                        + "WHERE a.external_id = ? AND l.quiz_id = ?";
+                                                                        + "WHERE a.account_id = ? AND l.quiz_id = ?";
     private static final String GET_ONE_LIST_TEMPLATE =
-            "SELECT l.list_id, l.has_draft_status, l.quiz_id, q.external_id AS external_quiz_id, q.is_active, l.account_id AS creator_id, a.name AS creator_name FROM video v "
+            "SELECT l.list_id, l.has_draft_status, replace(l.quiz_id::text, '-', ''), q.is_active, l.account_id AS creator_id, a.name AS creator_name FROM video v "
             + "NATURAL RIGHT JOIN list l "
             + "NATURAL JOIN quiz q "
             + "JOIN account a ON a.account_id = l.account_id "
             + "WHERE l.list_id = ?";
-    private static final String GET_ASSIGNMENTS_TEMPLATE = "SELECT l.list_id, acc.external_id, acc.name FROM list l "
+    private static final String GET_ASSIGNMENTS_TEMPLATE = "SELECT l.list_id, acc.account_id, acc.name FROM list l "
                                                            + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
                                                            + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
                                                            + "WHERE l.list_id = ANY (?) and ass.account_id = ?";
     private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE =
-            "SELECT l.list_id, l.has_draft_status, l.quiz_id, q.external_id AS external_quiz_id, l.account_id FROM video v "
+            "SELECT l.list_id, l.has_draft_status, replace(l.quiz_id::text, '-', ''), l.account_id FROM video v "
             + "NATURAL RIGHT JOIN list l "
             + "NATURAL JOIN quiz q "
             + "WHERE v.video_id = ?";
@@ -48,25 +51,25 @@ public class ListRepository {
     private static final String DELETE_VIDEO_TEMPLATE = "DELETE FROM video WHERE video_id = ?";
     private static final String FINALIZE_LIST_TEMPLATE = "UPDATE list SET has_draft_status = false WHERE list_id = ?";
     private static final String ASSIGN_LIST_TEMPLATE = "INSERT INTO assignment (list_id, account_id, assignee_id) "
-                                                       + "VALUES (?, ?, (SELECT account_id FROM account WHERE external_id = ?)) "
+                                                       + "VALUES (?, ?, ?) "
                                                        + "ON CONFLICT (list_id, account_id) DO "
                                                        + "UPDATE SET assignee_id = EXCLUDED.assignee_id";
 
-    public Future<List<ListDto>> getAllListsForQuiz(SQLConnection connection, String externalId) {
+    public Future<List<ListDto>> getAllListsForQuiz(SQLConnection connection, String quizId) {
         var promise = Promise.<List<ListDto>> promise();
 
-        var parameters = new JsonArray().add(externalId);
+        var parameters = new JsonArray().add(toUuid(quizId));
         connection.queryWithParams(GET_ALL_LISTS_FOR_QUIZ_TEMPLATE, parameters, asyncLists -> {
             if (asyncLists.failed()) {
                 handleFailure(promise, GET_ALL_LISTS_FOR_QUIZ_TEMPLATE, parameters, asyncLists);
                 return;
             }
 
-            log.debug("Retrieved all lists for quiz with external ID \"{}\"", externalId);
+            log.debug("Retrieved all lists for quiz \"{}\"", quizId);
 
             var listDtos = asyncLists.result().getRows().stream()
                     .map(row -> ListDto.builder()
-                            .id(row.getInteger("list_id"))
+                            .id(row.getString("list_id"))
                             .build())
                     .collect(Collectors.toList());
 
@@ -76,16 +79,29 @@ public class ListRepository {
         return promise.future();
     }
 
+    private PGobject toUuid(String id) {
+        try {
+            var pgObject = new PGobject();
+            pgObject.setType("uuid");
+            pgObject.setValue(id);
+
+            return pgObject;
+        } catch (SQLException exception) {
+            log.error("Unable to create PgObject for UUID {}", id, exception);
+            throw new IllegalStateException(exception);
+        }
+    }
+
     private <T1, T2> void handleFailure(Promise<T1> promise, String template, JsonArray parameters, AsyncResult<T2> asyncResult) {
         var cause = asyncResult.cause();
         log.error("Unable to execute query \"{}\" with parameters \"{}\"", template, parameters, cause);
         promise.fail(cause);
     }
 
-    public Future<List<ListDto>> getAllListsForAccount(SQLConnection connection, Integer accountId) {
+    public Future<List<ListDto>> getAllListsForAccount(SQLConnection connection, String accountId) {
         var promise = Promise.<List<ListDto>> promise();
 
-        var parameters = new JsonArray().add(accountId);
+        var parameters = new JsonArray().add(toUuid(accountId));
         connection.queryWithParams(GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE, parameters, asyncLists -> {
             if (asyncLists.failed()) {
                 handleFailure(promise, GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE, parameters, asyncLists);
@@ -96,7 +112,7 @@ public class ListRepository {
 
             var listDtos = asyncLists.result().getRows().stream()
                     .map(row -> ListDto.builder()
-                            .id(row.getInteger("list_id"))
+                            .id(row.getString("list_id"))
                             .build())
                     .collect(Collectors.toList());
 
@@ -106,10 +122,11 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Map<Integer, List<VideoDto>>> getVideosForLists(SQLConnection connection, int... listIds) {
-        var promise = Promise.<Map<Integer, List<VideoDto>>> promise();
+    @SneakyThrows
+    public Future<Map<String, List<VideoDto>>> getVideosForLists(SQLConnection connection, List<String> listIds) {
+        var promise = Promise.<Map<String, List<VideoDto>>> promise();
 
-        var parameters = new JsonArray().add(listIds);
+        var parameters = new JsonArray().add(toUuids(listIds));
         connection.queryWithParams(GET_VIDEOS_FOR_LISTS_TEMPLATE, parameters, asyncVideos -> {
             if (asyncVideos.failed()) {
                 handleFailure(promise, GET_VIDEOS_FOR_LISTS_TEMPLATE, parameters, asyncVideos);
@@ -118,13 +135,13 @@ public class ListRepository {
 
             log.debug("Retrieved all videos for lists");
 
-            Map<Integer, List<VideoDto>> videosForLists = IntStream.of(listIds).boxed()
+            Map<String, List<VideoDto>> videosForLists = listIds.stream()
                     .collect(Collectors.toMap(Function.identity(), i -> new ArrayList<>()));
 
             asyncVideos.result().getRows().forEach(row -> {
-                var listId = row.getInteger("list_id");
+                var listId = row.getString("list_id");
                 var videoDto = VideoDto.builder()
-                        .id(row.getInteger("video_id"))
+                        .id(row.getString("video_id"))
                         .url(row.getString("url"))
                         .referenceId(row.getString("reference_id"))
                         .build();
@@ -137,10 +154,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<ListDto> getList(SQLConnection connection, Integer listId) {
+    public Future<ListDto> getList(SQLConnection connection, String listId) {
         var promise = Promise.<ListDto> promise();
 
-        var parameters = new JsonArray().add(listId);
+        var parameters = new JsonArray().add(toUuid(listId));
         connection.querySingleWithParams(GET_ONE_LIST_TEMPLATE, parameters, asyncList -> {
             if (asyncList.failed()) {
                 handleFailure(promise, GET_ONE_LIST_TEMPLATE, parameters, asyncList);
@@ -152,16 +169,15 @@ public class ListRepository {
             var row = asyncList.result();
             if (row == null) {
                 log.debug("List \"{}\" not found", listId);
-                promise.fail(new NotFoundException(String.format("List \"%d\" not found", listId)));
+                promise.fail(new NotFoundException(String.format("List \"%s\" not found", listId)));
             } else {
                 var listDto = ListDto.builder()
-                        .id(row.getInteger(0))
+                        .id(row.getString(0))
                         .hasDraftStatus(row.getBoolean(1))
-                        .quizId(row.getInteger(2))
-                        .externalQuizId(row.getString(3))
-                        .isActiveQuiz(row.getBoolean(4))
-                        .creatorId(row.getInteger(5))
-                        .creatorName(row.getString(6))
+                        .quizId(row.getString(2))
+                        .isActiveQuiz(row.getBoolean(3))
+                        .creatorId(row.getString(4))
+                        .creatorName(row.getString(5))
                         .build();
                 log.debug("Retrieved list by ID \"{}\": \"{}\"", listId, listDto);
                 promise.complete(listDto);
@@ -171,10 +187,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Map<Integer, AssignmentDto>> getAssignments(SQLConnection connection, Integer accountId, int... listIds) {
-        var promise = Promise.<Map<Integer, AssignmentDto>> promise();
+    public Future<Map<String, AssignmentDto>> getAssignments(SQLConnection connection, String accountId, List<String> listIds) {
+        var promise = Promise.<Map<String, AssignmentDto>> promise();
 
-        var parameters = new JsonArray().add(listIds).add(accountId);
+        var parameters = new JsonArray().add(toUuids(listIds)).add(toUuid(accountId));
         connection.queryWithParams(GET_ASSIGNMENTS_TEMPLATE, parameters, asyncAssignments -> {
             if (asyncAssignments.failed()) {
                 handleFailure(promise, GET_ASSIGNMENTS_TEMPLATE, parameters, asyncAssignments);
@@ -183,12 +199,12 @@ public class ListRepository {
 
             log.debug("Retrieved assignments");
 
-            var assignmentsForLists = new HashMap<Integer, AssignmentDto>();
+            var assignmentsForLists = new HashMap<String, AssignmentDto>();
 
             asyncAssignments.result().getRows().forEach(row -> {
-                var listId = row.getInteger("list_id");
+                var listId = row.getString("list_id");
                 var assignmentDto = AssignmentDto.builder()
-                        .externalAssigneeId(row.getString("external_id"))
+                        .assigneeId(row.getString("account_id"))
                         .assigneeName(row.getString("name"))
                         .build();
                 assignmentsForLists.put(listId, assignmentDto);
@@ -200,10 +216,23 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<ListDto> getListByVideoId(SQLConnection connection, Integer videoId) {
+    private PGobject toUuids(List<String> ids) {
+        try {
+            var pgObject = new PGobject();
+            pgObject.setType("uuid[]");
+            pgObject.setValue("{" + String.join(",", ids) + "}");
+
+            return pgObject;
+        } catch (SQLException exception) {
+            log.error("Unable to create PgObject for UUIDs {}", ids, exception);
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    public Future<ListDto> getListByVideoId(SQLConnection connection, String videoId) {
         var promise = Promise.<ListDto> promise();
 
-        var parameters = new JsonArray().add(videoId);
+        var parameters = new JsonArray().add(toUuid(videoId));
         connection.querySingleWithParams(GET_LIST_BY_VIDEO_ID_TEMPLATE, parameters, asyncList -> {
             if (asyncList.failed()) {
                 handleFailure(promise, GET_LIST_BY_VIDEO_ID_TEMPLATE, parameters, asyncList);
@@ -214,17 +243,16 @@ public class ListRepository {
 
             var row = asyncList.result();
             if (row == null) {
-                log.debug("List for video ID \"{}\" not found", videoId);
-                promise.fail(new NotFoundException(String.format("List for video ID \"%d\" not found", videoId)));
+                log.debug("List for video \"{}\" not found", videoId);
+                promise.fail(new NotFoundException(String.format("List for video \"%s\" not found", videoId)));
             } else {
                 var listDto = ListDto.builder()
-                        .id(row.getInteger(0))
+                        .id(row.getString(0))
                         .hasDraftStatus(row.getBoolean(1))
-                        .quizId(row.getInteger(2))
-                        .externalQuizId(row.getString(3))
-                        .creatorId(row.getInteger(4))
+                        .quizId(row.getString(2))
+                        .creatorId(row.getString(3))
                         .build();
-                log.debug("Retrieved list by video ID \"{}\": \"{}\"", videoId, listDto);
+                log.debug("Retrieved list by video \"{}\": \"{}\"", videoId, listDto);
                 promise.complete(listDto);
             }
         });
@@ -232,10 +260,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Integer> addVideo(SQLConnection connection, Integer listId, String url, String referenceId) {
-        var promise = Promise.<Integer> promise();
+    public Future<String> addVideo(SQLConnection connection, String listId, String url, String referenceId) {
+        var promise = Promise.<String> promise();
 
-        var parameters = new JsonArray().add(listId).add(url).add(referenceId);
+        var parameters = new JsonArray().add(toUuid(listId)).add(url).add(referenceId);
         connection.updateWithParams(ADD_VIDEO_TEMPLATE, parameters, asyncAddVideo -> {
             if (asyncAddVideo.failed()) {
                 handleFailure(promise, ADD_VIDEO_TEMPLATE, parameters, asyncAddVideo);
@@ -245,7 +273,7 @@ public class ListRepository {
             var numberOfAffectedRows = asyncAddVideo.result().getUpdated();
             if (numberOfAffectedRows == 1) {
                 log.debug("Added video");
-                promise.complete(asyncAddVideo.result().getKeys().getInteger(0));
+                promise.complete(asyncAddVideo.result().getKeys().getString(2));
             } else {
                 log.debug("Unable to add video");
                 promise.fail(new InternalServerErrorException(String.format("Updated \"%d\" rows when adding video", numberOfAffectedRows)));
@@ -255,10 +283,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> deleteVideo(SQLConnection connection, Integer videoId) {
+    public Future<Void> deleteVideo(SQLConnection connection, String videoId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(videoId);
+        var parameters = new JsonArray().add(toUuid(videoId));
         connection.updateWithParams(DELETE_VIDEO_TEMPLATE, parameters, asyncDeleteVideo -> {
             if (asyncDeleteVideo.failed()) {
                 handleFailure(promise, DELETE_VIDEO_TEMPLATE, parameters, asyncDeleteVideo);
@@ -278,10 +306,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> finalizeList(SQLConnection connection, Integer listId) {
+    public Future<Void> finalizeList(SQLConnection connection, String listId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(listId);
+        var parameters = new JsonArray().add(toUuid(listId));
         connection.updateWithParams(FINALIZE_LIST_TEMPLATE, parameters, asyncFinalize -> {
             if (asyncFinalize.failed()) {
                 handleFailure(promise, FINALIZE_LIST_TEMPLATE, parameters, asyncFinalize);
@@ -301,10 +329,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> assignList(SQLConnection connection, Integer accountId, Integer listId, String externalAssigneeId) {
+    public Future<Void> assignList(SQLConnection connection, String accountId, String listId, String assigneeId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(listId).add(accountId).add(externalAssigneeId);
+        var parameters = new JsonArray().add(toUuid(listId)).add(toUuid(accountId)).add(toUuid(assigneeId));
         connection.updateWithParams(ASSIGN_LIST_TEMPLATE, parameters, asyncAssignment -> {
             if (asyncAssignment.failed()) {
                 handleFailure(promise, ASSIGN_LIST_TEMPLATE, parameters, asyncAssignment);
@@ -324,10 +352,10 @@ public class ListRepository {
         return promise.future();
     }
 
-    public Future<Void> validateAccountCanAccessList(SQLConnection connection, Integer accountId, Integer listId) {
+    public Future<Void> validateAccountCanAccessList(SQLConnection connection, String accountId, String listId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(accountId).add(listId);
+        var parameters = new JsonArray().add(toUuid(accountId)).add(toUuid(listId));
         connection.querySingleWithParams(ACCOUNT_CAN_ACCESS_LIST_TEMPLATE, parameters, asyncCanAccess -> {
             if (asyncCanAccess.failed()) {
                 handleFailure(promise, ACCOUNT_CAN_ACCESS_LIST_TEMPLATE, parameters, asyncCanAccess);
@@ -340,17 +368,17 @@ public class ListRepository {
                 promise.complete();
             } else {
                 log.debug("Account cannot access list");
-                promise.fail(new ForbiddenException(String.format("Account \"%d\" cannot access list \"%d\"", accountId, listId)));
+                promise.fail(new ForbiddenException(String.format("Account \"%s\" cannot access list \"%s\"", accountId, listId)));
             }
         });
 
         return promise.future();
     }
 
-    public Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, String externalAccountId, Integer quizId, String externalQuizId) {
+    public Future<Void> validateAccountParticipatesInQuiz(SQLConnection connection, String accountId, String quizId) {
         var promise = Promise.<Void> promise();
 
-        var parameters = new JsonArray().add(externalAccountId).add(quizId);
+        var parameters = new JsonArray().add(toUuid(accountId)).add(toUuid(quizId));
         connection.querySingleWithParams(ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE, parameters, asyncParticipatesInQuiz -> {
             if (asyncParticipatesInQuiz.failed()) {
                 handleFailure(promise, ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE, parameters, asyncParticipatesInQuiz);
@@ -363,7 +391,7 @@ public class ListRepository {
                 promise.complete();
             } else {
                 log.debug("Account does not participate in quiz");
-                var message = String.format("Account with external ID \"%s\" does not participate in quiz with external ID \"%s\"", externalAccountId, externalQuizId);
+                var message = String.format("Account \"%s\" does not participate in quiz \"%s\"", accountId, quizId);
                 promise.fail(new ForbiddenException(message));
             }
         });

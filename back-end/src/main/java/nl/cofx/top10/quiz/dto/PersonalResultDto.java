@@ -9,7 +9,7 @@ import lombok.*;
 @Builder
 public class PersonalResultDto {
 
-    String externalAccountId;
+    String accountId;
     String name;
     @Singular
     List<AssignmentDto> correctAssignments;
@@ -20,7 +20,7 @@ public class PersonalResultDto {
         var correctAssignments = AssignmentDto.fromJsonArray(jsonObject.getJsonArray("correctAssignments"));
         var incorrectAssignments = AssignmentDto.fromJsonArray(jsonObject.getJsonArray("incorrectAssignments"));
         return PersonalResultDto.builder()
-                .externalAccountId(jsonObject.getString("externalAccountId"))
+                .accountId(jsonObject.getString("accountId"))
                 .name(jsonObject.getString("name"))
                 .correctAssignments(correctAssignments)
                 .incorrectAssignments(incorrectAssignments)
@@ -31,11 +31,11 @@ public class PersonalResultDto {
         var personalResults = new HashMap<String, PersonalResultDto>();
 
         jsonObject.forEach(e -> {
-            var externalAccountId = e.getKey();
+            var accountId = e.getKey();
             var personalResultAsJsonObject = (JsonObject) e.getValue();
             var personalResult = toPersonalResult(personalResultAsJsonObject);
 
-            personalResults.put(externalAccountId, personalResult);
+            personalResults.put(accountId, personalResult);
         });
 
         return personalResults;
@@ -43,7 +43,7 @@ public class PersonalResultDto {
 
     public JsonObject toJsonObject() {
         return new JsonObject()
-                .put("externalAccountId", externalAccountId)
+                .put("accountId", accountId)
                 .put("name", name)
                 .put("correctAssignments", AssignmentDto.toJsonArray(correctAssignments))
                 .put("incorrectAssignments", AssignmentDto.toJsonArray(incorrectAssignments));
@@ -51,8 +51,8 @@ public class PersonalResultDto {
 
     public static JsonObject toJsonObject(Map<String, PersonalResultDto> personalResults) {
         var jsonObject = new JsonObject();
-        personalResults.forEach((externalAccountId, personalResultDto) ->
-                jsonObject.put(externalAccountId, personalResultDto.toJsonObject()));
+        personalResults.forEach((accountId, personalResultDto) ->
+                jsonObject.put(accountId, personalResultDto.toJsonObject()));
 
         return jsonObject;
     }

@@ -32,8 +32,6 @@ class ListVerticlesIntegrationTest {
     private static final String USERNAME_2 = "Jane Doe";
     private static final String EMAIL_ADDRESS_1 = "john.doe@example.com";
     private static final String EMAIL_ADDRESS_2 = "jane.doe@example.org";
-    private static final String EXTERNAL_ACCOUNT_ID_1 = "123456789";
-    private static final String EXTERNAL_ACCOUNT_ID_2 = "987654321";
 
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant NOW = Instant.now();
@@ -45,12 +43,14 @@ class ListVerticlesIntegrationTest {
     private static final String EMBEDDABLE_URL_2 = "https://www.youtube-nocookie.com/embed/FAkj8KiHxjg";
     private static final String REFERENCE_ID_2 = "FAkj8KiHxjg";
 
+    private static final String NON_EXISTING_LIST_ID = "a1910fd7-b22f-4778-911a-7f338de841eb";
+
     private int port;
     private HttpClient httpClient;
     private final UserHandler userHandler = new UserHandler();
 
-    private int accountId1;
-    private int accountId2;
+    private String accountId1;
+    private String accountId2;
 
     @BeforeAll
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -74,8 +74,8 @@ class ListVerticlesIntegrationTest {
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
-        accountId1 = createUser(connection, USERNAME_1, EMAIL_ADDRESS_1, EXTERNAL_ACCOUNT_ID_1);
-        accountId2 = createUser(connection, USERNAME_2, EMAIL_ADDRESS_2, EXTERNAL_ACCOUNT_ID_2);
+        accountId1 = createUser(connection, USERNAME_1, EMAIL_ADDRESS_1);
+        accountId2 = createUser(connection, USERNAME_2, EMAIL_ADDRESS_2);
 
         connection.close();
     }
@@ -84,16 +84,16 @@ class ListVerticlesIntegrationTest {
         return DriverManager.getConnection(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
     }
 
-    private int createUser(Connection connection, String username, String emailAddress, String externalId) throws SQLException {
-        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at, external_id) VALUES ('%s', '%s', NOW(), NOW(), %s)";
-        var query = String.format(accountQueryTemplate, username, emailAddress, externalId);
+    private String createUser(Connection connection, String username, String emailAddress) throws SQLException {
+        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at) VALUES ('%s', '%s', NOW(), NOW())";
+        var query = String.format(accountQueryTemplate, username, emailAddress);
         var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         var generatedKeys = statement.getGeneratedKeys();
         generatedKeys.next();
 
-        return generatedKeys.getInt(1);
+        return generatedKeys.getString(6);
     }
 
     private void deleteQuizzes() throws SQLException {
@@ -138,24 +138,24 @@ class ListVerticlesIntegrationTest {
 
     private String createQuiz() throws IOException, InterruptedException {
         var createQuizResponse = httpClient.createQuiz(quiz());
-        return createQuizResponse.body().getString("externalId");
+        return createQuizResponse.body().getString("id");
     }
 
-    private int createList() throws IOException, InterruptedException {
+    private String getListOfCreator() throws IOException, InterruptedException {
         var listsResponse = httpClient.getLists();
-        return listsResponse.body().getJsonObject(0).getInteger("id");
+        return listsResponse.body().getJsonObject(0).getString("id");
     }
 
     @Test
     public void returnsAllFinalizedListsForQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
         userHandler.logIn(accountId2);
-        httpClient.participateInQuiz(externalQuizId);
+        httpClient.participateInQuiz(quizId);
         userHandler.logIn(accountId1);
 
-        var listsForQuiz = httpClient.getLists(externalQuizId);
+        var listsForQuiz = httpClient.getLists(quizId);
 
         assertThat(listsForQuiz.statusCode()).isEqualTo(200);
         assertThat(listsForQuiz.body()).isEmpty();
@@ -164,27 +164,27 @@ class ListVerticlesIntegrationTest {
 
         assertThat(finalizeResponse.statusCode()).isEqualTo(204);
 
-        listsForQuiz = httpClient.getLists(externalQuizId);
+        listsForQuiz = httpClient.getLists(quizId);
 
         assertThat(listsForQuiz.statusCode()).isEqualTo(200);
         assertThat(listsForQuiz.body()).isNotNull();
         assertThat(listsForQuiz.body()).hasSize(1);
         var list = listsForQuiz.body().getJsonObject(0);
-        assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getInteger("assigneeId")).isNull();
+        assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getString("assigneeId")).isNull();
 
-        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
+        var assignResponse = httpClient.assignList(listId, accountId2);
 
         assertThat(assignResponse.statusCode()).isEqualTo(204);
 
-        listsForQuiz = httpClient.getLists(externalQuizId);
+        listsForQuiz = httpClient.getLists(quizId);
 
         assertThat(listsForQuiz.statusCode()).isEqualTo(200);
         assertThat(listsForQuiz.body()).isNotNull();
         assertThat(listsForQuiz.body()).hasSize(1);
         list = listsForQuiz.body().getJsonObject(0);
-        assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getString("assigneeId")).isEqualTo(accountId2);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
         vertxTestContext.completeNow();
@@ -193,22 +193,22 @@ class ListVerticlesIntegrationTest {
     @Test
     public void returnsAllListsForAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
+        var listId = getListOfCreator();
 
         var response = httpClient.getLists();
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).hasSize(1);
         var list = response.body().getJsonObject(0);
-        assertThat(list.getInteger("id")).isEqualTo(listId);
+        assertThat(list.getString("id")).isEqualTo(listId);
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void returnsSingleListForActiveQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
@@ -218,19 +218,19 @@ class ListVerticlesIntegrationTest {
 
         assertThat(getListResponse.statusCode()).isEqualTo(200);
         var body = getListResponse.body();
-        assertThat(body.getInteger("id")).isEqualTo(listId);
+        assertThat(body.getString("id")).isEqualTo(listId);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
-        assertThat(body.getString("externalQuizId")).isEqualTo(externalQuizId);
+        assertThat(body.getString("quizId")).isEqualTo(quizId);
         assertThat(body.getBoolean("isActiveQuiz")).isTrue();
         assertThat(body.getInteger("creatorId")).isNull();
         assertThat(body.getString("creatorName")).isNull();
-        assertThat(body.getString("externalAssigneeId")).isNull();
+        assertThat(body.getString("assigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
 
         var videos = body.getJsonArray("videos");
         assertThat(videos).hasSize(1);
         var video = videos.getJsonObject(0);
-        assertThat(video.getInteger("id")).isNotNull();
+        assertThat(video.getString("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
         assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
@@ -239,29 +239,29 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void returnsSingleListForCompletedQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         httpClient.addVideo(listId, URL_1);
-        httpClient.completeQuiz(externalQuizId);
+        httpClient.completeQuiz(quizId);
 
         var getListResponse = httpClient.getList(listId);
 
         assertThat(getListResponse.statusCode()).isEqualTo(200);
         var body = getListResponse.body();
-        assertThat(body.getInteger("id")).isEqualTo(listId);
+        assertThat(body.getString("id")).isEqualTo(listId);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
-        assertThat(body.getString("externalQuizId")).isEqualTo(externalQuizId);
+        assertThat(body.getString("quizId")).isEqualTo(quizId);
         assertThat(body.getBoolean("isActiveQuiz")).isFalse();
-        assertThat(body.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(body.getString("creatorId")).isEqualTo(accountId1);
         assertThat(body.getString("creatorName")).isEqualTo(USERNAME_1);
-        assertThat(body.getString("externalAssigneeId")).isNull();
+        assertThat(body.getString("assigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
 
         var videos = body.getJsonArray("videos");
         assertThat(videos).hasSize(1);
         var video = videos.getJsonObject(0);
-        assertThat(video.getInteger("id")).isNotNull();
+        assertThat(video.getString("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
         assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
@@ -270,28 +270,27 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingUnknownList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
-        var nonExistingListId = listId - 1;
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
-        var getListResponse = httpClient.getList(nonExistingListId);
+        var getListResponse = httpClient.getList(NON_EXISTING_LIST_ID);
 
         assertThat(getListResponse.statusCode()).isEqualTo(404);
-        assertThat(getListResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+        assertThat(getListResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" not found", NON_EXISTING_LIST_ID));
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void returnsSingleListForSameQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
 
-        var participateRequest = httpClient.participateInQuiz(externalQuizId);
+        var participateRequest = httpClient.participateInQuiz(quizId);
         assertThat(participateRequest.statusCode()).isEqualTo(200);
-        var newListId = participateRequest.body().getInteger("personalListId");
+        var newListId = participateRequest.body().getString("personalListId");
 
         userHandler.logIn(accountId1);
 
@@ -299,13 +298,13 @@ class ListVerticlesIntegrationTest {
 
         assertThat(response.statusCode()).isEqualTo(200);
         var body = response.body();
-        assertThat(body.getInteger("id")).isEqualTo(newListId);
+        assertThat(body.getString("id")).isEqualTo(newListId);
         assertThat(body.getBoolean("hasDraftStatus")).isTrue();
-        assertThat(body.getString("externalQuizId")).isEqualTo(externalQuizId);
+        assertThat(body.getString("quizId")).isEqualTo(quizId);
         assertThat(body.getBoolean("isActiveQuiz")).isTrue();
-        assertThat(body.getInteger("creatorId")).isNull();
+        assertThat(body.getString("creatorId")).isNull();
         assertThat(body.getString("creatorName")).isNull();
-        assertThat(body.getString("externalAssigneeId")).isNull();
+        assertThat(body.getString("assigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
         assertThat(body.getJsonArray("videos")).isEmpty();
 
@@ -316,13 +315,13 @@ class ListVerticlesIntegrationTest {
     public void returnsOnlyOwnListBeforeDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var quizAfterDeadline = quiz().put("deadline", NOW);
         var quizBeforeDeadline = quiz().put("deadline", ONE_WEEK_FROM_NOW);
-        var quizAfterDeadlineId = httpClient.createQuiz(quizAfterDeadline).body().getString("externalId");
-        var quizBeforeDeadlineId = httpClient.createQuiz(quizBeforeDeadline).body().getString("externalId");
+        var quizAfterDeadlineId = httpClient.createQuiz(quizAfterDeadline).body().getString("id");
+        var quizBeforeDeadlineId = httpClient.createQuiz(quizBeforeDeadline).body().getString("id");
 
         userHandler.logIn(accountId2);
 
-        var listAfterDeadlineId = httpClient.participateInQuiz(quizAfterDeadlineId).body().getInteger("personalListId");
-        var listBeforeDeadlineId = httpClient.participateInQuiz(quizBeforeDeadlineId).body().getInteger("personalListId");
+        var listAfterDeadlineId = httpClient.participateInQuiz(quizAfterDeadlineId).body().getString("personalListId");
+        var listBeforeDeadlineId = httpClient.participateInQuiz(quizBeforeDeadlineId).body().getString("personalListId");
 
         userHandler.logIn(accountId1);
 
@@ -333,7 +332,7 @@ class ListVerticlesIntegrationTest {
         response = httpClient.getList(listBeforeDeadlineId);
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body().getString("error")).isEqualTo(String.format("Account \"%d\" cannot access list \"%d\"", accountId1, listBeforeDeadlineId));
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Account \"%s\" cannot access list \"%s\"", accountId1, listBeforeDeadlineId));
 
         vertxTestContext.completeNow();
     }
@@ -346,7 +345,7 @@ class ListVerticlesIntegrationTest {
         var listsResponse = httpClient.getLists();
         var lists = listsResponse.body();
         assertThat(lists).hasSize(1);
-        var newListId = lists.getJsonObject(0).getInteger("id");
+        var newListId = lists.getJsonObject(0).getString("id");
 
         userHandler.logIn(accountId1);
 
@@ -354,7 +353,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(getListResponse.statusCode()).isEqualTo(403);
         var body = getListResponse.body();
-        assertThat(body.getString("error")).isEqualTo(String.format("Account \"%d\" cannot access list \"%d\"", accountId1, newListId));
+        assertThat(body.getString("error")).isEqualTo(String.format("Account \"%s\" cannot access list \"%s\"", accountId1, newListId));
 
         vertxTestContext.completeNow();
     }
@@ -362,13 +361,13 @@ class ListVerticlesIntegrationTest {
     @Test
     public void addsVideoToOwnList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
+        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        assertThat(body.getInteger("id")).isNotNull();
+        assertThat(body.getString("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
         assertThat(body.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
@@ -376,7 +375,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         body = addVideoResponse.body();
-        assertThat(body.getInteger("id")).isNotNull();
+        assertThat(body.getString("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_2);
         assertThat(body.getString("referenceId")).isEqualTo(REFERENCE_ID_2);
 
@@ -384,15 +383,15 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
-        assertThat(list.getInteger("id")).isEqualTo(listId);
+        assertThat(list.getString("id")).isEqualTo(listId);
         var videos = list.getJsonArray("videos");
         assertThat(videos).hasSize(2);
         var video = videos.getJsonObject(0);
-        assertThat(video.getInteger("id")).isNotNull();
+        assertThat(video.getString("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
         assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
         video = videos.getJsonObject(1);
-        assertThat(video.getInteger("id")).isNotNull();
+        assertThat(video.getString("id")).isNotNull();
         assertThat(video.getString("url")).isEqualTo(EMBEDDABLE_URL_2);
         assertThat(video.getString("referenceId")).isEqualTo(REFERENCE_ID_2);
 
@@ -401,14 +400,14 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotAddVideoToFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        assertThat(body.getInteger("id")).isNotNull();
+        assertThat(body.getString("id")).isNotNull();
         assertThat(body.getString("url")).isEqualTo(EMBEDDABLE_URL_1);
         assertThat(body.getString("referenceId")).isEqualTo(REFERENCE_ID_1);
 
@@ -417,22 +416,22 @@ class ListVerticlesIntegrationTest {
         addVideoResponse = httpClient.addVideo(listId, URL_2);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(403);
-        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" is finalized", listId));
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" is finalized", listId));
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void doesNotAddVideoToListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(403);
-        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" did not create list \"%d\"", accountId2, listId));
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%s\" did not create list \"%s\"", accountId2, listId));
 
         vertxTestContext.completeNow();
     }
@@ -440,13 +439,12 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotAddVideoToNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
-        var nonExistingListId = listId - 1;
+        var listId = getListOfCreator();
 
-        var addVideoResponse = httpClient.addVideo(nonExistingListId, URL_1);
+        var addVideoResponse = httpClient.addVideo(NON_EXISTING_LIST_ID, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(404);
-        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" not found", NON_EXISTING_LIST_ID));
 
         vertxTestContext.completeNow();
     }
@@ -454,13 +452,13 @@ class ListVerticlesIntegrationTest {
     @Test
     public void deletesVideoFromOwnList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
+        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        var videoId = body.getInteger("id");
+        var videoId = body.getString("id");
 
         var deleteVideoResponse = httpClient.deleteVideo(videoId);
 
@@ -471,21 +469,21 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotDeleteVideoFromFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        var videoId = body.getInteger("id");
+        var videoId = body.getString("id");
 
         httpClient.finalizeList(listId);
 
         var deleteVideoResponse = httpClient.deleteVideo(videoId);
 
         assertThat(deleteVideoResponse.statusCode()).isEqualTo(403);
-        assertThat(deleteVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" is finalized", listId));
+        assertThat(deleteVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" is finalized", listId));
 
         vertxTestContext.completeNow();
     }
@@ -493,20 +491,20 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotDeleteVideoFromListOfOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
+        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(200);
         var body = addVideoResponse.body();
-        var videoId = body.getInteger("id");
+        var videoId = body.getString("id");
 
         userHandler.logIn(accountId2);
 
         var deleteVideoResponse = httpClient.deleteVideo(videoId);
 
         assertThat(deleteVideoResponse.statusCode()).isEqualTo(403);
-        assertThat(deleteVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" did not create list \"%d\"", accountId2, listId));
+        assertThat(deleteVideoResponse.body().getString("error")).isEqualTo(String.format("Account \"%s\" did not create list \"%s\"", accountId2, listId));
 
         vertxTestContext.completeNow();
     }
@@ -514,10 +512,10 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotDeleteNonExistingVideo(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var nonExistingVideoId = 0;
-        var addVideoResponse = httpClient.deleteVideo(nonExistingVideoId);
+        var addVideoResponse = httpClient.deleteVideo(NON_EXISTING_LIST_ID);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(404);
-        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List for video ID \"%d\" not found", nonExistingVideoId));
+        assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List for video \"%s\" not found", NON_EXISTING_LIST_ID));
 
         vertxTestContext.completeNow();
     }
@@ -525,7 +523,7 @@ class ListVerticlesIntegrationTest {
     @Test
     public void finalizesListForOwnAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
+        var listId = getListOfCreator();
 
         var finalizeResponse = httpClient.finalizeList(listId);
 
@@ -535,7 +533,7 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
-        assertThat(list.getInteger("id")).isEqualTo(listId);
+        assertThat(list.getString("id")).isEqualTo(listId);
         assertThat(list.getJsonArray("videos")).isEmpty();
         assertThat(list.getBoolean("hasDraftStatus")).isFalse();
 
@@ -545,43 +543,42 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotFinalizeListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
+        var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
 
         var finalizeResponse = httpClient.finalizeList(listId);
 
         assertThat(finalizeResponse.statusCode()).isEqualTo(403);
-        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%d\" did not create list \"%d\"", accountId2, listId));
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Account \"%s\" did not create list \"%s\"", accountId2, listId));
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void doesNotFinalizeNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
-        var nonExistingListId = listId - 1;
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
-        var finalizeResponse = httpClient.finalizeList(nonExistingListId);
+        var finalizeResponse = httpClient.finalizeList(NON_EXISTING_LIST_ID);
 
         assertThat(finalizeResponse.statusCode()).isEqualTo(404);
-        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" not found", NON_EXISTING_LIST_ID));
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void assignsToFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
-        httpClient.participateInQuiz(externalQuizId);
+        httpClient.participateInQuiz(quizId);
         userHandler.logIn(accountId1);
         httpClient.finalizeList(listId);
 
-        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
+        var assignResponse = httpClient.assignList(listId, accountId2);
 
         assertThat(assignResponse.statusCode()).isEqualTo(204);
 
@@ -589,11 +586,11 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
-        assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getString("assigneeId")).isEqualTo(accountId2);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
-        assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
+        assignResponse = httpClient.assignList(listId, accountId1);
 
         assertThat(assignResponse.statusCode()).isEqualTo(204);
 
@@ -601,8 +598,8 @@ class ListVerticlesIntegrationTest {
 
         assertThat(listResponse.statusCode()).isEqualTo(200);
         list = listResponse.body();
-        assertThat(list.getInteger("id")).isEqualTo(listId);
-        assertThat(list.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getString("assigneeId")).isEqualTo(accountId1);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_1);
 
         vertxTestContext.completeNow();
@@ -610,17 +607,17 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotAssignToNonFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
-        httpClient.participateInQuiz(externalQuizId);
+        httpClient.participateInQuiz(quizId);
         userHandler.logIn(accountId1);
 
-        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
+        var assignResponse = httpClient.assignList(listId, accountId2);
 
         assertThat(assignResponse.statusCode()).isEqualTo(403);
-        var expectedMessage = String.format("List \"%d\" has not been finalized yet", listId);
+        var expectedMessage = String.format("List \"%s\" has not been finalized yet", listId);
         assertThat(assignResponse.body().getString("error")).isEqualTo(expectedMessage);
 
         vertxTestContext.completeNow();
@@ -628,15 +625,15 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotAssignListToAccountOutsideQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         httpClient.finalizeList(listId);
 
-        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_2);
+        var assignResponse = httpClient.assignList(listId, accountId2);
 
         assertThat(assignResponse.statusCode()).isEqualTo(403);
-        var expectedMessage = String.format("Account with external ID \"%s\" does not participate in quiz with external ID \"%s\"", EXTERNAL_ACCOUNT_ID_2, externalQuizId);
+        var expectedMessage = String.format("Account \"%s\" does not participate in quiz \"%s\"", accountId2, quizId);
         assertThat(assignResponse.body().getString("error")).isEqualTo(expectedMessage);
 
         vertxTestContext.completeNow();
@@ -645,35 +642,34 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotAssignToNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = createList();
-        var nonExistingListId = listId - 1;
+        var listId = getListOfCreator();
 
-        var assignResponse = httpClient.assignList(nonExistingListId, EXTERNAL_ACCOUNT_ID_1);
+        var assignResponse = httpClient.assignList(NON_EXISTING_LIST_ID, accountId1);
 
         assertThat(assignResponse.statusCode()).isEqualTo(404);
-        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("List \"%d\" not found", nonExistingListId));
+        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" not found", NON_EXISTING_LIST_ID));
 
         vertxTestContext.completeNow();
     }
 
     @Test
     public void doesNotAssignToListInCompletedQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var externalQuizId = createQuiz();
-        var listId = createList();
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
 
         userHandler.logIn(accountId1);
         httpClient.finalizeList(listId);
 
-        var assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
+        var assignResponse = httpClient.assignList(listId, accountId1);
 
         assertThat(assignResponse.statusCode()).isEqualTo(204);
 
-        httpClient.completeQuiz(externalQuizId);
+        httpClient.completeQuiz(quizId);
 
-        assignResponse = httpClient.assignList(listId, EXTERNAL_ACCOUNT_ID_1);
+        assignResponse = httpClient.assignList(listId, accountId1);
 
         assertThat(assignResponse.statusCode()).isEqualTo(403);
-        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("Quiz with external ID \"%s\" is completed", externalQuizId));
+        assertThat(assignResponse.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" is completed", quizId));
 
         vertxTestContext.completeNow();
     }

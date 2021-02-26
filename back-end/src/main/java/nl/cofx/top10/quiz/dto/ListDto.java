@@ -10,26 +10,24 @@ import lombok.Value;
 @Builder(toBuilder = true)
 public class ListDto {
 
-    Integer id;
-    Integer creatorId;
+    String id;
+    String creatorId;
     String creatorName;
-    Integer quizId;
-    String externalQuizId;
+    String quizId;
     boolean isActiveQuiz;
-    String externalAssigneeId;
+    String assigneeId;
     String assigneeName;
     Boolean hasDraftStatus;
     List<VideoDto> videos;
 
     public static ListDto fromJsonObject(JsonObject jsonObject) {
         return ListDto.builder()
-                .id(jsonObject.getInteger("id"))
-                .quizId(jsonObject.getInteger("quizId"))
-                .externalQuizId(jsonObject.getString("externalQuizId"))
+                .id(jsonObject.getString("id"))
+                .quizId(jsonObject.getString("quizId"))
                 .isActiveQuiz(jsonObject.getBoolean("isActiveQuiz"))
-                .creatorId(jsonObject.getInteger("creatorId"))
+                .creatorId(jsonObject.getString("creatorId"))
                 .creatorName(jsonObject.getString("creatorName"))
-                .externalAssigneeId(jsonObject.getString("externalAssigneeId"))
+                .assigneeId(jsonObject.getString("assigneeId"))
                 .assigneeName(jsonObject.getString("assigneeName"))
                 .hasDraftStatus(jsonObject.getBoolean("hasDraftStatus"))
                 .videos(VideoDto.fromJsonArray(jsonObject.getJsonArray("videos")))
@@ -47,17 +45,14 @@ public class ListDto {
         if (creatorName != null)
             jsonObject.put("creatorName", creatorName);
 
-        if (externalAssigneeId != null)
-            jsonObject.put("externalAssigneeId", externalAssigneeId);
+        if (assigneeId != null)
+            jsonObject.put("assigneeId", assigneeId);
 
         if (assigneeName != null)
             jsonObject.put("assigneeName", assigneeName);
 
         if (quizId != null)
             jsonObject.put("quizId", quizId);
-
-        if (externalQuizId != null)
-            jsonObject.put("externalQuizId", externalQuizId);
 
         if (hasDraftStatus != null)
             jsonObject.put("hasDraftStatus", hasDraftStatus);

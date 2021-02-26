@@ -17,7 +17,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
-import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.*;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.eventbus.MessageCodecs;
@@ -30,22 +29,21 @@ class QuizVerticlesIntegrationTest {
 
     private static final TestConfig TEST_CONFIG = new TestConfig();
 
+    private static final String NON_EXISTING_QUIZ_ID = "f30e86fa-f2ab-4790-ac4b-63a052534510";
+
     private static final String QUIZ_NAME = "Greatest Hits";
     private static final Instant DEADLINE = Instant.now();
-    private static final String NON_EXISTING_EXTERNAL_ID = "pqrstuvw";
     private static final String USERNAME_1 = "John Doe";
     private static final String USERNAME_2 = "Jane Doe";
     private static final String EMAIL_ADDRESS_1 = "john.doe@example.com";
     private static final String EMAIL_ADDRESS_2 = "jane.doe@example.com";
-    private static final String EXTERNAL_ACCOUNT_ID_1 = "123456789";
-    private static final String EXTERNAL_ACCOUNT_ID_2 = "987654321";
 
     private int port;
     private HttpClient httpClient;
     private final UserHandler userHandler = new UserHandler();
 
-    private int accountId1;
-    private int accountId2;
+    private String accountId1;
+    private String accountId2;
 
     @BeforeAll
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -72,21 +70,21 @@ class QuizVerticlesIntegrationTest {
         var statement = connection.prepareStatement("TRUNCATE TABLE account CASCADE");
         statement.execute();
 
-        accountId1 = createAccount(connection, USERNAME_1, EMAIL_ADDRESS_1, EXTERNAL_ACCOUNT_ID_1);
-        accountId2 = createAccount(connection, USERNAME_2, EMAIL_ADDRESS_2, EXTERNAL_ACCOUNT_ID_2);
+        accountId1 = createAccount(connection, USERNAME_1, EMAIL_ADDRESS_1);
+        accountId2 = createAccount(connection, USERNAME_2, EMAIL_ADDRESS_2);
 
         connection.close();
     }
 
-    private int createAccount(Connection connection, String username, String emailAddress, String externalAccountId) throws SQLException {
-        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at, external_id) VALUES ('%s', '%s', NOW(), NOW(), %s)";
-        var query = String.format(accountQueryTemplate, username, emailAddress, externalAccountId);
+    private String createAccount(Connection connection, String username, String emailAddress) throws SQLException {
+        var accountQueryTemplate = "INSERT INTO account (name, email_address, first_login_at, last_login_at) VALUES ('%s', '%s', NOW(), NOW())";
+        var query = String.format(accountQueryTemplate, username, emailAddress);
         var statement = connection.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
         statement.execute();
 
         var generatedKeys = statement.getGeneratedKeys();
         generatedKeys.next();
-        return generatedKeys.getInt(1);
+        return generatedKeys.getString(6);
     }
 
     private void deleteQuizzes() throws SQLException {
@@ -131,21 +129,20 @@ class QuizVerticlesIntegrationTest {
         assertThat(response.statusCode()).isEqualTo(200);
         var body = response.body();
         assertThat(body).isNotNull();
-        var externalId = body.getString("externalId");
-        assertThat(externalId).isNotBlank();
+        var quizId = body.getString("id");
+        assertThat(quizId).isNotBlank();
 
-        response = httpClient.getQuiz(externalId);
+        response = httpClient.getQuiz(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         quiz = response.body();
-        assertThat(quiz.getInteger("id")).isNotNull();
+        assertThat(quiz.getString("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(quiz.getString("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(externalId);
-        assertThat(quiz.getInteger("personalListId")).isNotNull();
+        assertThat(quiz.getString("personalListId")).isNotNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
@@ -199,21 +196,20 @@ class QuizVerticlesIntegrationTest {
     public void returnsAllQuizzes(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
-        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var quizId = createQuizResponse.body().getString("quizId");
 
         var response = httpClient.getQuizzes();
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).hasSize(1);
         var quiz = response.body().getJsonObject(0);
-        assertThat(quiz.getInteger("id")).isNotNull();
+        assertThat(quiz.getString("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(quiz.getString("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
-        assertThat(quiz.getInteger("personalListId")).isNotNull();
+        assertThat(quiz.getString("personalListId")).isNotNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
@@ -224,20 +220,18 @@ class QuizVerticlesIntegrationTest {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
 
-        var quizId = createQuizResponse.body().getInteger("id");
-        var externalQuizId = createQuizResponse.body().getString("externalId");
-        var response = httpClient.getQuiz(externalQuizId);
+        var quizId = createQuizResponse.body().getString("id");
+        var response = httpClient.getQuiz(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getInteger("id")).isNotNull();
+        assertThat(quiz.getString("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(quiz.getString("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isTrue();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
-        assertThat(quiz.getInteger("personalListId")).isNotNull();
+        assertThat(quiz.getString("personalListId")).isNotNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isTrue();
 
         vertxTestContext.completeNow();
@@ -249,20 +243,18 @@ class QuizVerticlesIntegrationTest {
         var createQuizResponse = httpClient.createQuiz(quiz());
         userHandler.logOut();
 
-        var quizId = createQuizResponse.body().getInteger("id");
-        var externalQuizId = createQuizResponse.body().getString("externalId");
-        var response = httpClient.getQuiz(externalQuizId);
+        var quizId = createQuizResponse.body().getString("id");
+        var response = httpClient.getQuiz(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getInteger("id")).isNotNull();
+        assertThat(quiz.getString("id")).isNotNull();
         assertThat(quiz.getString("name")).isEqualTo(QUIZ_NAME);
-        assertThat(quiz.getInteger("creatorId")).isEqualTo(accountId1);
+        assertThat(quiz.getString("creatorId")).isEqualTo(accountId1);
         assertThat(quiz.getBoolean("isCreator")).isFalse();
         assertThat(quiz.getBoolean("isActive")).isTrue();
         assertThat(quiz.getInstant("deadline")).isEqualTo(DEADLINE);
-        assertThat(quiz.getString("externalId")).isEqualTo(externalQuizId);
-        assertThat(quiz.getInteger("personalListId")).isNull();
+        assertThat(quiz.getString("personalListId")).isNull();
         assertThat(quiz.getBoolean("personalListHasDraftStatus")).isNull();
 
         vertxTestContext.completeNow();
@@ -270,10 +262,11 @@ class QuizVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var response = httpClient.getQuiz(NON_EXISTING_EXTERNAL_ID);
+        userHandler.logIn(accountId1);
+        var response = httpClient.getQuiz(NON_EXISTING_QUIZ_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" not found", NON_EXISTING_QUIZ_ID));
 
         vertxTestContext.completeNow();
     }
@@ -282,13 +275,13 @@ class QuizVerticlesIntegrationTest {
     public void letsAccountParticipate(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
-        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var quizId = createQuizResponse.body().getString("id");
 
         userHandler.logIn(accountId2);
-        var response = httpClient.participateInQuiz(externalQuizId);
+        var response = httpClient.participateInQuiz(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
-        assertThat(response.body().getInteger("personalListId")).isNotNull();
+        assertThat(response.body().getString("personalListId")).isNotNull();
 
         vertxTestContext.completeNow();
     }
@@ -297,10 +290,10 @@ class QuizVerticlesIntegrationTest {
     public void rejectsParticipationInUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
 
-        var response = httpClient.participateInQuiz(NON_EXISTING_EXTERNAL_ID);
+        var response = httpClient.participateInQuiz(NON_EXISTING_QUIZ_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" not found", NON_EXISTING_QUIZ_ID));
 
         vertxTestContext.completeNow();
     }
@@ -310,12 +303,11 @@ class QuizVerticlesIntegrationTest {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
 
-        var externalQuizId = createQuizResponse.body().getString("externalId");
-        var secondResponse = httpClient.participateInQuiz(externalQuizId);
+        var quizId = createQuizResponse.body().getString("id");
+        var secondResponse = httpClient.participateInQuiz(quizId);
 
         assertThat(secondResponse.statusCode()).isEqualTo(409);
-        assertThat(secondResponse.body().getString("error"))
-                .isEqualTo(String.format("Account with ID \"%d\" already has a list for quiz with external ID \"%s\"", accountId1, externalQuizId));
+        assertThat(secondResponse.body().getString("error")).isEqualTo(String.format("Account \"%s\" already has a list for quiz \"%s\"", accountId1, quizId));
 
         vertxTestContext.completeNow();
     }
@@ -327,16 +319,16 @@ class QuizVerticlesIntegrationTest {
 
         assertThat(createResponse.statusCode()).isEqualTo(200);
 
-        var externalQuizId = createResponse.body().getString("externalId");
+        var quizId = createResponse.body().getString("id");
 
-        var response = httpClient.getParticipants(externalQuizId);
+        var response = httpClient.getParticipants(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var body = new JsonArray(response.body());
         assertThat(body).hasSize(1);
 
         var participant = body.getJsonObject(0);
-        assertThat(participant.getString("id")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(participant.getString("id")).isEqualTo(accountId1);
         assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
         assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
 
@@ -347,11 +339,11 @@ class QuizVerticlesIntegrationTest {
     public void returns404GettingParticipantsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
 
-        var response = httpClient.getParticipants(NON_EXISTING_EXTERNAL_ID);
+        var response = httpClient.getParticipants(NON_EXISTING_QUIZ_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
         var body = new JsonObject(response.body());
-        assertThat(body.getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        assertThat(body.getString("error")).isEqualTo(String.format("Quiz \"%s\" not found", NON_EXISTING_QUIZ_ID));
 
         vertxTestContext.completeNow();
     }
@@ -361,94 +353,106 @@ class QuizVerticlesIntegrationTest {
         userHandler.logIn(accountId1);
 
         var createQuizResponse = httpClient.createQuiz(quiz());
-        var externalQuizId = createQuizResponse.body().getString("externalId");
+        var quizId = createQuizResponse.body().getString("id");
         var listsResponse = httpClient.getLists();
         assertThat(listsResponse.statusCode()).isEqualTo(200);
         var lists = listsResponse.body();
         assertThat(lists).hasSize(1);
-        var listId1 = lists.getJsonObject(0).getInteger("id");
+        var listId1 = lists.getJsonObject(0).getString("id");
         httpClient.finalizeList(listId1);
 
         userHandler.logIn(accountId2);
 
-        httpClient.participateInQuiz(externalQuizId);
+        httpClient.participateInQuiz(quizId);
         listsResponse = httpClient.getLists();
         assertThat(listsResponse.statusCode()).isEqualTo(200);
         lists = listsResponse.body();
         assertThat(lists).hasSize(1);
-        var listId2 = lists.getJsonObject(0).getInteger("id");
+        var listId2 = lists.getJsonObject(0).getString("id");
         httpClient.finalizeList(listId2);
 
         userHandler.logIn(accountId1);
 
-        httpClient.assignList(listId1, EXTERNAL_ACCOUNT_ID_1);
-        httpClient.assignList(listId2, EXTERNAL_ACCOUNT_ID_2);
+        httpClient.assignList(listId1, accountId1);
+        httpClient.assignList(listId2, accountId2);
 
         userHandler.logIn(accountId2);
 
-        httpClient.assignList(listId1, EXTERNAL_ACCOUNT_ID_1);
-        httpClient.assignList(listId2, EXTERNAL_ACCOUNT_ID_2);
+        httpClient.assignList(listId1, accountId1);
+        httpClient.assignList(listId2, accountId2);
 
         userHandler.logIn(accountId1);
 
-        httpClient.completeQuiz(externalQuizId);
+        httpClient.completeQuiz(quizId);
 
-        var response = httpClient.getQuizResults(externalQuizId);
+        var response = httpClient.getQuizResults(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
+        assertThat(quiz.getString("quizId")).isEqualTo(quizId);
         var allPersonalResults = quiz.getJsonObject("personalResults");
         assertThat(allPersonalResults).hasSize(2);
 
-        var firstPersonalResults = allPersonalResults.getJsonObject(EXTERNAL_ACCOUNT_ID_1);
-        assertThat(firstPersonalResults.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        var firstPersonalResults = allPersonalResults.getJsonObject(accountId1);
+        assertThat(firstPersonalResults.getString("accountId")).isEqualTo(accountId1);
         assertThat(firstPersonalResults.getString("name")).isEqualTo(USERNAME_1);
         assertThat(firstPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
         var correctAssignments = firstPersonalResults.getJsonArray("correctAssignments");
         assertThat(correctAssignments).hasSize(2);
-        var firstAssignment = correctAssignments.getJsonObject(0);
-        assertThat(firstAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
-        assertThat(firstAssignment.getString("creatorName")).isEqualTo(USERNAME_1);
-        assertThat(firstAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
-        assertThat(firstAssignment.getString("assigneeName")).isEqualTo(USERNAME_1);
-        assertThat(firstAssignment.getInteger("listId")).isEqualTo(listId1);
-        var secondAssignment = correctAssignments.getJsonObject(1);
-        assertThat(secondAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
-        assertThat(secondAssignment.getString("creatorName")).isEqualTo(USERNAME_2);
-        assertThat(secondAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
-        assertThat(secondAssignment.getString("assigneeName")).isEqualTo(USERNAME_2);
-        assertThat(secondAssignment.getInteger("listId")).isEqualTo(listId2);
+        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
+            assertThat(rawAssignment).isInstanceOf(JsonObject.class);
+            var assignment = (JsonObject) rawAssignment;
+            assertThat(assignment.getString("creatorId")).isEqualTo(accountId1);
+            assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_1);
+            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId1);
+            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_1);
+            assertThat(assignment.getString("listId")).isEqualTo(listId1);
+        });
+        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
+            assertThat(rawAssignment).isInstanceOf(JsonObject.class);
+            var assignment = (JsonObject) rawAssignment;
+            assertThat(assignment.getString("creatorId")).isEqualTo(accountId2);
+            assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_2);
+            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId2);
+            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_2);
+            assertThat(assignment.getString("listId")).isEqualTo(listId2);
+        });
 
-        var secondPersonalResults = allPersonalResults.getJsonObject(EXTERNAL_ACCOUNT_ID_2);
-        assertThat(secondPersonalResults.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        var secondPersonalResults = allPersonalResults.getJsonObject(accountId2);
+        assertThat(secondPersonalResults.getString("accountId")).isEqualTo(accountId2);
         assertThat(secondPersonalResults.getString("name")).isEqualTo(USERNAME_2);
         assertThat(secondPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
         correctAssignments = secondPersonalResults.getJsonArray("correctAssignments");
         assertThat(correctAssignments).hasSize(2);
-        firstAssignment = correctAssignments.getJsonObject(0);
-        assertThat(firstAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
-        assertThat(firstAssignment.getString("creatorName")).isEqualTo(USERNAME_1);
-        assertThat(firstAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
-        assertThat(firstAssignment.getString("assigneeName")).isEqualTo(USERNAME_1);
-        assertThat(firstAssignment.getInteger("listId")).isEqualTo(listId1);
-        secondAssignment = correctAssignments.getJsonObject(1);
-        assertThat(secondAssignment.getString("externalCreatorId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
-        assertThat(secondAssignment.getString("creatorName")).isEqualTo(USERNAME_2);
-        assertThat(secondAssignment.getString("externalAssigneeId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
-        assertThat(secondAssignment.getString("assigneeName")).isEqualTo(USERNAME_2);
-        assertThat(secondAssignment.getInteger("listId")).isEqualTo(listId2);
+        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
+            assertThat(rawAssignment).isInstanceOf(JsonObject.class);
+            var assignment = (JsonObject) rawAssignment;
+            assertThat(assignment.getString("creatorId")).isEqualTo(accountId1);
+            assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_1);
+            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId1);
+            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_1);
+            assertThat(assignment.getString("listId")).isEqualTo(listId1);
+        });
+        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
+            assertThat(rawAssignment).isInstanceOf(JsonObject.class);
+            var assignment = (JsonObject) rawAssignment;
+            assertThat(assignment.getString("creatorId")).isEqualTo(accountId2);
+            assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_2);
+            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId2);
+            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_2);
+            assertThat(assignment.getString("listId")).isEqualTo(listId2);
+        });
 
         var ranking = quiz.getJsonArray("ranking");
         assertThat(ranking).hasSize(2);
         var rankEntryForJane = ranking.getJsonObject(0);
         assertThat(rankEntryForJane.getInteger("rank")).isEqualTo(1);
-        assertThat(rankEntryForJane.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_2);
+        assertThat(rankEntryForJane.getString("accountId")).isEqualTo(accountId2);
         assertThat(rankEntryForJane.getString("name")).isEqualTo(USERNAME_2);
         assertThat(rankEntryForJane.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
         var rankEntryForJohn = ranking.getJsonObject(1);
         assertThat(rankEntryForJohn.getInteger("rank")).isEqualTo(1);
-        assertThat(rankEntryForJohn.getString("externalAccountId")).isEqualTo(EXTERNAL_ACCOUNT_ID_1);
+        assertThat(rankEntryForJohn.getString("accountId")).isEqualTo(accountId1);
         assertThat(rankEntryForJohn.getString("name")).isEqualTo(USERNAME_1);
         assertThat(rankEntryForJohn.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
 
@@ -459,14 +463,14 @@ class QuizVerticlesIntegrationTest {
     public void returnsEmptyQuizResultsForQuizWithoutAssignments(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
-        var externalQuizId = createQuizResponse.body().getString("externalId");
-        httpClient.completeQuiz(externalQuizId);
+        var quizId = createQuizResponse.body().getString("id");
+        httpClient.completeQuiz(quizId);
 
-        var response = httpClient.getQuizResults(externalQuizId);
+        var response = httpClient.getQuizResults(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var quiz = response.body();
-        assertThat(quiz.getString("quizId")).isEqualTo(externalQuizId);
+        assertThat(quiz.getString("quizId")).isEqualTo(quizId);
         assertThat(quiz.getJsonObject("personalResults")).isEmpty();
 
         vertxTestContext.completeNow();
@@ -477,11 +481,11 @@ class QuizVerticlesIntegrationTest {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
 
-        var externalQuizId = createQuizResponse.body().getString("externalId");
-        var response = httpClient.getQuizResults(externalQuizId);
+        var quizId = createQuizResponse.body().getString("id");
+        var response = httpClient.getQuizResults(quizId);
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz with external ID \"%s\" is still active", externalQuizId));
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" is still active", quizId));
 
         vertxTestContext.completeNow();
     }
@@ -490,10 +494,10 @@ class QuizVerticlesIntegrationTest {
     public void returns404GettingResultsForUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
 
-        var response = httpClient.getQuizResults(NON_EXISTING_EXTERNAL_ID);
+        var response = httpClient.getQuizResults(NON_EXISTING_QUIZ_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" not found", NON_EXISTING_QUIZ_ID));
 
         vertxTestContext.completeNow();
     }
@@ -503,12 +507,12 @@ class QuizVerticlesIntegrationTest {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
 
-        var externalQuizId = createQuizResponse.body().getString("externalId");
-        var completeResponse = httpClient.completeQuiz(externalQuizId);
+        var quizId = createQuizResponse.body().getString("id");
+        var completeResponse = httpClient.completeQuiz(quizId);
 
         assertThat(completeResponse.statusCode()).isEqualTo(204);
 
-        var getResponse = httpClient.getQuiz(externalQuizId);
+        var getResponse = httpClient.getQuiz(quizId);
 
         assertThat(getResponse.statusCode()).isEqualTo(200);
         assertThat(getResponse.body()).isNotNull();
@@ -521,15 +525,15 @@ class QuizVerticlesIntegrationTest {
     public void rejectsCompletionByNonCreator(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
         var createQuizResponse = httpClient.createQuiz(quiz());
-        var externalId = createQuizResponse.body().getString("externalId");
+        var quizId = createQuizResponse.body().getString("id");
 
         userHandler.logIn(accountId2);
-        var response = httpClient.completeQuiz(externalId);
+        var response = httpClient.completeQuiz(quizId);
 
         assertThat(response.statusCode()).isEqualTo(403);
-        assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId2 + "\" is not allowed to close quiz with external ID \"" + externalId + "\"");
+        assertThat(response.body().getString("error")).isEqualTo("Account \"" + accountId2 + "\" is not allowed to close quiz \"" + quizId + "\"");
 
-        response = httpClient.getQuiz(externalId);
+        response = httpClient.getQuiz(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         assertThat(response.body()).isNotNull();
@@ -542,10 +546,10 @@ class QuizVerticlesIntegrationTest {
     public void rejectsCompletionOfUnknownQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
 
-        var response = httpClient.completeQuiz(NON_EXISTING_EXTERNAL_ID);
+        var response = httpClient.completeQuiz(NON_EXISTING_QUIZ_ID);
 
         assertThat(response.statusCode()).isEqualTo(404);
-        assertThat(response.body().getString("error")).isEqualTo("Quiz with external ID \"pqrstuvw\" not found");
+        assertThat(response.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" not found", NON_EXISTING_QUIZ_ID));
 
         vertxTestContext.completeNow();
     }

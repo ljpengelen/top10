@@ -1,6 +1,7 @@
 package nl.cofx.top10.quiz;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import io.vertx.core.Future;
@@ -49,15 +50,14 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetAll(Message<JsonObject> getAllListsRequest) {
         var body = getAllListsRequest.body();
-        var externalId = body.getString("externalId");
-        var accountId = body.getInteger("accountId");
+        var quizId = body.getString("quizId");
+        var accountId = body.getString("accountId");
 
         withTransaction(connection ->
-                listRepository.getAllListsForQuiz(connection, externalId).compose(listDtos -> {
+                listRepository.getAllListsForQuiz(connection, quizId).compose(listDtos -> {
                     var listIds = listDtos.stream()
                             .map(ListDto::getId)
-                            .mapToInt(i -> i)
-                            .toArray();
+                            .collect(Collectors.toList());
                     return listRepository.getAssignments(connection, accountId, listIds)
                             .compose(assignmentsForLists -> Future.succeededFuture(listDtos.stream()
                                     .map(listDto -> {
@@ -66,7 +66,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                                         if (assignment != null) {
                                             return listDto.toBuilder()
                                                     .assigneeName(assignment.getAssigneeName())
-                                                    .externalAssigneeId(assignment.getExternalAssigneeId())
+                                                    .assigneeId(assignment.getAssigneeId())
                                                     .build();
                                         } else {
                                             return listDto;
@@ -80,14 +80,13 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                 .onFailure(cause -> handleFailure(cause, getAllListsRequest));
     }
 
-    private void handleGetAllForAccount(Message<Integer> getAllListsForAccountRequest) {
+    private void handleGetAllForAccount(Message<String> getAllListsForAccountRequest) {
         var accountId = getAllListsForAccountRequest.body();
         withTransaction(connection -> listRepository.getAllListsForAccount(connection, accountId)
                 .compose(listDtos -> {
                     var listIds = listDtos.stream()
                             .map(ListDto::getId)
-                            .mapToInt(i -> i)
-                            .toArray();
+                            .collect(Collectors.toList());
                     return listRepository.getVideosForLists(connection, listIds)
                             .compose(videosForList -> Future.succeededFuture(listDtos.stream()
                                     .map(listDto -> listDto.toBuilder()
@@ -101,16 +100,16 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private void handleGetOne(Message<JsonObject> getOneListRequest) {
         var body = getOneListRequest.body();
-        var listId = body.getInteger("listId");
-        var accountId = body.getInteger("accountId");
+        var listId = body.getString("listId");
+        var accountId = body.getString("accountId");
 
         withTransaction(connection -> listRepository.getList(connection, listId)
                 .compose(list ->
-                        listRepository.getAssignments(connection, accountId, listId).compose(assignments -> {
+                        listRepository.getAssignments(connection, accountId, Collections.singletonList(listId)).compose(assignments -> {
                             var assignment = assignments.get(listId);
                             if (assignment != null) {
                                 return Future.succeededFuture(list.toBuilder()
-                                        .externalAssigneeId(assignments.get(listId).getExternalAssigneeId())
+                                        .assigneeId(assignments.get(listId).getAssigneeId())
                                         .assigneeName(assignments.get(listId).getAssigneeName())
                                         .build());
                             } else {
@@ -118,7 +117,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                             }
                         })).compose(list ->
                         listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
-                                listRepository.getVideosForLists(connection, list.getId()).compose(videosForList ->
+                                listRepository.getVideosForLists(connection, Collections.singletonList(list.getId())).compose(videosForList ->
                                         Future.succeededFuture(list.toBuilder()
                                                 .videos(videosForList.getOrDefault(listId, Collections.emptyList()))
                                                 .build())))))
@@ -128,20 +127,20 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private void handleAddVideo(Message<JsonObject> addVideoRequest) {
         var body = addVideoRequest.body();
-        var listId = body.getInteger("listId");
+        var listId = body.getString("listId");
         var url = body.getString("url");
         var referenceId = body.getString("referenceId");
-        var accountId = body.getInteger("accountId");
+        var accountId = body.getString("accountId");
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto -> {
                     if (!accountId.equals(listDto.getCreatorId())) {
-                        var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
+                        var message = String.format("Account \"%s\" did not create list \"%s\"", accountId, listId);
                         log.debug(message);
                         return Future.failedFuture(new ForbiddenException(message));
                     } else if (!listDto.getHasDraftStatus()) {
                         log.debug("Account \"{}\" cannot assign to finalized list \"{}\"", accountId, listId);
-                        return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" is finalized", listId)));
+                        return Future.failedFuture(new ForbiddenException(String.format("List \"%s\" is finalized", listId)));
                     } else {
                         return listRepository.addVideo(connection, listId, url, referenceId);
                     }
@@ -152,19 +151,19 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private void handleDeleteVideo(Message<JsonObject> deleteVideoRequest) {
         var body = deleteVideoRequest.body();
-        var videoId = body.getInteger("videoId");
-        var accountId = body.getInteger("accountId");
+        var videoId = body.getString("videoId");
+        var accountId = body.getString("accountId");
 
         withTransaction(connection ->
                 listRepository.getListByVideoId(connection, videoId).compose(listDto -> {
                     var listId = listDto.getId();
                     if (!accountId.equals(listDto.getCreatorId())) {
-                        var message = String.format("Account \"%d\" did not create list \"%d\"", accountId, listId);
+                        var message = String.format("Account \"%s\" did not create list \"%s\"", accountId, listId);
                         log.debug(message);
                         return Future.failedFuture(new ForbiddenException(message));
                     } else if (!listDto.getHasDraftStatus()) {
                         log.debug("Account \"{}\" cannot delete video from finalized list \"{}\"", accountId, listId);
-                        return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" is finalized", listId)));
+                        return Future.failedFuture(new ForbiddenException(String.format("List \"%s\" is finalized", listId)));
                     } else {
                         return listRepository.deleteVideo(connection, videoId);
                     }
@@ -175,15 +174,15 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private void handleFinalizeList(Message<JsonObject> finalizeListRequest) {
         var body = finalizeListRequest.body();
-        var accountId = body.getInteger("accountId");
-        var listId = body.getInteger("listId");
+        var accountId = body.getString("accountId");
+        var listId = body.getString("listId");
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto -> {
                     if (accountId.equals(listDto.getCreatorId())) {
                         return listRepository.finalizeList(connection, listId);
                     } else {
-                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%d\" did not create list \"%d\"", accountId, listId)));
+                        return Future.failedFuture(new ForbiddenException(String.format("Account \"%s\" did not create list \"%s\"", accountId, listId)));
                     }
                 }))
                 .onSuccess(finalizeListRequest::reply)
@@ -192,26 +191,26 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
     private void handleAssignList(Message<JsonObject> assignListRequest) {
         var body = assignListRequest.body();
-        var accountId = body.getInteger("accountId");
-        var listId = body.getInteger("listId");
+        var accountId = body.getString("accountId");
+        var listId = body.getString("listId");
         var assigneeId = body.getString("assigneeId");
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto -> {
                     if (listDto.getHasDraftStatus()) {
                         log.debug("User \"{}\" cannot assign \"{}\" to non-finalized list \"{}\"", accountId, assigneeId, listId);
-                        return Future.failedFuture(new ForbiddenException(String.format("List \"%d\" has not been finalized yet", listId)));
+                        return Future.failedFuture(new ForbiddenException(String.format("List \"%s\" has not been finalized yet", listId)));
                     } else {
-                        return quizRepository.getQuiz(connection, listDto.getExternalQuizId(), accountId).compose(quiz -> {
+                        var quizId = listDto.getQuizId();
+                        return quizRepository.getQuiz(connection, quizId, accountId).compose(quiz -> {
                             if (quiz.isActive()) {
                                 return listRepository.validateAccountCanAccessList(connection, accountId, listId).compose(accountCanAccessList ->
-                                        listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, listDto.getQuizId(), listDto.getExternalQuizId())
+                                        listRepository.validateAccountParticipatesInQuiz(connection, assigneeId, quizId)
                                                 .compose(accountParticipatesInQuiz ->
                                                         listRepository.assignList(connection, accountId, listId, assigneeId)));
                             } else {
-                                var externalQuizId = quiz.getExternalId();
-                                log.debug("User \"{}\" cannot assign to list \"{}\" of completed quiz \"{}\"", accountId, listId, externalQuizId);
-                                return Future.failedFuture(new ForbiddenException(String.format("Quiz with external ID \"%s\" is completed", externalQuizId)));
+                                log.debug("User \"{}\" cannot assign to list \"{}\" of completed quiz \"{}\"", accountId, listId, quizId);
+                                return Future.failedFuture(new ForbiddenException(String.format("Quiz \"%s\" is completed", quizId)));
                             }
                         });
                     }

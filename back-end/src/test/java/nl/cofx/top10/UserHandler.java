@@ -6,7 +6,7 @@ import io.vertx.ext.web.RoutingContext;
 
 public class UserHandler {
 
-    private Integer accountId;
+    private String accountId;
 
     public void handle(RoutingContext routingContext) {
         if (accountId != null) {
@@ -15,7 +15,7 @@ public class UserHandler {
         routingContext.next();
     }
 
-    public void logIn(int accountId) {
+    public void logIn(String accountId) {
         this.accountId = accountId;
     }
 

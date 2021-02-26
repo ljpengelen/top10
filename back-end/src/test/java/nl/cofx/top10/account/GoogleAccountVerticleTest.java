@@ -52,7 +52,7 @@ class GoogleAccountVerticleTest {
     @Test
     public void createsAccount(VertxTestContext vertxTestContext) {
         var googleUserData = new JsonObject()
-                .put("id", "abcd")
+                .put("id", "037088d6-1bdd-4532-8127-c25359c9e423")
                 .put("name", NAME)
                 .put("emailAddress", EMAIL_ADDRESS);
         eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncAccount -> {
@@ -62,7 +62,7 @@ class GoogleAccountVerticleTest {
                 assertThat(body).isNotNull();
                 assertThat(body).isInstanceOf(JsonObject.class);
                 var jsonObject = (JsonObject) body;
-                assertThat(jsonObject.getInteger("accountId")).isNotNull();
+                assertThat(jsonObject.getString("accountId")).isNotNull();
                 assertThat(jsonObject.getString("name")).isEqualTo(NAME);
                 assertThat(jsonObject.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
             });
@@ -83,7 +83,7 @@ class GoogleAccountVerticleTest {
                 assertThat(newAccount).isNotNull();
                 assertThat(newAccount).isInstanceOf(JsonObject.class);
                 var jsonObject = (JsonObject) newAccount;
-                assertThat(jsonObject.getInteger("accountId")).isNotNull();
+                assertThat(jsonObject.getString("accountId")).isNotNull();
                 assertThat(jsonObject.getString("name")).isEqualTo(NAME);
                 assertThat(jsonObject.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
             });

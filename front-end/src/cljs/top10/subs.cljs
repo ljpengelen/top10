@@ -96,16 +96,16 @@
    (:quiz-results db)))
 
 (rf/reg-sub
- ::external-account-id
+ ::account-id
  (fn [db _]
-   (:external-account-id db)))
+   (:account-id db)))
 
 (rf/reg-sub
  ::personal-results
- :<- [::external-account-id]
+ :<- [::account-id]
  :<- [::quiz-results]
- (fn [[external-account-id quiz-results]]
-   (get-in quiz-results [:personalResults (keyword external-account-id)])))
+ (fn [[account-id quiz-results]]
+   (get-in quiz-results [:personalResults (keyword account-id)])))
 
 (rf/reg-sub
  ::show-dialog?

@@ -1,5 +1,10 @@
 package nl.cofx.top10.account;
 
+import java.sql.SQLException;
+import java.util.UUID;
+
+import org.postgresql.util.PGobject;
+
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
@@ -10,7 +15,6 @@ import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.entity.AbstractEntityVerticle;
-import nl.cofx.top10.random.TokenGenerator;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -20,7 +24,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
 
     private static final String GET_ACCOUNT_TEMPLATE = "SELECT a.account_id, a.name, a.email_address FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
     private static final String UPDATE_STATISTICS_TEMPLATE = "UPDATE account SET last_login_at = NOW(), number_of_logins = number_of_logins + 1 WHERE account_id = ?";
-    private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins, external_id) VALUES (?, ?, NOW(), NOW(), 1, ?)";
+    private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins) VALUES (?, ?, NOW(), NOW(), 1)";
     private static final String CREATE_GOOGLE_ACCOUNT_TEMPLATE = "INSERT INTO google_account (account_id, google_account_id) VALUES (?, ?)";
 
     private final JsonObject jdbcOptions;
@@ -47,7 +51,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
             var account = asyncAccount.result();
             if (account != null) {
                 log.debug("Retrieved account for Google ID");
-                updateStatisticsForAccount(account.getInteger("accountId")).onComplete(asyncUpdate -> {
+                updateStatisticsForAccount(account.getString("accountId")).onComplete(asyncUpdate -> {
                     if (asyncUpdate.failed()) {
                         log.error("Unable to update login statistics for account \"{}\"", account, asyncUpdate.cause());
                     } else {
@@ -99,7 +103,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
             }
 
             var account = new JsonObject()
-                    .put("accountId", result.getInteger(0))
+                    .put("accountId", result.getString(0))
                     .put("name", result.getString(1))
                     .put("emailAddress", result.getString(2));
             log.debug("Query \"{}\" produced result \"{}\"", GET_ACCOUNT_TEMPLATE, account);
@@ -109,7 +113,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
         return promise.future();
     }
 
-    private Future<Void> updateStatisticsForAccount(int accountId) {
+    private Future<Void> updateStatisticsForAccount(String accountId) {
         var promise = Promise.<Void> promise();
 
         var params = new JsonArray().add(accountId);
@@ -127,11 +131,10 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
         return promise.future();
     }
 
-    private Future<Integer> createAccount(SQLConnection connection, String name, String emailAddress) {
-        var promise = Promise.<Integer> promise();
+    private Future<String> createAccount(SQLConnection connection, String name, String emailAddress) {
+        var promise = Promise.<String> promise();
 
-        var externalId = TokenGenerator.generateToken();
-        var params = new JsonArray().add(name).add(emailAddress).add(externalId);
+        var params = new JsonArray().add(name).add(emailAddress);
         connection.updateWithParams(CREATE_ACCOUNT_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();
@@ -140,7 +143,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
                 return;
             }
 
-            var accountId = asyncResult.result().getKeys().getInteger(0);
+            var accountId = asyncResult.result().getKeys().getString(5);
             log.debug("Query \"{}\" produced result \"{}\"", CREATE_ACCOUNT_TEMPLATE, accountId);
             promise.complete(accountId);
         });
@@ -148,10 +151,10 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
         return promise.future();
     }
 
-    private Future<Integer> linkAccountWithGoogleId(SQLConnection connection, Integer accountId, String googleId) {
-        var promise = Promise.<Integer> promise();
+    private Future<String> linkAccountWithGoogleId(SQLConnection connection, String accountId, String googleId) {
+        var promise = Promise.<String> promise();
 
-        var params = new JsonArray().add(accountId).add(googleId);
+        var params = new JsonArray().add(toUuid(accountId)).add(googleId);
         connection.updateWithParams(CREATE_GOOGLE_ACCOUNT_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();
@@ -165,5 +168,18 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
         });
 
         return promise.future();
+    }
+
+    private PGobject toUuid(String id) {
+        try {
+            var pgObject = new PGobject();
+            pgObject.setType("uuid");
+            pgObject.setValue(id);
+
+            return pgObject;
+        } catch (SQLException exception) {
+            log.error("Unable to create PgObject for UUID {}", id, exception);
+            throw new IllegalStateException(exception);
+        }
     }
 }

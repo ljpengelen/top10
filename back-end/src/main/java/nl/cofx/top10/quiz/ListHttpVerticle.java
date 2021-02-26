@@ -30,7 +30,7 @@ public class ListHttpVerticle extends AbstractVerticle {
     public void start() {
         log.info("Starting");
 
-        router.route(HttpMethod.GET, "/private/quiz/:externalId/list").handler(this::handleGetAllForQuiz);
+        router.route(HttpMethod.GET, "/private/quiz/:quizId/list").handler(this::handleGetAllForQuiz);
         router.route(HttpMethod.GET, "/private/list").handler(this::handleGetAllForAccount);
 
         router.route(HttpMethod.GET, "/private/list/:listId").handler(this::handleGetOne);
@@ -48,12 +48,12 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetAllForQuiz(RoutingContext routingContext) {
-        var accountId = routingContext.user().principal().getInteger("accountId");
-        var externalId = routingContext.pathParam("externalId");
+        var accountId = routingContext.user().principal().getString("accountId");
+        var quizId = routingContext.pathParam("quizId");
 
-        log.debug("Get all lists for quiz \"{}\"", externalId);
+        log.debug("Get all lists for quiz \"{}\"", quizId);
 
-        var getRequest = new JsonObject().put("accountId", accountId).put("externalId", externalId);
+        var getRequest = new JsonObject().put("accountId", accountId).put("quizId", quizId);
         vertx.eventBus().request(GET_ALL_LISTS_FOR_QUIZ_ADDRESS, getRequest, allListsReply -> {
             if (allListsReply.failed()) {
                 handleFailure(allListsReply.cause(), routingContext);
@@ -91,7 +91,7 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetAllForAccount(RoutingContext routingContext) {
-        var accountId = routingContext.user().principal().getInteger("accountId");
+        var accountId = routingContext.user().principal().getString("accountId");
 
         log.debug("Get all lists for account \"{}\"", accountId);
 
@@ -111,20 +111,11 @@ public class ListHttpVerticle extends AbstractVerticle {
         });
     }
 
-    private Integer toInteger(String string) {
-        try {
-            return Integer.parseInt(string);
-        } catch (NumberFormatException e) {
-            log.debug("\"{}\" is not an integer", string, e);
-            throw new ValidationException(String.format("\"%s\" is not an integer", string));
-        }
-    }
-
     private void handleAddVideo(RoutingContext routingContext) {
         log.debug("Add video");
 
-        var accountId = routingContext.user().principal().getInteger("accountId");
-        var listId = toInteger(routingContext.pathParam("listId"));
+        var accountId = routingContext.user().principal().getString("accountId");
+        var listId = routingContext.pathParam("listId");
         var addRequest = toAddRequest(accountId, listId, routingContext);
         vertx.eventBus().request(ADD_VIDEO_ADDRESS, addRequest, addVideoReply -> {
             if (addVideoReply.failed()) {
@@ -134,7 +125,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
             log.debug("Added video");
 
-            var videoId = (Integer) addVideoReply.result().body();
+            var videoId = (String) addVideoReply.result().body();
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
@@ -149,8 +140,8 @@ public class ListHttpVerticle extends AbstractVerticle {
     private void handleDeleteVideo(RoutingContext routingContext) {
         log.debug("Delete video");
 
-        var accountId = routingContext.user().principal().getInteger("accountId");
-        var videoId = toInteger(routingContext.pathParam("videoId"));
+        var accountId = routingContext.user().principal().getString("accountId");
+        var videoId = routingContext.pathParam("videoId");
         var deleteRequest = new JsonObject()
                 .put("accountId", accountId)
                 .put("videoId", videoId);
@@ -168,7 +159,7 @@ public class ListHttpVerticle extends AbstractVerticle {
         });
     }
 
-    private JsonObject toAddRequest(Integer accountId, Integer listId, RoutingContext routingContext) {
+    private JsonObject toAddRequest(String accountId, String listId, RoutingContext routingContext) {
         var request = getRequestBodyAsJson(routingContext);
         if (request == null) {
             throw new ValidationException("Request body is empty");
@@ -199,11 +190,11 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private void handleGetOne(RoutingContext routingContext) {
-        var listId = toInteger(routingContext.pathParam("listId"));
+        var listId = routingContext.pathParam("listId");
 
         log.debug(String.format("Get list \"%s\"", listId));
 
-        var accountId = routingContext.user().principal().getInteger("accountId");
+        var accountId = routingContext.user().principal().getString("accountId");
         var getListRequest = new JsonObject()
                 .put("listId", listId)
                 .put("accountId", accountId);
@@ -225,11 +216,11 @@ public class ListHttpVerticle extends AbstractVerticle {
     }
 
     private void handleFinalize(RoutingContext routingContext) {
-        var listId = toInteger(routingContext.pathParam("listId"));
+        var listId = routingContext.pathParam("listId");
 
         log.debug(String.format("Finalize list \"%s\"", listId));
 
-        var accountId = routingContext.user().principal().getInteger("accountId");
+        var accountId = routingContext.user().principal().getString("accountId");
         var finalizeRequest = new JsonObject()
                 .put("accountId", accountId)
                 .put("listId", listId);
@@ -250,7 +241,7 @@ public class ListHttpVerticle extends AbstractVerticle {
     private void handleAssign(RoutingContext routingContext) {
         log.debug("Assigning list");
 
-        var accountId = routingContext.user().principal().getInteger("accountId");
+        var accountId = routingContext.user().principal().getString("accountId");
         var assignRequest = toAssignRequest(accountId, routingContext);
 
         vertx.eventBus().request(ASSIGN_LIST_ADDRESS, assignRequest, assignReply -> {
@@ -267,14 +258,14 @@ public class ListHttpVerticle extends AbstractVerticle {
         });
     }
 
-    private JsonObject toAssignRequest(Integer accountId, RoutingContext routingContext) {
+    private JsonObject toAssignRequest(String accountId, RoutingContext routingContext) {
         var request = getRequestBodyAsJson(routingContext);
         if (request == null) {
             throw new ValidationException("Request body is empty");
         }
 
         var assigneeId = request.getString("assigneeId");
-        var listId = toInteger(routingContext.pathParam("listId"));
+        var listId = routingContext.pathParam("listId");
 
         return new JsonObject()
                 .put("accountId", accountId)

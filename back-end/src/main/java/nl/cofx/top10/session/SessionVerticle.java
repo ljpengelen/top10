@@ -63,7 +63,7 @@ public class SessionVerticle extends AbstractVerticle {
             var account = (JsonObject) reply.result().body();
             var jwt = Jwts.builder()
                     .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
-                    .setSubject(String.valueOf(account.getInteger("accountId")))
+                    .setSubject(account.getString("accountId"))
                     .claim("name", account.getString("name"))
                     .claim("emailAddress", account.getString("emailAddress"))
                     .signWith(secretKey, SignatureAlgorithm.HS512)

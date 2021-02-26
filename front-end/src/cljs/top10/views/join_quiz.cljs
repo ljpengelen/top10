@@ -5,7 +5,7 @@
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button log-in-url]]))
 
-(defn join-quiz-page [loading-quiz? logged-in? {:keys [name externalId deadline deadline-has-passed? isActive personalListHasDraftStatus]}]
+(defn join-quiz-page [loading-quiz? logged-in? {:keys [name id deadline deadline-has-passed? isActive personalListHasDraftStatus]}]
    (when-not loading-quiz?
      (if-not logged-in?
        [:<>
@@ -38,13 +38,13 @@
             "The person who assigns the most top 10's to their creator wins the quiz."]
            [:p "Do you want to join?"]
            [button {:color "primary"
-                    :on-click #(rf/dispatch [::events/participate-in-quiz externalId])
+                    :on-click #(rf/dispatch [::events/participate-in-quiz id])
                     :variant "contained"}
             "Participate in quiz"]]
           :else
           [:<>
            [:p "It looks like you've already joined this quiz."]
-           [button {:href (str "/quiz/" externalId) :color "primary" :variant "contained"} "View quiz"]])])))
+           [button {:href (str "/quiz/" id) :color "primary" :variant "contained"} "View quiz"]])])))
 
 (defn join-quiz-page-container []
   [join-quiz-page @(rf/subscribe [::subs/loading-quiz?]) @(rf/subscribe [::subs/logged-in?]) @(rf/subscribe [::subs/quiz])])

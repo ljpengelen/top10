@@ -22,7 +22,7 @@ import nl.cofx.top10.jwt.Jwt;
 
 class JwtSessionHandlerTest {
 
-    private static final int ACCOUNT_ID = 1234;
+    private static final String ACCOUNT_ID = "6c1f2bd1-bc6f-4ce0-ae4b-ff5a17eaf470";
     private static final String NAME = "Jeff Doe";
     private static final String EMAIL_ADDRESS = "jeff.doe@example.com";
 
@@ -74,7 +74,7 @@ class JwtSessionHandlerTest {
     @Test
     public void setsUserGivenValidToken() {
         var token = Jwts.builder()
-                .setSubject(String.valueOf(ACCOUNT_ID))
+                .setSubject(ACCOUNT_ID)
                 .claim("name", NAME)
                 .claim("emailAddress", EMAIL_ADDRESS)
                 .signWith(SECRET_KEY, SignatureAlgorithm.HS512)

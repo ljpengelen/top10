@@ -5,7 +5,7 @@
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button]]))
 
-(defn complete-quiz-page [loading-quiz? {:keys [name deadline deadline-has-passed? externalId]}]
+(defn complete-quiz-page [loading-quiz? {:keys [name deadline deadline-has-passed? id]}]
   (when-not loading-quiz?
     [:<>
      [:h1 name]
@@ -18,7 +18,7 @@
           "After ending the quiz, the end results will become available to all participants.")]
      [grid {:container true :spacing 2}
       [grid {:item true} [button {:color "primary"
-                                  :on-click #(rf/dispatch [::events/complete-quiz externalId])
+                                  :on-click #(rf/dispatch [::events/complete-quiz id])
                                   :variant "contained"} "End quiz"]]
       [grid {:item true} [back-to-overview-button]]]]))
 

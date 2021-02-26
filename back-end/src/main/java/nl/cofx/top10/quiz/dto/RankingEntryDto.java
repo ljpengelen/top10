@@ -9,14 +9,14 @@ import lombok.Value;
 public class RankingEntryDto {
 
     int rank;
-    String externalAccountId;
+    String accountId;
     String name;
     int numberOfCorrectAssignments;
 
     public JsonObject toJsonObject() {
         return new JsonObject()
                 .put("rank", rank)
-                .put("externalAccountId", externalAccountId)
+                .put("accountId", accountId)
                 .put("name", name)
                 .put("numberOfCorrectAssignments", numberOfCorrectAssignments);
     }
