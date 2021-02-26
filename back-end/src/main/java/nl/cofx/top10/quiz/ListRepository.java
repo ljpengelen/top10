@@ -18,12 +18,12 @@ import nl.cofx.top10.quiz.dto.*;
 @Log4j2
 public class ListRepository {
 
-    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT l.list_id FROM list l "
+    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT replace(l.list_id::text, '-', '') AS list_id FROM list l "
                                                                   + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                                   + "WHERE q.quiz_id = ? AND NOT l.has_draft_status "
                                                                   + "ORDER BY list_id";
-    private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT l.list_id FROM list l WHERE l.account_id = ?";
-    private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, v.list_id, v.url, v.reference_id FROM video v WHERE v.list_id = ANY (?)";
+    private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT replace(l.list_id::text, '-', '') AS list_id FROM list l WHERE l.account_id = ?";
+    private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, replace(v.list_id::text, '-', '') AS list_id, v.url, v.reference_id FROM video v WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
                                                                    + "JOIN list l2 ON l1.quiz_id = l2.quiz_id "
                                                                    + "JOIN quiz q ON l1.quiz_id = q.quiz_id "
@@ -33,17 +33,18 @@ public class ListRepository {
                                                                         + "JOIN account a ON l.account_id = a.account_id "
                                                                         + "WHERE a.account_id = ? AND l.quiz_id = ?";
     private static final String GET_ONE_LIST_TEMPLATE =
-            "SELECT l.list_id, l.has_draft_status, replace(l.quiz_id::text, '-', ''), q.is_active, l.account_id AS creator_id, a.name AS creator_name FROM video v "
+            "SELECT replace(l.list_id::text, '-', '') AS list_id, l.has_draft_status, replace(l.quiz_id::text, '-', '') AS quiz_id, q.is_active, replace(l.account_id::text, '-', '') AS creator_id, a.name AS creator_name FROM video v "
             + "NATURAL RIGHT JOIN list l "
             + "NATURAL JOIN quiz q "
             + "JOIN account a ON a.account_id = l.account_id "
             + "WHERE l.list_id = ?";
-    private static final String GET_ASSIGNMENTS_TEMPLATE = "SELECT l.list_id, acc.account_id, acc.name FROM list l "
-                                                           + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
-                                                           + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
-                                                           + "WHERE l.list_id = ANY (?) and ass.account_id = ?";
+    private static final String GET_ASSIGNMENTS_TEMPLATE =
+            "SELECT replace(l.list_id::text, '-', '') AS list_id, replace(acc.account_id::text, '-', '') AS account_id, acc.name FROM list l "
+            + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
+            + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
+            + "WHERE l.list_id = ANY (?) and ass.account_id = ?";
     private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE =
-            "SELECT l.list_id, l.has_draft_status, replace(l.quiz_id::text, '-', ''), l.account_id FROM video v "
+            "SELECT replace(l.list_id::text, '-', '') AS list_id, l.has_draft_status, replace(l.quiz_id::text, '-', '') AS quiz_id, replace(l.account_id::text, '-', '') AS account_id FROM video v "
             + "NATURAL RIGHT JOIN list l "
             + "NATURAL JOIN quiz q "
             + "WHERE v.video_id = ?";

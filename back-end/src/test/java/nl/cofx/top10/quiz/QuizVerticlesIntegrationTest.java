@@ -84,7 +84,7 @@ class QuizVerticlesIntegrationTest {
 
         var generatedKeys = statement.getGeneratedKeys();
         generatedKeys.next();
-        return generatedKeys.getString(6);
+        return generatedKeys.getString(6).replace("-", "");
     }
 
     private void deleteQuizzes() throws SQLException {

@@ -21,11 +21,11 @@ import nl.cofx.top10.quiz.dto.*;
 public class QuizRepository {
 
     private static final String GET_ALL_QUIZZES_TEMPLATE =
-            "SELECT replace(q.quiz_id::text, '-', ''), q.name, q.is_active, q.creator_id, q.deadline, l.list_id, l.has_draft_status FROM quiz q "
+            "SELECT replace(q.quiz_id::text, '-', '') AS quiz_id, q.name, q.is_active, replace(q.creator_id::text, '-', '') AS creator_id, q.deadline, replace(l.list_id::text, '-', '') AS list_id, l.has_draft_status FROM quiz q "
             + "JOIN list l ON l.quiz_id = q.quiz_id "
             + "WHERE l.account_id = ?";
     private static final String GET_ONE_QUIZ_TEMPLATE =
-            "SELECT replace(q.quiz_id::text, '-', ''), q.name, q.is_active, q.creator_id, q.deadline, l.list_id, l.has_draft_status FROM quiz q "
+            "SELECT replace(q.quiz_id::text, '-', '') AS quiz_id, q.name, q.is_active, replace(q.creator_id::text, '-', '') AS creator_id, q.deadline, replace(l.list_id::text, '-', '') AS list_id, l.has_draft_status FROM quiz q "
             + "LEFT JOIN list l ON l.quiz_id = q.quiz_id AND l.account_id = ? "
             + "WHERE q.quiz_id = ?";
     private static final String CREATE_QUIZ_TEMPLATE = "INSERT INTO quiz (name, is_active, creator_id, deadline) VALUES (?, true, ?, ?)";
@@ -33,16 +33,16 @@ public class QuizRepository {
     private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) "
                                                        + "VALUES (?, ?, true) "
                                                        + "ON CONFLICT DO NOTHING";
-    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT a.account_id, a.name, l.has_draft_status FROM account a "
+    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT replace(a.account_id::text, '-', '') AS account_id, a.name, l.has_draft_status FROM account a "
                                                             + "JOIN list l ON l.account_id = a.account_id "
                                                             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
                                                             + "WHERE q.quiz_id = ? "
                                                             + "ORDER BY a.account_id";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
-            "SELECT ass.list_id, "
-            + "assigner_acc.account_id AS assigner_id, assigner_acc.name AS assigner_name, "
-            + "assignee_acc.account_id AS assignee_id, assignee_acc.name AS assignee_name, "
-            + "creator_acc.account_id AS creator_id, creator_acc.name AS creator_name FROM quiz q "
+            "SELECT replace(ass.list_id::text, '-', '') AS list_id, "
+            + "replace(assigner_acc.account_id::text, '-', '') AS assigner_id, assigner_acc.name AS assigner_name, "
+            + "replace(assignee_acc.account_id::text, '-', '') AS assignee_id, assignee_acc.name AS assignee_name, "
+            + "replace(creator_acc.account_id::text, '-', '') AS creator_id, creator_acc.name AS creator_name FROM quiz q "
             + "JOIN list l ON l.quiz_id = q.quiz_id "
             + "JOIN assignment ass ON ass.list_id = l.list_id "
             + "JOIN account creator_acc ON creator_acc.account_id = l.account_id "
@@ -252,7 +252,7 @@ public class QuizRepository {
                 return;
             }
 
-            var listId = asyncUpdate.result().getKeys().getString(1);
+            var listId = asyncUpdate.result().getKeys().getString(1).replace("-", "");
 
             log.debug("Created new list \"{}\"", listId);
 
