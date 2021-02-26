@@ -15,7 +15,7 @@ alter table list
     drop column list_id,
     drop column account_id,
     drop column quiz_id,
-    drop column external_id;
+    drop column if exists external_id;
 alter table quiz
     drop column quiz_id,
     drop column external_id,
@@ -23,7 +23,7 @@ alter table quiz
 alter table video
     drop column video_id,
     drop column list_id,
-    drop column external_id;
+    drop column if exists external_id;
 
 alter table account rename column account_uuid to account_id;
 alter table assignment rename column account_uuid to account_id;
