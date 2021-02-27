@@ -1,9 +1,6 @@
 package nl.cofx.top10.account;
 
-import java.sql.SQLException;
-import java.util.UUID;
-
-import org.postgresql.util.PGobject;
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -15,6 +12,7 @@ import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.entity.AbstractEntityVerticle;
+import nl.cofx.top10.postgresql.PostgreSql;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -116,7 +114,7 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
     private Future<Void> updateStatisticsForAccount(String accountId) {
         var promise = Promise.<Void> promise();
 
-        var params = new JsonArray().add(accountId);
+        var params = new JsonArray().add(toUuid(accountId));
         sqlClient.querySingleWithParams(UPDATE_STATISTICS_TEMPLATE, params, asyncResult -> {
             if (asyncResult.failed()) {
                 var cause = asyncResult.cause();
@@ -168,18 +166,5 @@ public class GoogleAccountVerticle extends AbstractEntityVerticle {
         });
 
         return promise.future();
-    }
-
-    private PGobject toUuid(String id) {
-        try {
-            var pgObject = new PGobject();
-            pgObject.setType("uuid");
-            pgObject.setValue(id);
-
-            return pgObject;
-        } catch (SQLException exception) {
-            log.error("Unable to create PgObject for UUID {}", id, exception);
-            throw new IllegalStateException(exception);
-        }
     }
 }

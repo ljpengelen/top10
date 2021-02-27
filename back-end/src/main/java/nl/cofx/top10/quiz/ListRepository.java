@@ -1,11 +1,11 @@
 package nl.cofx.top10.quiz;
 
-import java.sql.SQLException;
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
+import static nl.cofx.top10.postgresql.PostgreSql.toUuids;
+
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.*;
-
-import org.postgresql.util.PGobject;
+import java.util.stream.Collectors;
 
 import io.vertx.core.*;
 import io.vertx.core.json.JsonArray;
@@ -78,19 +78,6 @@ public class ListRepository {
         });
 
         return promise.future();
-    }
-
-    private PGobject toUuid(String id) {
-        try {
-            var pgObject = new PGobject();
-            pgObject.setType("uuid");
-            pgObject.setValue(id);
-
-            return pgObject;
-        } catch (SQLException exception) {
-            log.error("Unable to create PgObject for UUID {}", id, exception);
-            throw new IllegalStateException(exception);
-        }
     }
 
     private <T1, T2> void handleFailure(Promise<T1> promise, String template, JsonArray parameters, AsyncResult<T2> asyncResult) {
@@ -215,19 +202,6 @@ public class ListRepository {
         });
 
         return promise.future();
-    }
-
-    private PGobject toUuids(List<String> ids) {
-        try {
-            var pgObject = new PGobject();
-            pgObject.setType("uuid[]");
-            pgObject.setValue("{" + String.join(",", ids) + "}");
-
-            return pgObject;
-        } catch (SQLException exception) {
-            log.error("Unable to create PgObject for UUIDs {}", ids, exception);
-            throw new IllegalStateException(exception);
-        }
     }
 
     public Future<ListDto> getListByVideoId(SQLConnection connection, String videoId) {

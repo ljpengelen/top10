@@ -6,9 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.*;
-import java.net.http.*;
 import java.net.http.HttpClient;
-import java.security.GeneralSecurityException;
+import java.net.http.*;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
@@ -22,6 +21,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import lombok.SneakyThrows;
 import nl.cofx.top10.Application;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.http.*;
@@ -223,5 +223,84 @@ public class SessionIntegrationTest {
 
         getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
         assertThat(getStatusResponse.body().getString("status")).isEqualTo("NO_SESSION");
+    }
+
+    @Test
+    public void updatesStatistics() throws IOException, InterruptedException {
+        var payload = mock(GoogleIdToken.Payload.class);
+        when(payload.getSubject()).thenReturn("googleId");
+        when(payload.getEmail()).thenReturn(EMAIL_ADDRESS);
+        when(payload.get("name")).thenReturn(NAME);
+        var googleIdToken = mock(GoogleIdToken.class);
+        when(googleIdToken.getPayload()).thenReturn(payload);
+        var validAuthorizationCode = "validGoogleAuthorizationCode";
+        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
+
+        var httpClient = HttpClient.newBuilder()
+                .cookieHandler(CookieHandler.getDefault())
+                .build();
+        var getStatusRequest = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/status"))
+                .header("Origin", config.getCsrfTarget())
+                .build();
+        var getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
+
+        var optionalCsrfToken = getStatusResponse.headers().firstValue(CSRF_TOKEN_HEADER_NAME);
+        assertThat(optionalCsrfToken).isNotEmpty();
+        var csrfToken = optionalCsrfToken.get();
+
+        var logInRequest = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject()
+                        .put("type", "GOOGLE")
+                        .put("code", validAuthorizationCode)))
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
+                .header("Origin", config.getCsrfTarget())
+                .header(CSRF_TOKEN_HEADER_NAME, csrfToken)
+                .build();
+        var logInResponse = httpClient.send(logInRequest, new JsonObjectBodyHandler());
+
+        assertThat(logInResponse.statusCode()).isEqualTo(200);
+        var body = logInResponse.body();
+        assertThat(body.getString("status")).isEqualTo("SESSION_CREATED");
+
+        validateStatistics(EMAIL_ADDRESS, 1);
+
+        getStatusRequest = HttpRequest.newBuilder()
+                .GET()
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/status"))
+                .header("Origin", config.getCsrfTarget())
+                .build();
+        getStatusResponse = httpClient.send(getStatusRequest, new JsonObjectBodyHandler());
+
+        optionalCsrfToken = getStatusResponse.headers().firstValue(CSRF_TOKEN_HEADER_NAME);
+        assertThat(optionalCsrfToken).isNotEmpty();
+        csrfToken = optionalCsrfToken.get();
+
+        logInRequest = HttpRequest.newBuilder()
+                .POST(BodyPublisher.ofJsonObject(new JsonObject()
+                        .put("type", "GOOGLE")
+                        .put("code", validAuthorizationCode)))
+                .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
+                .header("Origin", config.getCsrfTarget())
+                .header(CSRF_TOKEN_HEADER_NAME, csrfToken)
+                .build();
+        logInResponse = httpClient.send(logInRequest, new JsonObjectBodyHandler());
+
+        assertThat(logInResponse.statusCode()).isEqualTo(200);
+        body = logInResponse.body();
+        assertThat(body.getString("status")).isEqualTo("SESSION_CREATED");
+
+        validateStatistics(EMAIL_ADDRESS, 2);
+    }
+
+    @SneakyThrows
+    private void validateStatistics(String emailAddress, int numberOfLogins) {
+        var connection = DriverManager.getConnection(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword());
+        var statement = connection.prepareStatement("SELECT number_of_logins FROM account WHERE email_address = ?");
+        statement.setString(1, emailAddress);
+        var result = statement.executeQuery();
+        assertThat(result.next()).isTrue();
+        assertThat(result.getInt(1)).isEqualTo(numberOfLogins);
     }
 }

@@ -1,5 +1,7 @@
 package nl.cofx.top10.quiz;
 
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
+
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.*;
@@ -120,19 +122,6 @@ public class QuizRepository {
         });
 
         return promise.future();
-    }
-
-    private PGobject toUuid(String id) {
-        try {
-            var pgObject = new PGobject();
-            pgObject.setType("uuid");
-            pgObject.setValue(id);
-
-            return pgObject;
-        } catch (SQLException exception) {
-            log.error("Unable to create PgObject for UUID {}", id, exception);
-            throw new IllegalStateException(exception);
-        }
     }
 
     public Future<ResultSummaryDto> getQuizResult(SQLConnection connection, String quizId) {
