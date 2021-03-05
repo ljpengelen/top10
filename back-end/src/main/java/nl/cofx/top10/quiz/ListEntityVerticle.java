@@ -1,7 +1,7 @@
 package nl.cofx.top10.quiz;
 
+import java.time.Instant;
 import java.util.Collections;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import io.vertx.core.Future;
@@ -139,10 +139,21 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
                         log.debug(message);
                         return Future.failedFuture(new ForbiddenException(message));
                     } else if (!listDto.getHasDraftStatus()) {
-                        log.debug("Account \"{}\" cannot assign to finalized list \"{}\"", accountId, listId);
+                        log.debug("Account \"{}\" cannot add video to finalized list \"{}\"", accountId, listId);
                         return Future.failedFuture(new ForbiddenException(String.format("List \"%s\" is finalized", listId)));
                     } else {
-                        return listRepository.addVideo(connection, listId, url, referenceId);
+                        var quizId = listDto.getQuizId();
+                        return quizRepository.getQuiz(connection, quizId, accountId).compose(quizDto -> {
+                            if (!quizDto.isActive()) {
+                                log.debug("Quiz \"{}\" has ended", quizId);
+                                return Future.failedFuture(new ForbiddenException(String.format("Quiz \"%s\" has ended", quizId)));
+                            } else if (quizDto.getDeadline().isBefore(Instant.now())) {
+                                log.debug("Deadline for quiz \"{}\" has passed", quizId);
+                                return Future.failedFuture(new ForbiddenException(String.format("Deadline for quiz \"%s\" has passed", quizId)));
+                            } else {
+                                return listRepository.addVideo(connection, listId, url, referenceId);
+                            }
+                        });
                     }
                 }))
                 .onSuccess(addVideoRequest::reply)

@@ -105,7 +105,7 @@ class ListVerticlesIntegrationTest {
     private static JsonObject quiz() {
         return new JsonObject()
                 .put("name", QUIZ_NAME)
-                .put("deadline", NOW);
+                .put("deadline", ONE_WEEK_FROM_NOW);
     }
 
     private void deployVerticles(Vertx vertx, VertxTestContext vertxTestContext) {
@@ -137,7 +137,11 @@ class ListVerticlesIntegrationTest {
     }
 
     private String createQuiz() throws IOException, InterruptedException {
-        var createQuizResponse = httpClient.createQuiz(quiz());
+        return createQuiz(quiz());
+    }
+
+    private String createQuiz(JsonObject quiz) throws IOException, InterruptedException {
+        var createQuizResponse = httpClient.createQuiz(quiz);
         return createQuizResponse.body().getString("id");
     }
 
@@ -283,7 +287,7 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void returnsSingleListForSameQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizId = createQuiz();
+        var quizId = createQuiz(quiz().put("deadline", NOW));
         var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
@@ -417,6 +421,35 @@ class ListVerticlesIntegrationTest {
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(403);
         assertThat(addVideoResponse.body().getString("error")).isEqualTo(String.format("List \"%s\" is finalized", listId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotAddVideoAfterDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quizId = createQuiz(quiz().put("deadline", NOW));
+        var listId = getListOfCreator();
+
+        var addVideoResponse = httpClient.addVideo(listId, URL_1);
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(403);
+        var body = addVideoResponse.body();
+        assertThat(body.getString("error")).isEqualTo(String.format("Deadline for quiz \"%s\" has passed", quizId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotAddVideoAfterEndOfQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quizId = createQuiz();
+        var listId = getListOfCreator();
+        httpClient.completeQuiz(quizId);
+
+        var addVideoResponse = httpClient.addVideo(listId, URL_1);
+
+        assertThat(addVideoResponse.statusCode()).isEqualTo(403);
+        var body = addVideoResponse.body();
+        assertThat(body.getString("error")).isEqualTo(String.format("Quiz \"%s\" has ended", quizId));
 
         vertxTestContext.completeNow();
     }
