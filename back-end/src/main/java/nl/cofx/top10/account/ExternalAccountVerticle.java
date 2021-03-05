@@ -19,8 +19,8 @@ public class ExternalAccountVerticle extends AbstractEntityVerticle {
 
     public static final String EXTERNAL_LOGIN_ADDRESS = "external.login.accountId";
 
-    private static final String GET_ACCOUNT_BY_GOOGLE_ID_TEMPLATE = "SELECT a.account_id, a.name, a.email_address FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
-    private static final String GET_ACCOUNT_BY_MICROSOFT_ID_TEMPLATE = "SELECT a.account_id, a.name, a.email_address FROM account a NATURAL JOIN microsoft_account g WHERE g.microsoft_account_id = ?";
+    private static final String GET_ACCOUNT_BY_GOOGLE_ID_TEMPLATE = "SELECT replace(a.account_id::text, '-', '') AS account_id, a.name, a.email_address FROM account a NATURAL JOIN google_account g WHERE g.google_account_id = ?";
+    private static final String GET_ACCOUNT_BY_MICROSOFT_ID_TEMPLATE = "SELECT replace(a.account_id::text, '-', '') AS account_id, a.name, a.email_address FROM account a NATURAL JOIN microsoft_account g WHERE g.microsoft_account_id = ?";
     private static final String UPDATE_STATISTICS_TEMPLATE = "UPDATE account SET last_login_at = NOW(), number_of_logins = number_of_logins + 1 WHERE account_id = ?";
     private static final String CREATE_ACCOUNT_TEMPLATE = "INSERT INTO account (name, email_address, first_login_at, last_login_at, number_of_logins) VALUES (?, ?, NOW(), NOW(), 1)";
     private static final String CREATE_GOOGLE_ACCOUNT_TEMPLATE = "INSERT INTO google_account (account_id, google_account_id) VALUES (?, ?)";
@@ -155,7 +155,7 @@ public class ExternalAccountVerticle extends AbstractEntityVerticle {
                 return;
             }
 
-            var accountId = asyncResult.result().getKeys().getString(5);
+            var accountId = asyncResult.result().getKeys().getString(5).replace("-", "");
             log.debug("Query \"{}\" produced result \"{}\"", CREATE_ACCOUNT_TEMPLATE, accountId);
             promise.complete(accountId);
         });

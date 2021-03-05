@@ -15,8 +15,9 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import nl.cofx.top10.migration.MigrationVerticle;
 import nl.cofx.top10.config.TestConfig;
+import nl.cofx.top10.migration.MigrationVerticle;
+import nl.cofx.top10.random.TokenGenerator;
 
 @ExtendWith(VertxExtension.class)
 class ExternalAccountVerticleTest {
@@ -52,7 +53,7 @@ class ExternalAccountVerticleTest {
     @Test
     public void createsAccount(VertxTestContext vertxTestContext) {
         var user = new JsonObject()
-                .put("id", "037088d6-1bdd-4532-8127-c25359c9e423")
+                .put("id", TokenGenerator.generateToken())
                 .put("name", NAME)
                 .put("emailAddress", EMAIL_ADDRESS)
                 .put("provider", "google");
@@ -74,25 +75,27 @@ class ExternalAccountVerticleTest {
     @Test
     public void retrievesExistingAccount(VertxTestContext vertxTestContext) {
         var user = new JsonObject()
-                .put("id", "abcd")
+                .put("id", TokenGenerator.generateToken())
                 .put("name", NAME)
                 .put("emailAddress", EMAIL_ADDRESS)
                 .put("provider", "google");
         eventBus.request(EXTERNAL_LOGIN_ADDRESS, user, asyncNewAccount -> {
-            var newAccount = asyncNewAccount.result().body();
+            var newAccount = (JsonObject) asyncNewAccount.result().body();
             vertxTestContext.verify(() -> {
                 assertThat(asyncNewAccount.succeeded()).isTrue();
                 assertThat(newAccount).isNotNull();
-                assertThat(newAccount).isInstanceOf(JsonObject.class);
-                var jsonObject = (JsonObject) newAccount;
-                assertThat(jsonObject.getString("accountId")).isNotNull();
-                assertThat(jsonObject.getString("name")).isEqualTo(NAME);
-                assertThat(jsonObject.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
+                assertThat(newAccount.getString("accountId")).isNotNull();
+                assertThat(newAccount.getString("name")).isEqualTo(NAME);
+                assertThat(newAccount.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
             });
             eventBus.request(EXTERNAL_LOGIN_ADDRESS, user, asyncExistingAccount -> {
+                var existingAccount = (JsonObject) asyncExistingAccount.result().body();
                 vertxTestContext.verify(() -> {
                     assertThat(asyncExistingAccount.succeeded()).isTrue();
-                    assertThat(asyncExistingAccount.result().body()).isEqualTo(newAccount);
+                    assertThat(existingAccount).isNotNull();
+                    assertThat(existingAccount.getString("accountId")).isEqualTo(newAccount.getString("accountId"));
+                    assertThat(existingAccount.getString("name")).isEqualTo(newAccount.getString("name"));
+                    assertThat(existingAccount.getString("emailAddress")).isEqualTo(newAccount.getString("emailAddress"));
                 });
                 vertxTestContext.completeNow();
             });
