@@ -64,87 +64,79 @@ public class Application {
     }
 
     private Future<String> deploy(Verticle verticle, DeploymentOptions deploymentOptions) {
-        var promise = Promise.<String> promise();
-        vertx.deployVerticle(verticle, deploymentOptions, promise);
-        return promise.future();
+        return Future.future(promise -> vertx.deployVerticle(verticle, deploymentOptions, promise));
     }
 
     private Future<String> deploy(Verticle verticle) {
         return deploy(verticle, new DeploymentOptions());
     }
 
-    private void deployVerticles(Jwt jwt, Promise<Void> result, Router router) {
-        log.info("Deploying verticles");
+    private Future<String> deployVerticles(Jwt jwt, Router router) {
+        return Future.future(promise -> {
+            log.info("Deploying verticles");
 
-        var jdbcOptions = config.getJdbcOptions();
-        var jwtSecretKey = config.getJwtSecretKey();
+            var jdbcOptions = config.getJdbcOptions();
+            var jwtSecretKey = config.getJwtSecretKey();
 
-        deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
-                .compose(migrationResult ->
-                        CompositeFuture.all(List.of(
-                                deploy(new HeartbeatVerticle()),
-                                deploy(new ExternalAccountVerticle(jdbcOptions)),
-                                deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey)),
-                                deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey)),
-                                deploy(new QuizHttpVerticle(router)),
-                                deploy(new QuizEntityVerticle(jdbcOptions)),
-                                deploy(new ListHttpVerticle(router)),
-                                deploy(new ListEntityVerticle(jdbcOptions)))))
-                .compose(deploymentResult -> deploy(new HealthCheckVerticle(jdbcOptions, router)))
-                .onComplete(ar -> {
-                    if (ar.succeeded()) {
-                        result.complete();
-                    } else {
-                        result.fail(ar.cause());
-                    }
-                });
+            deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
+                    .compose(migrationResult ->
+                            CompositeFuture.all(List.of(
+                                    deploy(new HeartbeatVerticle()),
+                                    deploy(new ExternalAccountVerticle(jdbcOptions)),
+                                    deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey)),
+                                    deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey)),
+                                    deploy(new QuizHttpVerticle(router)),
+                                    deploy(new QuizEntityVerticle(jdbcOptions)),
+                                    deploy(new ListHttpVerticle(router)),
+                                    deploy(new ListEntityVerticle(jdbcOptions)))))
+                    .compose(deploymentResult -> deploy(new HealthCheckVerticle(jdbcOptions, router)))
+                    .onComplete(promise);
+        });
     }
 
-    public Future<Void> start() {
+    public Future<String> start() {
         log.info("Starting Top 10");
 
-        var result = Promise.<Void> promise();
+        return Future.future(promise -> {
+            log.info("Registering message codecs");
 
-        log.info("Registering message codecs");
+            MessageCodecs.register(vertx.eventBus());
 
-        MessageCodecs.register(vertx.eventBus());
+            log.info("Setting up router");
 
-        log.info("Setting up router");
+            var router = Router.router(vertx);
 
-        var router = Router.router(vertx);
+            var corsHandler = CorsHandler.create(config.getCsrfTarget())
+                    .allowCredentials(true)
+                    .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
+                    .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT))
+                    .exposedHeader(CSRF_TOKEN_HEADER_NAME);
+            router.route().handler(corsHandler);
 
-        var corsHandler = CorsHandler.create(config.getCsrfTarget())
-                .allowCredentials(true)
-                .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
-                .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT))
-                .exposedHeader(CSRF_TOKEN_HEADER_NAME);
-        router.route().handler(corsHandler);
+            ErrorHandlers.configure(router);
 
-        ErrorHandlers.configure(router);
+            router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
+            var jwt = new Jwt(config.getJwtSecretKey());
+            router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
+            router.route("/private/*")
+                    .handler(new JwtSessionHandler(jwt))
+                    .handler(new PrivateRouteHandler());
+            router.route("/public/*").handler(new JwtSessionHandler(jwt));
 
-        router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
-        var jwt = new Jwt(config.getJwtSecretKey());
-        router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
-        router.route("/private/*")
-                .handler(new JwtSessionHandler(jwt))
-                .handler(new PrivateRouteHandler());
-        router.route("/public/*").handler(new JwtSessionHandler(jwt));
+            log.info("Setting up HTTP server");
 
-        log.info("Setting up HTTP server");
-
-        var server = vertx.createHttpServer();
-        server.requestHandler(router);
-        var port = config.getHttpPort();
-        server.listen(port, ar -> {
-            if (ar.succeeded()) {
-                log.info("Listening for HTTP requests on port {}", port);
-                deployVerticles(jwt, result, router);
-            } else {
-                log.error("Failed to listen for HTTP requests on port {}", port, ar.cause());
-                result.fail(ar.cause());
-            }
+            var server = vertx.createHttpServer();
+            server.requestHandler(router);
+            var port = config.getHttpPort();
+            server.listen(port, ar -> {
+                if (ar.succeeded()) {
+                    log.info("Listening for HTTP requests on port {}", port);
+                    deployVerticles(jwt, router).onComplete(promise);
+                } else {
+                    log.error("Failed to listen for HTTP requests on port {}", port, ar.cause());
+                    promise.fail(ar.cause());
+                }
+            });
         });
-
-        return result.future();
     }
 }
