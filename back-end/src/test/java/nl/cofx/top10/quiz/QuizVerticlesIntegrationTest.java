@@ -1,10 +1,14 @@
 package nl.cofx.top10.quiz;
 
+import static nl.cofx.top10.postgresql.PostgreSql.toTimestamptz;
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.sql.*;
 import java.time.Instant;
+import java.time.Period;
+import java.util.UUID;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +36,7 @@ class QuizVerticlesIntegrationTest {
     private static final String NON_EXISTING_QUIZ_ID = "f30e86fa-f2ab-4790-ac4b-63a052534510";
 
     private static final String QUIZ_NAME = "Greatest Hits";
-    private static final Instant DEADLINE = Instant.now();
+    private static final Instant DEADLINE = Instant.now().plus(Period.ofDays(1));
     private static final String USERNAME_1 = "John Doe";
     private static final String USERNAME_2 = "Jane Doe";
     private static final String EMAIL_ADDRESS_1 = "john.doe@example.com";
@@ -349,7 +353,7 @@ class QuizVerticlesIntegrationTest {
     }
 
     @Test
-    public void returnsQuizResults(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+    public void returnsQuizResults(VertxTestContext vertxTestContext) throws IOException, InterruptedException, SQLException {
         userHandler.logIn(accountId1);
 
         var createQuizResponse = httpClient.createQuiz(quiz());
@@ -370,6 +374,8 @@ class QuizVerticlesIntegrationTest {
         assertThat(lists).hasSize(1);
         var listId2 = lists.getJsonObject(0).getString("id");
         httpClient.finalizeList(listId2);
+
+        updateDeadline(quizId, Instant.now());
 
         userHandler.logIn(accountId1);
 
@@ -457,6 +463,17 @@ class QuizVerticlesIntegrationTest {
         assertThat(rankEntryForJohn.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
 
         vertxTestContext.completeNow();
+    }
+
+    private void updateDeadline(String quizId, Instant now) throws SQLException {
+        var connection = getConnection();
+
+        var statement = connection.prepareStatement("UPDATE quiz SET deadline = ? WHERE quiz_id = ?");
+        statement.setObject(1, toTimestamptz(now));
+        statement.setObject(2, toUuid(quizId));
+        statement.execute();
+
+        connection.close();
     }
 
     @Test

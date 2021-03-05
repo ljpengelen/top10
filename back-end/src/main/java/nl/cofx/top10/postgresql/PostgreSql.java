@@ -1,6 +1,7 @@
 package nl.cofx.top10.postgresql;
 
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.List;
 
 import org.postgresql.util.PGobject;
@@ -32,6 +33,19 @@ public class PostgreSql {
             return pgObject;
         } catch (SQLException exception) {
             log.error("Unable to create PgObject for UUID {}", id, exception);
+            throw new IllegalStateException(exception);
+        }
+    }
+
+    public static PGobject toTimestamptz(Instant instant) {
+        try {
+            var pgObject = new PGobject();
+            pgObject.setType("timestamptz");
+            pgObject.setValue(instant.toString());
+
+            return pgObject;
+        } catch (SQLException exception) {
+            log.error("Unable to create PgObject for instant {}", instant, exception);
             throw new IllegalStateException(exception);
         }
     }
