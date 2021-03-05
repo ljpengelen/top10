@@ -52,6 +52,13 @@ public class Application {
                 log.info("Application started successfully");
             } else {
                 log.error("Application failed to start", ar.cause());
+                vertx.close().onComplete(asyncCloseResult -> {
+                    if (asyncCloseResult.failed()) {
+                        log.error("Unable to close Vert.x instance", asyncCloseResult.cause());
+                    } else {
+                        log.debug("Successfully stopped Vert.x instance");
+                    }
+                });
             }
         });
     }
