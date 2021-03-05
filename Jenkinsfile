@@ -126,6 +126,7 @@ pipeline {
         sh "mkdir -p deploy-front-end/dist"
         sh "cp -R front-end/dist/* deploy-front-end/dist"
         sh "cp front-end/dokku/* deploy-front-end"
+        sh "cp -R front-end/azure/* deploy-front-end/dist"
         sh "cd deploy-front-end && git add . && git commit -m \"Deploy\" --allow-empty && git push"
       }
     }
