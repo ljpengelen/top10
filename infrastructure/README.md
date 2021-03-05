@@ -9,7 +9,7 @@
 1. Configure SSH to use the administrator keys mentioned above to access the VMs.
 1. Obtain the SSH keys to access the Git repositories managed by Dokku and store them as `~/.ssh/linode_cofx_git_ed25519.pub` and `~/.ssh/linode_cofx_git_ed25519`.
   Alternatively, create new keys and put them in the location specified above.
-1. Obtain the file `ansible/secrets.yml`, containing the username and password for the administrator account.
+1. Obtain the files `ansible/inventories/acc/group_vars/dokku/secrets.yml` and `ansible/inventories/prod/group_vars/dokku/secrets.yml`, containing all secrets including the username and password for the administrator account.
 1. Install [Ansible](https://www.ansible.com/).
 
 ## Set up (non-root) administrator
