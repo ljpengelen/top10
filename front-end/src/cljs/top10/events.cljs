@@ -256,6 +256,12 @@
    {:redirect url}))
 
 (rf/reg-event-fx
+ ::create-quiz-succeeded
+ (fn [_ [_ response]]
+   (let [quiz-id (get-in response [:body :id])]
+     {:redirect (str "/quiz/" quiz-id)})))
+
+(rf/reg-event-fx
  ::create-quiz
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token]} [_ {:keys [name deadline]}]]
@@ -264,8 +270,8 @@
                  :headers {"Authorization" (str "Bearer " access-token)}
                  :params {:name name :deadline deadline}
                  :format (ajax/json-request-format)
-                 :response-format (ajax/ring-response-format)
-                 :on-success [::redirect "/quizzes"]
+                 :response-format ring-json-response-format
+                 :on-success [::create-quiz-succeeded]
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-db
