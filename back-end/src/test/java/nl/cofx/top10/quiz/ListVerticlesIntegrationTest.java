@@ -574,6 +574,33 @@ class ListVerticlesIntegrationTest {
     }
 
     @Test
+    public void doesNotFinalizeListAfterDeadline(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quizId = createQuiz(quiz().put("deadline", NOW));
+        var listId = getListOfCreator();
+
+        var finalizeResponse = httpClient.finalizeList(listId);
+
+        assertThat(finalizeResponse.statusCode()).isEqualTo(403);
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Deadline for quiz \"%s\" has passed", quizId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
+    public void doesNotFinalizeListAfterEndOfQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        var quizId = createQuiz();
+        httpClient.completeQuiz(quizId);
+        var listId = getListOfCreator();
+
+        var finalizeResponse = httpClient.finalizeList(listId);
+
+        assertThat(finalizeResponse.statusCode()).isEqualTo(403);
+        assertThat(finalizeResponse.body().getString("error")).isEqualTo(String.format("Quiz \"%s\" has ended", quizId));
+
+        vertxTestContext.completeNow();
+    }
+
+    @Test
     public void doesNotFinalizeListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
         var listId = getListOfCreator();

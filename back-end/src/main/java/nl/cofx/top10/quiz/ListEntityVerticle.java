@@ -190,10 +190,21 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
 
         withTransaction(connection ->
                 listRepository.getList(connection, listId).compose(listDto -> {
-                    if (accountId.equals(listDto.getCreatorId())) {
-                        return listRepository.finalizeList(connection, listId);
-                    } else {
+                    if (!accountId.equals(listDto.getCreatorId())) {
                         return Future.failedFuture(new ForbiddenException(String.format("Account \"%s\" did not create list \"%s\"", accountId, listId)));
+                    } else {
+                        var quizId = listDto.getQuizId();
+                        return quizRepository.getQuiz(connection, quizId, accountId).compose(quizDto -> {
+                            if (quizDto.getDeadline().isBefore(Instant.now())) {
+                                log.debug("Deadline for quiz \"{}\" has passed", quizId);
+                                return Future.failedFuture(new ForbiddenException(String.format("Deadline for quiz \"%s\" has passed", quizId)));
+                            } else if (!quizDto.isActive()) {
+                                log.debug("Quiz \"{}\" has ended", quizId);
+                                return Future.failedFuture(new ForbiddenException(String.format("Quiz \"%s\" has ended", quizId)));
+                            } else {
+                                return listRepository.finalizeList(connection, listId);
+                            }
+                        });
                     }
                 }))
                 .onSuccess(finalizeListRequest::reply)
