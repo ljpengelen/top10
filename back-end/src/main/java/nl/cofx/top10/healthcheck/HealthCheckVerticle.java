@@ -3,7 +3,8 @@ package nl.cofx.top10.healthcheck;
 import java.time.Instant;
 import java.util.Properties;
 
-import io.vertx.core.*;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
@@ -43,29 +44,27 @@ public class HealthCheckVerticle extends AbstractVerticle {
     }
 
     private Future<Instant> getDatabaseTimestamp() {
-        var promise = Promise.<Instant> promise();
-
-        sqlClient.getConnection(asyncConnection -> {
-            if (asyncConnection.failed()) {
-                var cause = asyncConnection.cause();
-                log.error("Unable to connect to database", cause);
-                promise.fail(cause);
-                return;
-            }
-
-            asyncConnection.result().querySingle(SELECT_NOW, asyncTimestamp -> {
-                if (asyncTimestamp.failed()) {
-                    var cause = asyncTimestamp.cause();
-                    log.error("Unable to execute query \"{}\"", SELECT_NOW, cause);
+        return Future.future(promise -> {
+            sqlClient.getConnection(asyncConnection -> {
+                if (asyncConnection.failed()) {
+                    var cause = asyncConnection.cause();
+                    log.error("Unable to connect to database", cause);
                     promise.fail(cause);
                     return;
                 }
 
-                promise.complete(asyncTimestamp.result().getInstant(0));
+                asyncConnection.result().querySingle(SELECT_NOW, asyncTimestamp -> {
+                    if (asyncTimestamp.failed()) {
+                        var cause = asyncTimestamp.cause();
+                        log.error("Unable to execute query \"{}\"", SELECT_NOW, cause);
+                        promise.fail(cause);
+                        return;
+                    }
+
+                    promise.complete(asyncTimestamp.result().getInstant(0));
+                });
             });
         });
-
-        return promise.future();
     }
 
     public void handle(RoutingContext routingContext) {

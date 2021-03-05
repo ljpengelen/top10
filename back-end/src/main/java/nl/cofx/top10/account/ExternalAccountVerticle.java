@@ -3,7 +3,6 @@ package nl.cofx.top10.account;
 import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -84,34 +83,32 @@ public class ExternalAccountVerticle extends AbstractEntityVerticle {
     }
 
     private Future<JsonObject> getAccount(String id, String provider) {
-        var promise = Promise.<JsonObject> promise();
+        return Future.future(promise -> {
+            var params = new JsonArray().add(id);
+            var template = getRetrievalTemplate(provider);
+            sqlClient.querySingleWithParams(template, params, asyncResult -> {
+                if (asyncResult.failed()) {
+                    var cause = asyncResult.cause();
+                    log.error("Unable to execute query \"{}\"", template, cause);
+                    promise.fail(asyncResult.cause());
+                    return;
+                }
 
-        var params = new JsonArray().add(id);
-        var template = getRetrievalTemplate(provider);
-        sqlClient.querySingleWithParams(template, params, asyncResult -> {
-            if (asyncResult.failed()) {
-                var cause = asyncResult.cause();
-                log.error("Unable to execute query \"{}\"", template, cause);
-                promise.fail(asyncResult.cause());
-                return;
-            }
+                var result = asyncResult.result();
+                if (result == null) {
+                    log.debug("Query \"{}\" produced no result", template);
+                    promise.complete(null);
+                    return;
+                }
 
-            var result = asyncResult.result();
-            if (result == null) {
-                log.debug("Query \"{}\" produced no result", template);
-                promise.complete(null);
-                return;
-            }
-
-            var account = new JsonObject()
-                    .put("accountId", result.getString(0))
-                    .put("name", result.getString(1))
-                    .put("emailAddress", result.getString(2));
-            log.debug("Query \"{}\" produced result \"{}\"", template, account);
-            promise.complete(account);
+                var account = new JsonObject()
+                        .put("accountId", result.getString(0))
+                        .put("name", result.getString(1))
+                        .put("emailAddress", result.getString(2));
+                log.debug("Query \"{}\" produced result \"{}\"", template, account);
+                promise.complete(account);
+            });
         });
-
-        return promise.future();
     }
 
     private String getRetrievalTemplate(String provider) {
@@ -126,61 +123,55 @@ public class ExternalAccountVerticle extends AbstractEntityVerticle {
     }
 
     private Future<Void> updateStatisticsForAccount(String accountId) {
-        var promise = Promise.<Void> promise();
+        return Future.future(promise -> {
+            var params = new JsonArray().add(toUuid(accountId));
+            sqlClient.querySingleWithParams(UPDATE_STATISTICS_TEMPLATE, params, asyncResult -> {
+                if (asyncResult.failed()) {
+                    var cause = asyncResult.cause();
+                    log.error("Unable to execute query \"{}\"", UPDATE_STATISTICS_TEMPLATE, cause);
+                    promise.fail(asyncResult.cause());
+                    return;
+                }
 
-        var params = new JsonArray().add(toUuid(accountId));
-        sqlClient.querySingleWithParams(UPDATE_STATISTICS_TEMPLATE, params, asyncResult -> {
-            if (asyncResult.failed()) {
-                var cause = asyncResult.cause();
-                log.error("Unable to execute query \"{}\"", UPDATE_STATISTICS_TEMPLATE, cause);
-                promise.fail(asyncResult.cause());
-                return;
-            }
-
-            promise.complete();
+                promise.complete();
+            });
         });
-
-        return promise.future();
     }
 
     private Future<String> createAccount(SQLConnection connection, String name, String emailAddress) {
-        var promise = Promise.<String> promise();
+        return Future.future(promise -> {
+            var params = new JsonArray().add(name).add(emailAddress);
+            connection.updateWithParams(CREATE_ACCOUNT_TEMPLATE, params, asyncResult -> {
+                if (asyncResult.failed()) {
+                    var cause = asyncResult.cause();
+                    log.error("Unable to execute query \"{}\"", CREATE_ACCOUNT_TEMPLATE, cause);
+                    promise.fail(cause);
+                    return;
+                }
 
-        var params = new JsonArray().add(name).add(emailAddress);
-        connection.updateWithParams(CREATE_ACCOUNT_TEMPLATE, params, asyncResult -> {
-            if (asyncResult.failed()) {
-                var cause = asyncResult.cause();
-                log.error("Unable to execute query \"{}\"", CREATE_ACCOUNT_TEMPLATE, cause);
-                promise.fail(cause);
-                return;
-            }
-
-            var accountId = asyncResult.result().getKeys().getString(5).replace("-", "");
-            log.debug("Query \"{}\" produced result \"{}\"", CREATE_ACCOUNT_TEMPLATE, accountId);
-            promise.complete(accountId);
+                var accountId = asyncResult.result().getKeys().getString(5).replace("-", "");
+                log.debug("Query \"{}\" produced result \"{}\"", CREATE_ACCOUNT_TEMPLATE, accountId);
+                promise.complete(accountId);
+            });
         });
-
-        return promise.future();
     }
 
     private Future<String> linkAccountWithExternalId(SQLConnection connection, String accountId, String externalId, String provider) {
-        var promise = Promise.<String> promise();
+        return Future.future(promise -> {
+            var template = getCreationTemplate(provider);
+            var params = new JsonArray().add(toUuid(accountId)).add(externalId);
+            connection.updateWithParams(template, params, asyncResult -> {
+                if (asyncResult.failed()) {
+                    var cause = asyncResult.cause();
+                    log.error("Unable to execute query \"{}\"", template, cause);
+                    promise.fail(cause);
+                    return;
+                }
 
-        var template = getCreationTemplate(provider);
-        var params = new JsonArray().add(toUuid(accountId)).add(externalId);
-        connection.updateWithParams(template, params, asyncResult -> {
-            if (asyncResult.failed()) {
-                var cause = asyncResult.cause();
-                log.error("Unable to execute query \"{}\"", template, cause);
-                promise.fail(cause);
-                return;
-            }
-
-            log.debug("Query \"{}\" executed successfully", template);
-            promise.complete(accountId);
+                log.debug("Query \"{}\" executed successfully", template);
+                promise.complete(accountId);
+            });
         });
-
-        return promise.future();
     }
 
     private String getCreationTemplate(String provider) {

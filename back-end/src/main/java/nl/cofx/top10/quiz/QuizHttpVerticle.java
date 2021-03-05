@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.*;
 import nl.cofx.top10.quiz.dto.*;
-import nl.cofx.top10.random.TokenGenerator;
 
 @Log4j2
 @RequiredArgsConstructor
