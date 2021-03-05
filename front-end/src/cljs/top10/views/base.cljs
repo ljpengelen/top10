@@ -12,16 +12,17 @@
 (defn event-value [^js/Event e] (.. e -target -value))
 
 (defn log-in-url
-  ([]
-   (log-in-url (js/window.location.href.replace js/window.location.origin "")))
-  ([landing-page]
-   (str
-    "https://accounts.google.com/o/oauth2/v2/auth?"
-    "response_type=code&"
-    "scope=openid email profile&"
-    "redirect_uri=" config/oauth2-redirect-uri "&"
-    "state=" (js/encodeURIComponent landing-page) "&"
-    "client_id=" config/oauth2-client-id)))
+  ([provider]
+   (log-in-url provider (js/window.location.href.replace js/window.location.origin "")))
+  ([provider landing-page]
+   (let [{:keys [endpoint redirect-uri client-id]} (provider config/oauth2)]
+     (str
+      endpoint "?"
+      "response_type=code&"
+      "scope=openid email profile&"
+      "redirect_uri=" redirect-uri "&"
+      "state=" (js/encodeURIComponent landing-page) "&"
+      "client_id=" client-id))))
 
 (defn iframe [url]
   [:iframe {:allow "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -14,7 +14,10 @@ public class TestConfig extends AbstractConfig implements Config {
     private final String csrfTarget = fetchMandatoryString("TEST_CSRF_TARGET");
     private final String googleOauth2ClientId = randomString();
     private final String googleOauth2ClientSecret = randomString();
-    private final String googleOauth2RedirectUri = "https://www.example.org/oauth2";
+    private final String googleOauth2RedirectUri = "https://www.example.org/google/oauth2";
+    private final String microsoftOauth2ClientId = randomString();
+    private final String microsoftOauth2ClientSecret = randomString();
+    private final String microsoftOauth2RedirectUri = "https://www.example.org/microsoft/oauth2";
     private final int httpPort = RandomPort.get();
     private final String jdbcUrl = fetchMandatoryString("TEST_JDBC_POSTGRES_URL");
     private final String jdbcUsername = fetchMandatoryString("TEST_JDBC_POSTGRES_USERNAME");

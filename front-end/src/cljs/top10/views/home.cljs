@@ -25,9 +25,7 @@
         [:li "As the creator of the quiz, you can end it at any time."]
         [:li "After you've ended your quiz, all participants can see the results."]]]
       [grid {:item true}
-       [:p
-        "You'll need a Google account to join. "
-        "Have fun!"]]
+       [:p "Have fun!"]]
       [grid {:container true :direction "row" :spacing 2}
        (if logged-in?
          [:<>
@@ -41,8 +39,14 @@
                     :variant "contained"
                     :href "/quizzes"}
             "Go to quiz overview"]]]
-         [grid {:item true}
-          [button {:color "primary"
-                   :variant "contained"
-                   :href (log-in-url "/quizzes")}
-           "Log in with Google"]])]]]))
+         [:<>
+          [grid {:item true}
+           [button {:color "primary"
+                    :variant "contained"
+                    :href (log-in-url :google "/quizzes")}
+            "Log in with Google"]]
+          [grid {:item true}
+           [button {:color "primary"
+                    :variant "contained"
+                    :href (log-in-url :microsoft "/quizzes")}
+            "Log in with Microsoft"]]])]]]))

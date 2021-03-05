@@ -15,6 +15,12 @@ public interface Config {
 
     String getGoogleOauth2RedirectUri();
 
+    String getMicrosoftOauth2ClientId();
+
+    String getMicrosoftOauth2ClientSecret();
+
+    String getMicrosoftOauth2RedirectUri();
+
     int getHttpPort();
 
     String getJdbcUrl();

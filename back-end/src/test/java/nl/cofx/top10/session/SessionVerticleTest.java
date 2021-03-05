@@ -12,8 +12,6 @@ import java.net.http.HttpRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -32,6 +30,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
     private static final String EMAIL_ADDRESS = "john.doe@example.com";
 
     private final GoogleOauth2 googleOauth2 = mock(GoogleOauth2.class);
+    private final MicrosoftOauth2 microsoftOauth2 = mock(MicrosoftOauth2.class);
 
     private int port;
 
@@ -43,7 +42,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
         ErrorHandlers.configure(router);
         server.requestHandler(router);
 
-        vertx.deployVerticle(new SessionVerticle(googleOauth2, router, SECRET_KEY), deploymentResult -> {
+        vertx.deployVerticle(new SessionVerticle(googleOauth2, microsoftOauth2, router, SECRET_KEY), deploymentResult -> {
             if (deploymentResult.succeeded()) {
                 server.listen().onComplete(asyncServer -> {
                     if (asyncServer.failed()) {
@@ -75,25 +74,25 @@ class SessionVerticleTest extends AbstractVerticleTest {
     }
 
     @Test
-    public void rejectsRequestWithUnknownLoginType() throws IOException, InterruptedException {
+    public void rejectsRequestWithUnknownLoginProvider() throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
-                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("type", "FACEBOOK")))
+                .POST(BodyPublisher.ofJsonObject(new JsonObject().put("provider", "facebook")))
                 .uri(URI.create("http://localhost:" + port + PATH))
                 .build();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
 
         assertThat(response.statusCode()).isEqualTo(400);
-        assertThat(response.body().getString("error")).isEqualTo("Invalid login type \"FACEBOOK\"");
+        assertThat(response.body().getString("error")).isEqualTo("Invalid login provider: \"facebook\"");
     }
 
     @Test
     public void rejectsRequestWithInvalidAuthorizationCode() throws IOException, InterruptedException {
         var invalidAuthorizationCode = "invalidAuthorizationCode";
-        when(googleOauth2.getIdToken(invalidAuthorizationCode)).thenReturn(null);
+        when(googleOauth2.getUser(invalidAuthorizationCode)).thenThrow(new InvalidCredentialsException("Invalid authorization code: \"invalidAuthorizationCode\""));
 
         var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("code", invalidAuthorizationCode);
+        var requestBody = new JsonObject().put("provider", "google").put("code", invalidAuthorizationCode);
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(requestBody))
                 .uri(URI.create("http://localhost:" + port + PATH))
@@ -106,24 +105,17 @@ class SessionVerticleTest extends AbstractVerticleTest {
 
     @Test
     public void setsCookieGivenValidGoogleIdToken(Vertx vertx) throws IOException, InterruptedException {
-        var googleIdToken = mock(GoogleIdToken.class);
-        var payload = mock(GoogleIdToken.Payload.class);
-        when(googleIdToken.getPayload()).thenReturn(payload);
-        when(payload.getSubject()).thenReturn("johndoe");
-        when(payload.getEmail()).thenReturn("john.doe@example.com");
-        when(payload.get("name")).thenReturn("John Doe");
-
         var validAuthorizationCode = "validAuthorizationCode";
-        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
+        when(googleOauth2.getUser(validAuthorizationCode)).thenReturn(user());
 
-        vertx.eventBus().consumer("google.login.accountId", message ->
+        vertx.eventBus().consumer("external.login.accountId", message ->
                 message.reply(new JsonObject()
                         .put("accountId", INTERNAL_ID)
                         .put("name", NAME)
                         .put("emailAddress", EMAIL_ADDRESS)));
 
         var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("code", validAuthorizationCode);
+        var requestBody = new JsonObject().put("provider", "google").put("code", validAuthorizationCode);
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(requestBody))
                 .uri(URI.create("http://localhost:" + port + PATH))
@@ -147,24 +139,17 @@ class SessionVerticleTest extends AbstractVerticleTest {
 
     @Test
     public void returnsAccessTokenGivenValidGoogleIdToken(Vertx vertx) throws IOException, InterruptedException {
-        var googleIdToken = mock(GoogleIdToken.class);
-        var payload = mock(GoogleIdToken.Payload.class);
-        when(googleIdToken.getPayload()).thenReturn(payload);
-        when(payload.getSubject()).thenReturn("johndoe");
-        when(payload.getEmail()).thenReturn("john.doe@example.com");
-        when(payload.get("name")).thenReturn("John Doe");
-
         var validAuthorizationCode = "validAuthorizationCode";
-        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
+        when(googleOauth2.getUser(validAuthorizationCode)).thenReturn(user());
 
-        vertx.eventBus().consumer("google.login.accountId", message ->
+        vertx.eventBus().consumer("external.login.accountId", message ->
                 message.reply(new JsonObject()
                         .put("accountId", INTERNAL_ID)
                         .put("name", NAME)
                         .put("emailAddress", EMAIL_ADDRESS)));
 
         var httpClient = HttpClient.newHttpClient();
-        var requestBody = new JsonObject().put("type", "GOOGLE").put("code", validAuthorizationCode);
+        var requestBody = new JsonObject().put("provider", "google").put("code", validAuthorizationCode);
         var request = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(requestBody))
                 .uri(URI.create("http://localhost:" + port + PATH))
@@ -183,5 +168,13 @@ class SessionVerticleTest extends AbstractVerticleTest {
         assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
         assertThat(body.get("name")).isEqualTo(NAME);
         assertThat(body.get("emailAddress")).isEqualTo(EMAIL_ADDRESS);
+    }
+
+    private JsonObject user() {
+        return new JsonObject()
+                .put("name", NAME)
+                .put("emailAddress", EMAIL_ADDRESS)
+                .put("id", "johndoe")
+                .put("provider", "google");
     }
 }

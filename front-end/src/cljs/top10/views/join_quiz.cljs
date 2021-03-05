@@ -1,6 +1,6 @@
 (ns top10.views.join-quiz
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.core.button :refer [button]]
+            [reagent-material-ui.components :refer [button grid]]
             [top10.events :as events]
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button log-in-url]]))
@@ -14,10 +14,17 @@
          (str "Someone invited you to join the quiz named \"" name "\". ")
          "So far, so good! "
          "However, you need to log in before you can join."]
-        [button {:color "primary"
-                 :variant "contained"
-                 :href (log-in-url)}
-         "Log in with Google"]]
+        [grid {:container true :spacing 2}
+         [grid {:item true}
+          [button {:color "primary"
+                   :variant "contained"
+                   :href (log-in-url :google)}
+           "Log in with Google"]]
+         [grid {:item true}
+          [button {:color "primary"
+                   :variant "contained"
+                   :href (log-in-url :microsoft)}
+           "Log in with Microsoft"]]]]
        [:<>
         [:h1 name]
         (cond

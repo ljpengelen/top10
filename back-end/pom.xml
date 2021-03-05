@@ -23,6 +23,8 @@
         <junit-jupiter.version>5.1.0</junit-jupiter.version>
         <log4j.version>2.11.2</log4j.version>
         <lombok.version>1.18.16</lombok.version>
+        <microsoft-graph.version>2.8.1</microsoft-graph.version>
+        <microsoft-graph-auth.version>0.3.0</microsoft-graph-auth.version>
         <mockito.version>3.2.4</mockito.version>
         <vertx.version>4.0.2</vertx.version>
         <postgresql.version>42.2.19</postgresql.version>
@@ -76,6 +78,17 @@
             <artifactId>google-api-client</artifactId>
             <version>${google-api-client.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.microsoft.graph</groupId>
+            <artifactId>microsoft-graph</artifactId>
+            <version>${microsoft-graph.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.graph</groupId>
+            <artifactId>microsoft-graph-auth</artifactId>
+            <version>${microsoft-graph-auth.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>com.google.guava</groupId>

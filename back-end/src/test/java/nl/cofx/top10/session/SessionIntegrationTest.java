@@ -15,8 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
@@ -34,6 +32,7 @@ public class SessionIntegrationTest {
     private static final String EMAIL_ADDRESS = "jane.doe@example.org";
 
     private final GoogleOauth2 googleOauth2 = mock(GoogleOauth2.class);
+    private final MicrosoftOauth2 microsoftOauth2 = mock(MicrosoftOauth2.class);
     private final TestConfig config = new TestConfig();
 
     @BeforeEach
@@ -50,7 +49,7 @@ public class SessionIntegrationTest {
 
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
-        var application = new Application(config, googleOauth2, vertx);
+        var application = new Application(config, googleOauth2, microsoftOauth2, vertx);
         application.start().onComplete(vertxTestContext.succeedingThenComplete());
     }
 
@@ -87,14 +86,8 @@ public class SessionIntegrationTest {
 
     @Test
     public void handlesLogin() throws IOException, InterruptedException {
-        var payload = mock(GoogleIdToken.Payload.class);
-        when(payload.getSubject()).thenReturn("googleId");
-        when(payload.getEmail()).thenReturn(EMAIL_ADDRESS);
-        when(payload.get("name")).thenReturn(NAME);
-        var googleIdToken = mock(GoogleIdToken.class);
-        when(googleIdToken.getPayload()).thenReturn(payload);
         var validAuthorizationCode = "validGoogleAuthorizationCode";
-        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
+        when(googleOauth2.getUser(validAuthorizationCode)).thenReturn(user());
 
         var httpClient = HttpClient.newBuilder()
                 .cookieHandler(CookieHandler.getDefault())
@@ -131,7 +124,7 @@ public class SessionIntegrationTest {
 
         var logInRequest = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject()
-                        .put("type", "GOOGLE")
+                        .put("provider", "google")
                         .put("code", validAuthorizationCode)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
@@ -166,14 +159,8 @@ public class SessionIntegrationTest {
 
     @Test
     public void handlesLogout() throws IOException, InterruptedException {
-        var payload = mock(GoogleIdToken.Payload.class);
-        when(payload.getSubject()).thenReturn("googleId");
-        when(payload.getEmail()).thenReturn("jane.doe@example.org");
-        when(payload.get("name")).thenReturn("Jane Doe");
-        var googleIdToken = mock(GoogleIdToken.class);
-        when(googleIdToken.getPayload()).thenReturn(payload);
         var validAuthorizationCode = "validAuthorizationCode";
-        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
+        when(googleOauth2.getUser(validAuthorizationCode)).thenReturn(user());
 
         var httpClient = HttpClient.newBuilder()
                 .cookieHandler(CookieHandler.getDefault())
@@ -191,7 +178,7 @@ public class SessionIntegrationTest {
 
         var logInRequest = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject()
-                        .put("type", "GOOGLE")
+                        .put("provider", "google")
                         .put("code", validAuthorizationCode)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
@@ -227,14 +214,8 @@ public class SessionIntegrationTest {
 
     @Test
     public void updatesStatistics() throws IOException, InterruptedException {
-        var payload = mock(GoogleIdToken.Payload.class);
-        when(payload.getSubject()).thenReturn("googleId");
-        when(payload.getEmail()).thenReturn(EMAIL_ADDRESS);
-        when(payload.get("name")).thenReturn(NAME);
-        var googleIdToken = mock(GoogleIdToken.class);
-        when(googleIdToken.getPayload()).thenReturn(payload);
         var validAuthorizationCode = "validGoogleAuthorizationCode";
-        when(googleOauth2.getIdToken(validAuthorizationCode)).thenReturn(googleIdToken);
+        when(googleOauth2.getUser(validAuthorizationCode)).thenReturn(user());
 
         var httpClient = HttpClient.newBuilder()
                 .cookieHandler(CookieHandler.getDefault())
@@ -252,7 +233,7 @@ public class SessionIntegrationTest {
 
         var logInRequest = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject()
-                        .put("type", "GOOGLE")
+                        .put("provider", "google")
                         .put("code", validAuthorizationCode)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
@@ -279,7 +260,7 @@ public class SessionIntegrationTest {
 
         logInRequest = HttpRequest.newBuilder()
                 .POST(BodyPublisher.ofJsonObject(new JsonObject()
-                        .put("type", "GOOGLE")
+                        .put("provider", "google")
                         .put("code", validAuthorizationCode)))
                 .uri(URI.create("http://localhost:" + config.getHttpPort() + "/session/logIn"))
                 .header("Origin", config.getCsrfTarget())
@@ -302,5 +283,13 @@ public class SessionIntegrationTest {
         var result = statement.executeQuery();
         assertThat(result.next()).isTrue();
         assertThat(result.getInt(1)).isEqualTo(numberOfLogins);
+    }
+
+    private JsonObject user() {
+        return new JsonObject()
+                .put("name", NAME)
+                .put("emailAddress", EMAIL_ADDRESS)
+                .put("id", "johndoe")
+                .put("provider", "google");
     }
 }

@@ -93,11 +93,11 @@
 (rf/reg-event-fx
  ::log-in-with-back-end
  [(rf/inject-cofx :csrf-token)]
- (fn [{:keys [csrf-token]} [_ code]]
+ (fn [{:keys [csrf-token]} [_ provider code]]
    {:http-xhrio {:method :post
                  :uri (str api-base-url "/session/logIn")
                  :headers {csrf-token-header csrf-token}
-                 :params {:code code :type "GOOGLE"}
+                 :params {:code code :provider provider}
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
                  :with-credentials true
@@ -106,11 +106,11 @@
 
 (rf/reg-event-fx
  ::log-in
- (fn [_ [_ code redirect-url]]
+ (fn [_ [_ provider code redirect-url]]
    {:async-flow {:first-dispatch [::check-session]
                  :rules [{:when :seen?
                           :events ::session-check-succeeded
-                          :dispatch [::log-in-with-back-end code]}
+                          :dispatch [::log-in-with-back-end provider code]}
                          {:when :seen?
                           :events ::log-in-with-back-end-succeeded
                           :dispatch (when redirect-url [::redirect redirect-url])

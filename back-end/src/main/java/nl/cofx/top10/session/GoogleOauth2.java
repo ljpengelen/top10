@@ -7,8 +7,10 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.jackson2.JacksonFactory;
 
+import io.vertx.core.json.JsonObject;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
+import nl.cofx.top10.InvalidCredentialsException;
 import nl.cofx.top10.config.Config;
 
 @Log4j2
@@ -36,15 +38,26 @@ public class GoogleOauth2 {
         return GoogleNetHttpTransport.newTrustedTransport();
     }
 
-    public GoogleIdToken getIdToken(String code) {
+    public JsonObject getUser(String code) {
+        var googleIdToken = getIdToken(code);
+        var payload = googleIdToken.getPayload();
+
+        return new JsonObject()
+                .put("name", payload.get("name"))
+                .put("emailAddress", payload.getEmail())
+                .put("id", payload.getSubject())
+                .put("provider", "google");
+    }
+
+    private GoogleIdToken getIdToken(String code) {
         try {
             var request = new GoogleAuthorizationCodeTokenRequest(HTTP_TRANSPORT, JSON_FACTORY, clientId, clientSecret, code, redirectUri);
             var idTokenString = request.execute().getIdToken();
 
             return googleIdTokenVerifier.verify(idTokenString);
         } catch (Exception e) {
-            log.debug("Unable to get ID token for authorization code \"{}\"", code);
-            return null;
+            log.debug("Unable to get ID token for authorization code \"{}\"", code, e);
+            throw new InvalidCredentialsException(String.format("Invalid authorization code: \"%s\"", code));
         }
     }
 }

@@ -9,8 +9,14 @@
     [grid {:item true}
      [:p
       "You need to be logged in to view this page."]]
-    [grid {:item true}
-     [button {:color "primary"
-              :variant "contained"
-              :href (log-in-url)}
-      "Log in with Google"]]]])
+    [grid {:container true :spacing 2}
+     [grid {:item true}
+      [button {:color "primary"
+               :variant "contained"
+               :href (log-in-url :google)}
+       "Log in with Google"]]
+     [grid {:item true}
+      [button {:color "primary"
+               :variant "contained"
+               :href (log-in-url :microsoft)}
+       "Log in with Microsoft"]]]]])

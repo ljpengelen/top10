@@ -1,6 +1,6 @@
 package nl.cofx.top10.session;
 
-import static nl.cofx.top10.account.GoogleAccountVerticle.GOOGLE_LOGIN_ADDRESS;
+import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
 import static nl.cofx.top10.session.SessionConfiguration.JWT_COOKIE_NAME;
 import static nl.cofx.top10.session.SessionConfiguration.SESSION_EXPIRATION_IN_SECONDS;
 
@@ -21,13 +21,15 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.*;
+import nl.cofx.top10.InternalServerErrorException;
+import nl.cofx.top10.ValidationException;
 
 @Log4j2
 @RequiredArgsConstructor
 public class SessionVerticle extends AbstractVerticle {
 
     private final GoogleOauth2 googleOauth2;
+    private final MicrosoftOauth2 microsoftOauth2;
     private final Router router;
     private final SecretKey secretKey;
 
@@ -48,15 +50,15 @@ public class SessionVerticle extends AbstractVerticle {
             throw new ValidationException("Request body is empty");
         }
 
-        var loginType = requestBody.getString("type");
-        if (!"GOOGLE".equals(loginType)) {
-            throw new ValidationException(String.format("Invalid login type \"%s\"", loginType));
-        }
+        var loginProvider = requestBody.getString("provider");
+        var code = requestBody.getString("code");
+        var externalUser = getExternalUser(loginProvider, code);
 
-        var googleUserData = getGoogleUserData(requestBody.getString("code"));
-        vertx.eventBus().request(GOOGLE_LOGIN_ADDRESS, googleUserData, reply -> {
+        vertx.eventBus().request(EXTERNAL_LOGIN_ADDRESS, externalUser, reply -> {
             if (reply.failed()) {
-                var errorMessage = String.format("Unable to retrieve account ID for Google ID \"%s\"", googleUserData.getString("id"));
+                var id = externalUser.getString("id");
+                var provider = externalUser.getString("provider");
+                var errorMessage = String.format("Unable to retrieve account ID for external ID \"%s\" and provider \"%s\"", id, provider);
                 routingContext.fail(new InternalServerErrorException(errorMessage, reply.cause()));
             }
 
@@ -81,6 +83,17 @@ public class SessionVerticle extends AbstractVerticle {
         });
     }
 
+    private JsonObject getExternalUser(String provider, String code) {
+        switch (provider) {
+            case "google":
+                return googleOauth2.getUser(code);
+            case "microsoft":
+                return microsoftOauth2.getUser(code);
+            default:
+                throw new ValidationException(String.format("Invalid login provider: \"%s\"", provider));
+        }
+    }
+
     private void handleLogOut(RoutingContext routingContext) {
         log.debug("Logging out");
 
@@ -93,22 +106,6 @@ public class SessionVerticle extends AbstractVerticle {
                 .setStatusCode(204)
                 .addCookie(cookie)
                 .end();
-    }
-
-    private JsonObject getGoogleUserData(String code) {
-        log.debug("Verifying Google ID token");
-
-        var googleIdToken = googleOauth2.getIdToken(code);
-        if (googleIdToken != null) {
-            log.debug("Valid Google ID token");
-            var payload = googleIdToken.getPayload();
-            return new JsonObject()
-                    .put("name", payload.get("name"))
-                    .put("emailAddress", payload.getEmail())
-                    .put("id", payload.getSubject());
-        } else {
-            throw new InvalidCredentialsException(String.format("Invalid authorization code: \"%s\"", code));
-        }
     }
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {

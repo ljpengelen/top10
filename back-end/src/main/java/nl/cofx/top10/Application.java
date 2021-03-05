@@ -11,7 +11,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
 import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.account.GoogleAccountVerticle;
+import nl.cofx.top10.account.ExternalAccountVerticle;
 import nl.cofx.top10.config.Config;
 import nl.cofx.top10.config.ProdConfig;
 import nl.cofx.top10.eventbus.MessageCodecs;
@@ -29,15 +29,17 @@ public class Application {
 
     private final Config config;
     private final GoogleOauth2 googleOauth2;
+    private final MicrosoftOauth2 microsoftOauth2;
     private final Vertx vertx;
 
     public Application(Config config, Vertx vertx) {
-        this(config, new GoogleOauth2(config), vertx);
+        this(config, new GoogleOauth2(config), new MicrosoftOauth2(config), vertx);
     }
 
-    public Application(Config config, GoogleOauth2 googleOauth2, Vertx vertx) {
+    public Application(Config config, GoogleOauth2 googleOauth2, MicrosoftOauth2 microsoftOauth2, Vertx vertx) {
         this.config = config;
         this.googleOauth2 = googleOauth2;
+        this.microsoftOauth2 = microsoftOauth2;
         this.vertx = vertx;
     }
 
@@ -74,8 +76,8 @@ public class Application {
                 .compose(migrationResult ->
                         CompositeFuture.all(List.of(
                                 deploy(new HeartbeatVerticle()),
-                                deploy(new GoogleAccountVerticle(jdbcOptions)),
-                                deploy(new SessionVerticle(googleOauth2, router, jwtSecretKey)),
+                                deploy(new ExternalAccountVerticle(jdbcOptions)),
+                                deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey)),
                                 deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey)),
                                 deploy(new QuizHttpVerticle(router)),
                                 deploy(new QuizEntityVerticle(jdbcOptions)),

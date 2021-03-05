@@ -1,6 +1,6 @@
 package nl.cofx.top10.account;
 
-import static nl.cofx.top10.account.GoogleAccountVerticle.GOOGLE_LOGIN_ADDRESS;
+import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.sql.DriverManager;
@@ -19,7 +19,7 @@ import nl.cofx.top10.migration.MigrationVerticle;
 import nl.cofx.top10.config.TestConfig;
 
 @ExtendWith(VertxExtension.class)
-class GoogleAccountVerticleTest {
+class ExternalAccountVerticleTest {
 
     private static final TestConfig TEST_CONFIG = new TestConfig();
 
@@ -46,16 +46,17 @@ class GoogleAccountVerticleTest {
     @BeforeEach
     public void deployVerticle(Vertx vertx, VertxTestContext vertxTestContext) {
         eventBus = vertx.eventBus();
-        vertx.deployVerticle(new GoogleAccountVerticle(TEST_CONFIG.getJdbcOptions()), vertxTestContext.succeedingThenComplete());
+        vertx.deployVerticle(new ExternalAccountVerticle(TEST_CONFIG.getJdbcOptions()), vertxTestContext.succeedingThenComplete());
     }
 
     @Test
     public void createsAccount(VertxTestContext vertxTestContext) {
-        var googleUserData = new JsonObject()
+        var user = new JsonObject()
                 .put("id", "037088d6-1bdd-4532-8127-c25359c9e423")
                 .put("name", NAME)
-                .put("emailAddress", EMAIL_ADDRESS);
-        eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncAccount -> {
+                .put("emailAddress", EMAIL_ADDRESS)
+                .put("provider", "google");
+        eventBus.request(EXTERNAL_LOGIN_ADDRESS, user, asyncAccount -> {
             vertxTestContext.verify(() -> {
                 assertThat(asyncAccount.succeeded()).isTrue();
                 var body = asyncAccount.result().body();
@@ -72,11 +73,12 @@ class GoogleAccountVerticleTest {
 
     @Test
     public void retrievesExistingAccount(VertxTestContext vertxTestContext) {
-        var googleUserData = new JsonObject()
+        var user = new JsonObject()
                 .put("id", "abcd")
                 .put("name", NAME)
-                .put("emailAddress", EMAIL_ADDRESS);
-        eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncNewAccount -> {
+                .put("emailAddress", EMAIL_ADDRESS)
+                .put("provider", "google");
+        eventBus.request(EXTERNAL_LOGIN_ADDRESS, user, asyncNewAccount -> {
             var newAccount = asyncNewAccount.result().body();
             vertxTestContext.verify(() -> {
                 assertThat(asyncNewAccount.succeeded()).isTrue();
@@ -87,7 +89,7 @@ class GoogleAccountVerticleTest {
                 assertThat(jsonObject.getString("name")).isEqualTo(NAME);
                 assertThat(jsonObject.getString("emailAddress")).isEqualTo(EMAIL_ADDRESS);
             });
-            eventBus.request(GOOGLE_LOGIN_ADDRESS, googleUserData, asyncExistingAccount -> {
+            eventBus.request(EXTERNAL_LOGIN_ADDRESS, user, asyncExistingAccount -> {
                 vertxTestContext.verify(() -> {
                     assertThat(asyncExistingAccount.succeeded()).isTrue();
                     assertThat(asyncExistingAccount.result().body()).isEqualTo(newAccount);
