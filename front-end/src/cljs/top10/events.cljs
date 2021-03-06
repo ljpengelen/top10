@@ -44,7 +44,8 @@
        :complete-quiz-page (when logged-in? {:dispatch [::get-quiz active-quiz]})
        :join-quiz-page {:dispatch [::get-quiz active-quiz]}
        :quizzes-page (when logged-in? {:dispatch [::get-quizzes]})
-       (:list-page :personal-list-page) (when logged-in? {:dispatch [::get-list active-list]})
+       (:list-page :personal-list-page) (when logged-in? {:dispatch-n [[::get-list active-list]
+                                                                       [::get-quiz active-quiz]]})
        :assign-list-page (when logged-in? {:dispatch-n [[::get-list active-list]
                                                         [::get-quiz-participants active-quiz]]})
        {}))))
@@ -336,19 +337,19 @@
 
 (rf/reg-event-fx
  ::finalize-list-succeeded
- (fn [_ _]
-   {:redirect "/quizzes"}))
+ (fn [_ [_ quiz-id list-id]]
+   {:redirect (str "/quiz/" quiz-id "/list/" list-id "/personal")}))
 
 (rf/reg-event-fx
  ::finalize-list
  [(rf/inject-cofx :access-token)]
- (fn [{:keys [access-token]} [_ list-id]]
+ (fn [{:keys [access-token]} [_ quiz-id list-id]]
    {:http-xhrio {:method :put
                  :uri (str api-base-url "/private/list/" list-id "/finalize")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
                  :response-format (ajax/ring-response-format)
-                 :on-success [::finalize-list-succeeded]
+                 :on-success [::finalize-list-succeeded quiz-id list-id]
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx

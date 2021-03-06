@@ -64,7 +64,7 @@
         (when (some? personalListHasDraftStatus)
           [grid {:container true :spacing 2}
            [grid {:item true}
-            [button {:href (str "/list/" personalListId "/personal") :color "primary" :variant "contained"}
+            [button {:href (str "/quiz/" id "/list/" personalListId "/personal") :color "primary" :variant "contained"}
              (if personalListHasDraftStatus "Submit top 10" "View top 10")]]
            [grid {:item true}
             [back-to-overview-button]]])])]))
