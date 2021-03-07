@@ -22,7 +22,6 @@ WORKDIR /app
 COPY front-end/project.clj .
 COPY front-end/shadow-cljs.edn .
 COPY front-end/package* ./
-COPY front-end/src/cljs/deps.cljs ./src/cljs/deps.cljs
 
 RUN npm install
 
