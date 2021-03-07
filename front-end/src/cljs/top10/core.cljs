@@ -1,5 +1,6 @@
 (ns top10.core
-  (:require [day8.re-frame.async-flow-fx]
+  (:require ["@sentry/browser" :as Sentry]
+            [day8.re-frame.async-flow-fx]
             [day8.re-frame.http-fx]
             [re-frame.core :as rf]
             [reagent.dom :as rdom]
@@ -13,6 +14,9 @@
   (when config/debug?
     (println "dev mode")))
 
+(defn set-up-sentry []
+  (.init Sentry #js {:dsn "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220"}))
+
 (defn ^:dev/after-load mount-root []
   (rf/clear-subscription-cache!)
   (let [root-el (.getElementById js/document "app")]
@@ -21,6 +25,7 @@
 
 (defn init []
   (dev-setup)
+  (set-up-sentry)
   (routes/configure-routes)
   (rf/dispatch-sync [::events/initialize])
   (mount-root))
