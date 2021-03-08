@@ -132,7 +132,7 @@ public class QuizEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getString("accountId");
         withTransaction(connection ->
                 quizRepository.getQuiz(connection, quizId, accountId)
-                        .compose(quiz -> quizRepository.getAllParticipants(connection, quizId)))
+                        .compose(quiz -> quizRepository.getAllParticipants(connection, quizId, accountId)))
                 .onSuccess(getAllParticipantsRequest::reply)
                 .onFailure(cause -> handleFailure(cause, getAllParticipantsRequest));
     }

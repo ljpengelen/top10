@@ -319,22 +319,34 @@ class QuizVerticlesIntegrationTest {
     @Test
     public void returnsParticipants(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
+
         var createResponse = httpClient.createQuiz(quiz());
-
-        assertThat(createResponse.statusCode()).isEqualTo(200);
-
         var quizId = createResponse.body().getString("id");
+
+        userHandler.logIn(accountId2);
+        httpClient.participateInQuiz(quizId);
 
         var response = httpClient.getParticipants(quizId);
 
         assertThat(response.statusCode()).isEqualTo(200);
         var body = new JsonArray(response.body());
-        assertThat(body).hasSize(1);
+        assertThat(body).hasSize(2);
 
-        var participant = body.getJsonObject(0);
-        assertThat(participant.getString("id")).isEqualTo(accountId1);
-        assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
-        assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
+        assertThat(body).anySatisfy(jsonObject -> {
+            var participant = (JsonObject) jsonObject;
+            assertThat(participant.getString("id")).isEqualTo(accountId1);
+            assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
+            assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
+            assertThat(participant.getBoolean("isOwnAccount")).isFalse();
+        });
+
+        assertThat(body).anySatisfy(jsonObject -> {
+            var participant = (JsonObject) jsonObject;
+            assertThat(participant.getString("id")).isEqualTo(accountId2);
+            assertThat(participant.getString("name")).isEqualTo(USERNAME_2);
+            assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
+            assertThat(participant.getBoolean("isOwnAccount")).isTrue();
+        });
 
         vertxTestContext.completeNow();
     }

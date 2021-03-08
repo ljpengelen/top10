@@ -235,31 +235,32 @@ public class QuizRepository {
         });
     }
 
-    public Future<JsonArray> getAllParticipants(SQLConnection connection, String quizId) {
-        return Future.future(promise -> {
-            connection.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(toUuid(quizId)), asyncParticipants -> {
-                if (asyncParticipants.failed()) {
-                    var cause = asyncParticipants.cause();
-                    log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_PARTICIPANTS_TEMPLATE, quizId, cause);
-                    promise.fail(cause);
-                    return;
-                }
+    public Future<JsonArray> getAllParticipants(SQLConnection connection, String quizId, String accountId) {
+        return Future.future(promise ->
+                connection.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(toUuid(quizId)), asyncParticipants -> {
+                    if (asyncParticipants.failed()) {
+                        var cause = asyncParticipants.cause();
+                        log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_PARTICIPANTS_TEMPLATE, quizId, cause);
+                        promise.fail(cause);
+                        return;
+                    }
 
-                log.debug("Retrieved all participants for quiz");
+                    log.debug("Retrieved all participants for quiz");
 
-                var quizzes = asyncParticipants.result().getResults().stream()
-                        .map(this::participantArrayToJsonObject)
-                        .collect(Collectors.toList());
+                    var quizzes = asyncParticipants.result().getResults().stream()
+                            .map(participant -> participantArrayToJsonObject(participant, accountId))
+                            .collect(Collectors.toList());
 
-                promise.complete(new JsonArray(quizzes));
-            });
-        });
+                    promise.complete(new JsonArray(quizzes));
+                }));
     }
 
-    private JsonObject participantArrayToJsonObject(JsonArray array) {
+    private JsonObject participantArrayToJsonObject(JsonArray array, String accountId) {
+        var participantId = array.getString(0);
         return new JsonObject()
-                .put("id", array.getString(0))
+                .put("id", participantId)
                 .put("name", array.getString(1))
-                .put("listHasDraftStatus", array.getBoolean(2));
+                .put("listHasDraftStatus", array.getBoolean(2))
+                .put("isOwnAccount", participantId.equals(accountId));
     }
 }
