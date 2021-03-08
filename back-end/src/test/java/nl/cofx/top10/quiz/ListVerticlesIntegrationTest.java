@@ -274,8 +274,7 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void returns404GettingUnknownList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizId = createQuiz();
-        var listId = getListOfCreator();
+        createQuiz();
 
         var getListResponse = httpClient.getList(NON_EXISTING_LIST_ID);
 
@@ -288,7 +287,6 @@ class ListVerticlesIntegrationTest {
     @Test
     public void returnsSingleListForSameQuiz(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         var quizId = createQuiz(quiz().put("deadline", NOW));
-        var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
 
@@ -404,7 +402,7 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotAddVideoToFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizId = createQuiz();
+        createQuiz();
         var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
@@ -456,7 +454,7 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotAddVideoToListForOtherAccount(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizId = createQuiz();
+        createQuiz();
         var listId = getListOfCreator();
 
         userHandler.logIn(accountId2);
@@ -472,7 +470,6 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotAddVideoToNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(NON_EXISTING_LIST_ID, URL_1);
 
@@ -502,7 +499,7 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotDeleteVideoFromFinalizedList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizId = createQuiz();
+        createQuiz();
         var listId = getListOfCreator();
 
         var addVideoResponse = httpClient.addVideo(listId, URL_1);
@@ -544,7 +541,6 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotDeleteNonExistingVideo(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var nonExistingVideoId = 0;
         var addVideoResponse = httpClient.deleteVideo(NON_EXISTING_LIST_ID);
 
         assertThat(addVideoResponse.statusCode()).isEqualTo(404);
@@ -617,8 +613,7 @@ class ListVerticlesIntegrationTest {
 
     @Test
     public void doesNotFinalizeNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
-        var quizId = createQuiz();
-        var listId = getListOfCreator();
+        createQuiz();
 
         var finalizeResponse = httpClient.finalizeList(NON_EXISTING_LIST_ID);
 
@@ -702,7 +697,6 @@ class ListVerticlesIntegrationTest {
     @Test
     public void doesNotAssignToNonExistingList(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         createQuiz();
-        var listId = getListOfCreator();
 
         var assignResponse = httpClient.assignList(NON_EXISTING_LIST_ID, accountId1);
 
