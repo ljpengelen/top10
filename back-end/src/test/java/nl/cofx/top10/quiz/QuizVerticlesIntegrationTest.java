@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.sql.*;
 import java.time.Instant;
 import java.time.Period;
-import java.util.UUID;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -316,12 +315,15 @@ class QuizVerticlesIntegrationTest {
         vertxTestContext.completeNow();
     }
 
+    private String createQuiz() throws IOException, InterruptedException {
+        var createResponse = httpClient.createQuiz(quiz());
+        return createResponse.body().getString("id");
+    }
+
     @Test
     public void returnsParticipants(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
         userHandler.logIn(accountId1);
-
-        var createResponse = httpClient.createQuiz(quiz());
-        var quizId = createResponse.body().getString("id");
+        var quizId = createQuiz();
 
         userHandler.logIn(accountId2);
         httpClient.participateInQuiz(quizId);
@@ -338,6 +340,7 @@ class QuizVerticlesIntegrationTest {
             assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
             assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
             assertThat(participant.getBoolean("isOwnAccount")).isFalse();
+            assertThat(participant.getString("assignedListId")).isNull();
         });
 
         assertThat(body).anySatisfy(jsonObject -> {
@@ -346,6 +349,39 @@ class QuizVerticlesIntegrationTest {
             assertThat(participant.getString("name")).isEqualTo(USERNAME_2);
             assertThat(participant.getBoolean("listHasDraftStatus")).isTrue();
             assertThat(participant.getBoolean("isOwnAccount")).isTrue();
+            assertThat(participant.getString("assignedListId")).isNull();
+        });
+
+        vertxTestContext.completeNow();
+    }
+
+    private String getList(int position) throws IOException, InterruptedException {
+        var listsResponse = httpClient.getLists();
+        return listsResponse.body().getJsonObject(position).getString("id");
+    }
+
+    @Test
+    public void returnsAssignedListsOfParticipants(VertxTestContext vertxTestContext) throws IOException, InterruptedException {
+        userHandler.logIn(accountId1);
+        var quizId = createQuiz();
+        var listId = getList(0);
+
+        httpClient.finalizeList(listId);
+        httpClient.assignList(listId, accountId1);
+
+        var response = httpClient.getParticipants(quizId);
+
+        assertThat(response.statusCode()).isEqualTo(200);
+        var body = new JsonArray(response.body());
+        assertThat(body).hasSize(1);
+
+        assertThat(body).anySatisfy(jsonObject -> {
+            var participant = (JsonObject) jsonObject;
+            assertThat(participant.getString("id")).isEqualTo(accountId1);
+            assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
+            assertThat(participant.getBoolean("listHasDraftStatus")).isFalse();
+            assertThat(participant.getBoolean("isOwnAccount")).isTrue();
+            assertThat(participant.getString("assignedListId")).isEqualTo(listId);
         });
 
         vertxTestContext.completeNow();

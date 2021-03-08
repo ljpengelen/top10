@@ -31,11 +31,13 @@ public class QuizRepository {
     private static final String CREATE_LIST_TEMPLATE = "INSERT INTO list (account_id, quiz_id, has_draft_status) "
                                                        + "VALUES (?, ?, true) "
                                                        + "ON CONFLICT DO NOTHING";
-    private static final String GET_PARTICIPANTS_TEMPLATE = "SELECT replace(a.account_id::text, '-', '') AS account_id, a.name, l.has_draft_status FROM account a "
-                                                            + "JOIN list l ON l.account_id = a.account_id "
-                                                            + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                            + "WHERE q.quiz_id = ? "
-                                                            + "ORDER BY a.account_id";
+    private static final String GET_PARTICIPANTS_TEMPLATE =
+            "SELECT replace(acc.account_id::text, '-', '') AS account_id, acc.name, l.has_draft_status, replace(ass.list_id::text, '-', '') FROM account acc "
+            + "JOIN list l ON l.account_id = acc.account_id "
+            + "JOIN quiz q ON l.quiz_id = q.quiz_id "
+            + "LEFT JOIN assignment ass ON (ass.assignee_id = acc.account_id AND ass.account_id = ?) "
+            + "WHERE q.quiz_id = ? "
+            + "ORDER BY acc.account_id";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
             "SELECT replace(ass.list_id::text, '-', '') AS list_id, "
             + "replace(assigner_acc.account_id::text, '-', '') AS assigner_id, assigner_acc.name AS assigner_name, "
@@ -49,26 +51,25 @@ public class QuizRepository {
             + "WHERE q.quiz_id = ?";
 
     public Future<QuizzesDto> getAllQuizzes(SQLConnection connection, String accountId) {
-        return Future.future(promise -> {
-            connection.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(toUuid(accountId)), asyncQuizzes -> {
-                if (asyncQuizzes.failed()) {
-                    var cause = asyncQuizzes.cause();
-                    log.error("Unable to retrieve all quizzes for account ID \"{}\"", accountId, cause);
-                    promise.fail(cause);
-                    return;
-                }
+        return Future.future(promise ->
+                connection.queryWithParams(GET_ALL_QUIZZES_TEMPLATE, new JsonArray().add(toUuid(accountId)), asyncQuizzes -> {
+                    if (asyncQuizzes.failed()) {
+                        var cause = asyncQuizzes.cause();
+                        log.error("Unable to retrieve all quizzes for account ID \"{}\"", accountId, cause);
+                        promise.fail(cause);
+                        return;
+                    }
 
-                log.debug("Retrieved all quizzes for account");
+                    log.debug("Retrieved all quizzes for account");
 
-                var quizzes = asyncQuizzes.result().getResults().stream()
-                        .map(quiz -> toQuizDto(quiz, accountId))
-                        .collect(Collectors.toList());
+                    var quizzes = asyncQuizzes.result().getResults().stream()
+                            .map(quiz -> toQuizDto(quiz, accountId))
+                            .collect(Collectors.toList());
 
-                promise.complete(QuizzesDto.builder()
-                        .quizzes(quizzes)
-                        .build());
-            });
-        });
+                    promise.complete(QuizzesDto.builder()
+                            .quizzes(quizzes)
+                            .build());
+                }));
     }
 
     private QuizDto toQuizDto(JsonArray array, String accountId) {
@@ -95,43 +96,41 @@ public class QuizRepository {
     }
 
     public Future<QuizDto> getQuiz(SQLConnection connection, String quizId, String accountId) {
-        return Future.future(promise -> {
-            connection.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncQuiz -> {
-                if (asyncQuiz.failed()) {
-                    var cause = asyncQuiz.cause();
-                    log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_ONE_QUIZ_TEMPLATE, quizId, cause);
-                    promise.fail(cause);
-                    return;
-                }
+        return Future.future(promise ->
+                connection.querySingleWithParams(GET_ONE_QUIZ_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncQuiz -> {
+                    if (asyncQuiz.failed()) {
+                        var cause = asyncQuiz.cause();
+                        log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_ONE_QUIZ_TEMPLATE, quizId, cause);
+                        promise.fail(cause);
+                        return;
+                    }
 
-                if (asyncQuiz.result() == null) {
-                    log.debug("Quiz \"{}\" not found", quizId);
-                    promise.fail(new NotFoundException(String.format("Quiz \"%s\" not found", quizId)));
-                } else {
-                    var quiz = toQuizDto(asyncQuiz.result(), accountId);
-                    log.debug("Retrieved quiz \"{}\": \"{}\"", quizId, quiz);
-                    promise.complete(quiz);
-                }
-            });
-        });
+                    if (asyncQuiz.result() == null) {
+                        log.debug("Quiz \"{}\" not found", quizId);
+                        promise.fail(new NotFoundException(String.format("Quiz \"%s\" not found", quizId)));
+                    } else {
+                        var quiz = toQuizDto(asyncQuiz.result(), accountId);
+                        log.debug("Retrieved quiz \"{}\": \"{}\"", quizId, quiz);
+                        promise.complete(quiz);
+                    }
+                }));
     }
 
     public Future<ResultSummaryDto> getQuizResult(SQLConnection connection, String quizId) {
-        return Future.future(promise -> {
-            connection.queryWithParams(GET_QUIZ_RESULT_TEMPLATE, new JsonArray().add(toUuid(quizId)), asyncQuizResult -> {
-                if (asyncQuizResult.failed()) {
-                    var cause = asyncQuizResult.cause();
-                    log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_QUIZ_RESULT_TEMPLATE, quizId, cause);
-                    promise.fail(cause);
-                    return;
-                }
+        return Future.future(promise ->
+                connection.queryWithParams(GET_QUIZ_RESULT_TEMPLATE, new JsonArray().add(toUuid(quizId)), asyncQuizResult -> {
+                    if (asyncQuizResult.failed()) {
+                        var cause = asyncQuizResult.cause();
+                        log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_QUIZ_RESULT_TEMPLATE, quizId, cause);
+                        promise.fail(cause);
+                        return;
+                    }
 
-                var rows = asyncQuizResult.result().getRows();
-                var quizResult = assignmentsToQuizResult(quizId, rows);
-                log.debug("Retrieved result for quiz \"{}\": \"{}\"", quizId, quizResult);
-                promise.complete(quizResult);
-            });
-        });
+                    var rows = asyncQuizResult.result().getRows();
+                    var quizResult = assignmentsToQuizResult(quizId, rows);
+                    log.debug("Retrieved result for quiz \"{}\": \"{}\"", quizId, quizResult);
+                    promise.complete(quizResult);
+                }));
     }
 
     private ResultSummaryDto assignmentsToQuizResult(String quizId, List<JsonObject> assignments) {
@@ -193,51 +192,49 @@ public class QuizRepository {
     }
 
     public Future<Void> completeQuiz(SQLConnection connection, String accountId, String quizId) {
-        return Future.future(promise -> {
-            connection.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncComplete -> {
-                if (asyncComplete.failed()) {
-                    var cause = asyncComplete.cause();
-                    log.error("Unable to execute query \"{}\" with parameters \"{}\" and \"{}\"", COMPLETE_QUIZ_TEMPLATE, accountId, quizId, cause);
-                    promise.fail(cause);
-                    return;
-                }
+        return Future.future(promise ->
+                connection.updateWithParams(COMPLETE_QUIZ_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncComplete -> {
+                    if (asyncComplete.failed()) {
+                        var cause = asyncComplete.cause();
+                        log.error("Unable to execute query \"{}\" with parameters \"{}\" and \"{}\"", COMPLETE_QUIZ_TEMPLATE, accountId, quizId, cause);
+                        promise.fail(cause);
+                        return;
+                    }
 
-                var numberOfAffectedRows = asyncComplete.result().getUpdated();
-                log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, COMPLETE_QUIZ_TEMPLATE);
+                    var numberOfAffectedRows = asyncComplete.result().getUpdated();
+                    log.debug("Affected {} rows by executing query \"{}\"", numberOfAffectedRows, COMPLETE_QUIZ_TEMPLATE);
 
-                promise.complete();
-            });
-        });
+                    promise.complete();
+                }));
     }
 
     public Future<String> createList(SQLConnection connection, String accountId, String quizId) {
-        return Future.future(promise -> {
-            connection.updateWithParams(CREATE_LIST_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncUpdate -> {
-                if (asyncUpdate.failed()) {
-                    var cause = asyncUpdate.cause();
-                    log.error("Unable to execute query \"{}\"", CREATE_LIST_TEMPLATE, cause);
-                    promise.fail(cause);
-                    return;
-                }
+        return Future.future(promise ->
+                connection.updateWithParams(CREATE_LIST_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncUpdate -> {
+                    if (asyncUpdate.failed()) {
+                        var cause = asyncUpdate.cause();
+                        log.error("Unable to execute query \"{}\"", CREATE_LIST_TEMPLATE, cause);
+                        promise.fail(cause);
+                        return;
+                    }
 
-                if (asyncUpdate.result().getUpdated() == 0) {
-                    var errorMessage = String.format("Account \"%s\" already has a list for quiz \"%s\"", accountId, quizId);
-                    promise.fail(new ConflictException(errorMessage));
-                    return;
-                }
+                    if (asyncUpdate.result().getUpdated() == 0) {
+                        var errorMessage = String.format("Account \"%s\" already has a list for quiz \"%s\"", accountId, quizId);
+                        promise.fail(new ConflictException(errorMessage));
+                        return;
+                    }
 
-                var listId = asyncUpdate.result().getKeys().getString(1).replace("-", "");
+                    var listId = asyncUpdate.result().getKeys().getString(1).replace("-", "");
 
-                log.debug("Created new list \"{}\"", listId);
+                    log.debug("Created new list \"{}\"", listId);
 
-                promise.complete(listId);
-            });
-        });
+                    promise.complete(listId);
+                }));
     }
 
     public Future<JsonArray> getAllParticipants(SQLConnection connection, String quizId, String accountId) {
         return Future.future(promise ->
-                connection.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(toUuid(quizId)), asyncParticipants -> {
+                connection.queryWithParams(GET_PARTICIPANTS_TEMPLATE, new JsonArray().add(toUuid(accountId)).add(toUuid(quizId)), asyncParticipants -> {
                     if (asyncParticipants.failed()) {
                         var cause = asyncParticipants.cause();
                         log.error("Unable to execute query \"{}\" with parameter \"{}\"", GET_PARTICIPANTS_TEMPLATE, quizId, cause);
@@ -261,6 +258,7 @@ public class QuizRepository {
                 .put("id", participantId)
                 .put("name", array.getString(1))
                 .put("listHasDraftStatus", array.getBoolean(2))
+                .put("assignedListId", array.getString(3))
                 .put("isOwnAccount", participantId.equals(accountId));
     }
 }
