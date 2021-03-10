@@ -25,7 +25,7 @@
                               (rf/dispatch [::events/assign-list quiz-id list-id (.-id @assignee)])))}
         [grid {:container true :direction "column" :spacing 2}
          [grid {:item true :xs 6}
-          [autocomplete {:get-option-label (fn [option] (.-name option))
+          [autocomplete {:get-option-label (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
                          :get-option-selected (fn [option value] (= (.-id option) (.-id value)))
                          :on-change (fn [_ value] (reset! assignee value))
                          :options participants
