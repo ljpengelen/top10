@@ -13,6 +13,8 @@
            :margin "0 auto"
            :max-width "40rem"
            :padding "4rem 2rem"}]
+   [:.join-url {:overflow-wrap "break-word"
+                :white-space "normal"}]
    [:.ytEmbeddedContainer {:margin-bottom "8px"
                            :overflow "hidden"
                            :padding-bottom "56.25% !important"
