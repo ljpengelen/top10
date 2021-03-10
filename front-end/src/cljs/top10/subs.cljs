@@ -78,7 +78,9 @@
  ::participants-with-lists
  :<- [::quiz-participants]
  (fn [quiz-participants _]
-   (filter #(not (:listHasDraftStatus %)) quiz-participants)))
+   (->> quiz-participants
+        (filter #(not (:listHasDraftStatus %)))
+        (sort-by (juxt #(false? (empty? (:assignedLists %))) #(:name %))))))
 
 (rf/reg-sub
  ::quiz-lists
