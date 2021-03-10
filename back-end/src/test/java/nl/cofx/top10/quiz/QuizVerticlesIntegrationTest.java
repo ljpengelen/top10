@@ -381,7 +381,9 @@ class QuizVerticlesIntegrationTest {
             assertThat(participant.getString("name")).isEqualTo(USERNAME_1);
             assertThat(participant.getBoolean("listHasDraftStatus")).isFalse();
             assertThat(participant.getBoolean("isOwnAccount")).isTrue();
-            assertThat(participant.getString("assignedListId")).isEqualTo(listId);
+            var assignedLists = participant.getJsonArray("assignedLists");
+            assertThat(assignedLists).hasSize(1);
+            assertThat(assignedLists.getString(0)).isEqualTo(listId);
         });
 
         vertxTestContext.completeNow();

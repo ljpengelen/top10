@@ -244,21 +244,25 @@ public class QuizRepository {
 
                     log.debug("Retrieved all participants for quiz");
 
-                    var quizzes = asyncParticipants.result().getResults().stream()
-                            .map(participant -> participantArrayToJsonObject(participant, accountId))
-                            .collect(Collectors.toList());
+                    var idToParticipant = new HashMap<String, JsonObject>();
+                    asyncParticipants.result().getResults().forEach(row -> {
+                        var participantId = row.getString(0);
+                        idToParticipant.put(participantId, new JsonObject()
+                                .put("id", participantId)
+                                .put("name", row.getString(1))
+                                .put("listHasDraftStatus", row.getBoolean(2))
+                                .put("assignedLists", new JsonArray())
+                                .put("isOwnAccount", participantId.equals(accountId)));
+                    });
+                    asyncParticipants.result().getResults().forEach(row -> {
+                        var participantId = row.getString(0);
+                        var assignedListId = row.getString(3);
+                        if (assignedListId != null) {
+                            idToParticipant.get(participantId).getJsonArray("assignedLists").add(assignedListId);
+                        }
+                    });
 
-                    promise.complete(new JsonArray(quizzes));
+                    promise.complete(new JsonArray(new ArrayList<>(idToParticipant.values())));
                 }));
-    }
-
-    private JsonObject participantArrayToJsonObject(JsonArray array, String accountId) {
-        var participantId = array.getString(0);
-        return new JsonObject()
-                .put("id", participantId)
-                .put("name", array.getString(1))
-                .put("listHasDraftStatus", array.getBoolean(2))
-                .put("assignedListId", array.getString(3))
-                .put("isOwnAccount", participantId.equals(accountId));
     }
 }
