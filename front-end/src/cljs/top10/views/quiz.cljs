@@ -83,7 +83,7 @@
        (not isActive) [quiz-has-ended]
        (not deadline-has-passed?) [first-round-in-progress number-of-participants deadline id personalListHasDraftStatus personalListId]
        (or (nil? personalListHasDraftStatus) personalListHasDraftStatus) [no-list-submitted]
-       (and personalListId (false? personalListHasDraftStatus) (> 0 number-of-participants)) [assign-lists id lists]
+       (and personalListId (false? personalListHasDraftStatus) (> number-of-participants 1)) [assign-lists id lists]
        :else [single-participant])]))
 
 (defn quiz-page-container []
