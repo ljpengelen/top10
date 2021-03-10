@@ -35,7 +35,7 @@ public class QuizRepository {
             "SELECT replace(acc.account_id::text, '-', '') AS account_id, acc.name, l.has_draft_status, replace(ass.list_id::text, '-', '') FROM account acc "
             + "JOIN list l ON l.account_id = acc.account_id "
             + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-            + "LEFT JOIN assignment ass ON (ass.assignee_id = acc.account_id AND ass.account_id = ?) "
+            + "LEFT JOIN assignment ass ON (ass.assignee_id = acc.account_id AND l.list_id = ass.list_id AND ass.account_id = ?) "
             + "WHERE q.quiz_id = ? "
             + "ORDER BY acc.account_id";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
