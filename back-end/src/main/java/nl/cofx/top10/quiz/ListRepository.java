@@ -39,10 +39,9 @@ public class ListRepository {
             + "JOIN account a ON a.account_id = l.account_id "
             + "WHERE l.list_id = ?";
     private static final String GET_ASSIGNMENTS_TEMPLATE =
-            "SELECT replace(l.list_id::text, '-', '') AS list_id, replace(acc.account_id::text, '-', '') AS account_id, acc.name FROM list l "
-            + "LEFT JOIN assignment ass ON l.list_id = ass.list_id "
-            + "LEFT JOIN account acc ON ass.assignee_id = acc.account_id "
-            + "WHERE l.list_id = ANY (?) and ass.account_id = ?";
+            "SELECT replace(ass.list_id::text, '-', '') AS list_id, replace(acc.account_id::text, '-', '') AS account_id, acc.name FROM assignment ass "
+            + "JOIN account acc ON ass.assignee_id = acc.account_id "
+            + "WHERE ass.list_id = ANY (?) AND ass.account_id = ?";
     private static final String GET_LIST_BY_VIDEO_ID_TEMPLATE =
             "SELECT replace(l.list_id::text, '-', '') AS list_id, l.has_draft_status, replace(l.quiz_id::text, '-', '') AS quiz_id, replace(l.account_id::text, '-', '') AS account_id FROM video v "
             + "NATURAL RIGHT JOIN list l "
