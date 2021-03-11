@@ -32,12 +32,17 @@ public class QuizRepository {
                                                        + "VALUES (?, ?, true) "
                                                        + "ON CONFLICT DO NOTHING";
     private static final String GET_PARTICIPANTS_TEMPLATE =
-            "SELECT replace(acc.account_id::text, '-', '') AS account_id, acc.name, l.has_draft_status, replace(ass.list_id::text, '-', '') FROM account acc "
-            + "JOIN list l ON l.account_id = acc.account_id "
-            + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-            + "LEFT JOIN assignment ass ON (ass.assignee_id = acc.account_id AND l.list_id = ass.list_id AND ass.account_id = ?) "
-            + "WHERE q.quiz_id = ? "
-            + "ORDER BY acc.account_id";
+            "WITH participant AS ("
+            + "SELECT l.account_id AS participant_id, acc.name AS participant_name, l.quiz_id, l.has_draft_status FROM list l "
+            + "JOIN account acc ON l.account_id = acc.account_id"
+            + "), assignment AS ("
+            + "SELECT ass.assignee_id, ass.account_id AS assigner_id, ass.list_id AS assigned_list_id, l.quiz_id FROM assignment ass "
+            + "JOIN account acc ON ass.assignee_id = acc.account_id "
+            + "JOIN list l ON l.list_id = ass.list_id"
+            + ") SELECT replace(participant_id::text, '-', '') AS participant_id, participant_name, has_draft_status, replace(assigned_list_id::text, '-', '') AS assigned_list_id FROM participant p "
+            + "LEFT JOIN assignment a ON (p.participant_id = a.assignee_id AND p.quiz_id = a.quiz_id AND a.assigner_id = ?) "
+            + "WHERE p.quiz_id = ? "
+            + "ORDER BY participant_id";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
             "SELECT replace(ass.list_id::text, '-', '') AS list_id, "
             + "replace(assigner_acc.account_id::text, '-', '') AS assigner_id, assigner_acc.name AS assigner_name, "
