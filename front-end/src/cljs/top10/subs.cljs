@@ -52,6 +52,13 @@
    (:videos list)))
 
 (rf/reg-sub
+ ::assignee
+ :<- [::list]
+ (fn [list _]
+   {:id (:assigneeId list)
+    :name (:assigneeName list)}))
+
+(rf/reg-sub
  ::list-creator-name
  :<- [::list]
  (fn [list _]

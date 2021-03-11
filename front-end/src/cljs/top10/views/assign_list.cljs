@@ -10,7 +10,7 @@
 
 (defn assign-list-page []
   (let [assignee (r/atom nil)]
-    (fn [quiz-id list-id videos participants]
+    (fn [quiz-id list-id current-assignee videos participants]
       [:<>
        [:h1 "Assign list"]
        [:p
@@ -25,12 +25,14 @@
                               (rf/dispatch [::events/assign-list quiz-id list-id (.-id @assignee)])))}
         [grid {:container true :direction "column" :spacing 2}
          [grid {:item true :xs 6}
-          [autocomplete {:get-option-label (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
+          [autocomplete {:get-option-label (fn [^js option] (.-name option))
                          :get-option-selected (fn [option value] (= (.-id option) (.-id value)))
                          :on-change (fn [_ value] (reset! assignee value))
                          :options participants
                          :render-input (fn [^js params] (r/create-element TextField params))
-                         :required true}]]
+                         :render-option (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
+                         :required true
+                         :value (or @assignee current-assignee)}]]
          [grid {:item true}
           [grid {:container true :spacing 2}
            [grid {:item true}
@@ -45,5 +47,6 @@
   [assign-list-page
    @(rf/subscribe [::subs/active-quiz])
    @(rf/subscribe [::subs/active-list])
+   @(rf/subscribe [::subs/assignee])
    @(rf/subscribe [::subs/videos])
    @(rf/subscribe [::subs/participants-with-lists])])
