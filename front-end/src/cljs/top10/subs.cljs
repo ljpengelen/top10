@@ -137,6 +137,16 @@
    (:loading-quiz? db)))
 
 (rf/reg-sub
+ ::loading-quiz-lists?
+ (fn [db _]
+   (:loading-quiz-lists? db)))
+
+(rf/reg-sub
+ ::loading-quiz-participants?
+ (fn [db _]
+   (:loading-quiz-participants? db)))
+
+(rf/reg-sub
  ::loading-quiz-results?
  (fn [db _]
    (:loading-quiz-results? db)))
