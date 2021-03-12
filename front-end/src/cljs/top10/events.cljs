@@ -419,14 +419,16 @@
  ::get-quiz-results
  [(rf/inject-cofx :access-token)]
  (fn [{:keys [access-token db]} [_ quiz-id]]
-   {:db (assoc db :loading-quiz-results? true)
-    :http-xhrio [{:method :get
-                  :uri (str api-base-url "/private/quiz/" quiz-id "/result")
-                  :headers (authorization-header access-token)
-                  :format (ajax/json-request-format)
-                  :response-format ring-json-response-format
-                  :on-success [::get-quiz-results-succeeded]
-                  :on-failure [::request-failed]}]}))
+   (let [current-quiz-id (get-in db [:quiz-results :quizId])]
+     (when-not (= current-quiz-id quiz-id)
+       {:db (assoc db :loading-quiz-results? true)
+        :http-xhrio [{:method :get
+                      :uri (str api-base-url "/private/quiz/" quiz-id "/result")
+                      :headers (authorization-header access-token)
+                      :format (ajax/json-request-format)
+                      :response-format ring-json-response-format
+                      :on-success [::get-quiz-results-succeeded]
+                      :on-failure [::request-failed]}]}))))
 
 (rf/reg-event-db
  ::show-quiz-results
