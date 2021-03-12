@@ -76,7 +76,6 @@
    [back-to-overview-button]])
 
 (defn quiz-page [loading-quiz? loading-quiz-lists? loading-quiz-participants? {:keys [name deadline deadline-has-passed? id isActive personalListId personalListHasDraftStatus]} number-of-participants lists]
-  (js/console.log loading-quiz? loading-quiz-lists? loading-quiz-participants?)
   (when-not (or loading-quiz? loading-quiz-lists? loading-quiz-participants?)
     [:<>
      [:h1 name]
