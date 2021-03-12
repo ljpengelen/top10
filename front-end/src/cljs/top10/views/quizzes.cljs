@@ -3,10 +3,10 @@
             [reagent-material-ui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
             [top10.subs :as subs]))
 
-(defn quizzes-page [loading-quizzes? quizzes]
+(defn quizzes-page [quizzes]
   [:div
    [:h1 "All quizzes"]
-   (when-not loading-quizzes?
+   (when-not (nil? quizzes)
      [grid {:container true :direction "column" :spacing 2}
       [grid {:item true}
        (if (empty? quizzes)
@@ -39,4 +39,4 @@
        [button {:href "/create-quiz" :color "primary" :variant "contained"} "Create quiz"]]])])
 
 (defn quizzes-page-container []
-  [quizzes-page @(rf/subscribe [::subs/loading-quizzes?]) @(rf/subscribe [::subs/quizzes])])
+  [quizzes-page @(rf/subscribe [::subs/quizzes])])

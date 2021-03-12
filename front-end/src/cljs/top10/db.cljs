@@ -3,7 +3,7 @@
 (def default-db
   {:active-page :blank
    :logged-in? false
-   :quizzes []
+   :quizzes nil
    :quiz-lists []
    :quiz-participants []
    :dialog {:show? false}})

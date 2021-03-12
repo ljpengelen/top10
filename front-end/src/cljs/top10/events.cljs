@@ -236,14 +236,13 @@
  ::get-quizzes-succeeded
  (fn [db [_ response]]
    (let [quizzes (:body response)]
-     (assoc db :quizzes quizzes :loading-quizzes? false))))
+     (assoc db :quizzes quizzes))))
 
 (rf/reg-event-fx
  ::get-quizzes
  [(rf/inject-cofx :access-token)]
- (fn [{:keys [access-token db]} _]
-   {:db (assoc db :loading-quizzes? true)
-    :http-xhrio {:method :get
+ (fn [{:keys [access-token _]} _]
+   {:http-xhrio {:method :get
                  :uri (str api-base-url "/private/quiz/")
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)

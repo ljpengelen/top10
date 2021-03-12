@@ -132,11 +132,6 @@
    (get-in db [:dialog :title])))
 
 (rf/reg-sub
- ::loading-quizzes?
- (fn [db _]
-   (:loading-quizzes? db)))
-
-(rf/reg-sub
  ::loading-quiz?
  (fn [db _]
    (:loading-quiz? db)))
