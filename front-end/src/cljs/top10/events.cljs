@@ -82,8 +82,7 @@
          new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-access-token new-access-token
       :set-csrf-token new-csrf-token
-      :db (assoc db :logged-in? (= "SESSION_CREATED" status))
-      :dispatch [::get-data-for-active-page]})))
+      :db (assoc db :logged-in? (= "SESSION_CREATED" status))})))
 
 (rf/reg-event-fx
  ::log-in-with-back-end-failed
