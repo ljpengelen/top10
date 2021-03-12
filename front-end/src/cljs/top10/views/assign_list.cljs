@@ -16,7 +16,7 @@
        [:p
         "The playlist below contains someone's 10 favorite songs. "
         "Do you know who's top 10 this is? "
-        "Unitl the quiz has ended, you can come back and change your assignment anytime."]
+        "Until the quiz has ended, you can come back and change your assignment anytime."]
        [:div {:class "ytEmbeddedContainer"}
         [embedded-video (first videos) videos]]
        [:form {:on-submit (fn [event]
