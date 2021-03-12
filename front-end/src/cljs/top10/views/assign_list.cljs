@@ -17,6 +17,19 @@
         "The playlist below contains someone's 10 favorite songs. "
         "Do you know who's top 10 this is? "
         "Until the quiz has ended, you can come back and change your assignment anytime."]
+       [:p
+        "To see an overview of all the songs on this list, "
+        "use the playlist button "
+        [:svg {:xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :viewBox "0 0 24 24" :fill "#000000" :style { :vertical-align "bottom"}}
+         [:g
+          [:rect {:fill "none" :height "24" :width "24"}]]
+         [:g
+          [:g
+           [:rect {:height "2" :width "11" :x "3" :y "10"}]
+           [:rect {:height "2" :width "11" :x "3" :y "6"}]
+           [:rect {:height "2" :width "7" :x "3" :y "14"}]
+           [:polygon {:points "16,13 16,21 22,17"}]]]]
+        " in the top-right corner."]
        [:div {:class "ytEmbeddedContainer"}
         [embedded-video (first videos) videos]]
        [:form {:on-submit (fn [event]
