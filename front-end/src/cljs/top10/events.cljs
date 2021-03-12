@@ -318,14 +318,16 @@
    (let [list (:body response)
          active-quiz (:quizId list)]
      (-> db
+         (assoc :loading-list? false)
          (assoc :list list)
          (assoc :active-quiz active-quiz)))))
 
 (rf/reg-event-fx
  ::get-list
  [(rf/inject-cofx :access-token)]
- (fn [{:keys [access-token]} [_ list-id]]
-   {:http-xhrio {:method :get
+ (fn [{:keys [access-token db]} [_ list-id]]
+   {:db (assoc db :loading-list? true)
+    :http-xhrio {:method :get
                  :uri (str api-base-url "/private/list/" list-id)
                  :headers (authorization-header access-token)
                  :format (ajax/json-request-format)
