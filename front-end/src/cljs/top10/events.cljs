@@ -24,31 +24,29 @@
                           :halt? true}]}}))
 
 (rf/reg-event-fx
- ::set-active-page
- (fn [{:keys [db]} [_ {:keys [page quiz-id list-id]} ]]
-   {:db (-> db
-            (assoc :active-page page)
-            (assoc :active-quiz quiz-id)
-            (assoc :active-list list-id))
-    :dispatch [::get-data-for-active-page]}))
+ ::navigate
+ (fn [{:keys [db]} [_ {:keys [page quiz-id list-id]}]]
+   (let [{:keys [logged-in?]} db
+         events (case page
+                  :quiz-page (when logged-in? [[::get-quiz quiz-id]
+                                               [::get-quiz-lists quiz-id]
+                                               [::get-quiz-participants quiz-id]])
+                  :quiz-results-page (when logged-in? [[::get-quiz-results quiz-id]])
+                  :complete-quiz-page (when logged-in? [[::get-quiz quiz-id]])
+                  :join-quiz-page [[::get-quiz quiz-id]]
+                  :quizzes-page (when logged-in? [[::get-quizzes]])
+                  (:list-page :personal-list-page) (when logged-in? [[[::get-list list-id]
+                                                                      [::get-quiz quiz-id]]])
+                  :assign-list-page (when logged-in? [[::get-list list-id]
+                                                      [::get-quiz-participants quiz-id]])
+                  [])]
+     {:dispatch-n (conj events [::switch-active-page page])
+      :db (assoc db :active-quiz quiz-id :active-list list-id)})))
 
-(rf/reg-event-fx
- ::get-data-for-active-page
- (fn [{:keys [db]} _]
-   (let [{:keys [active-page logged-in? active-list active-quiz]} db]
-     (case active-page
-       :quiz-page (when logged-in? {:dispatch-n [[::get-quiz active-quiz]
-                                                 [::get-quiz-lists active-quiz]
-                                                 [::get-quiz-participants active-quiz]]})
-       :quiz-results-page (when logged-in? {:dispatch [::get-quiz-results active-quiz]})
-       :complete-quiz-page (when logged-in? {:dispatch [::get-quiz active-quiz]})
-       :join-quiz-page {:dispatch [::get-quiz active-quiz]}
-       :quizzes-page (when logged-in? {:dispatch [::get-quizzes]})
-       (:list-page :personal-list-page) (when logged-in? {:dispatch-n [[::get-list active-list]
-                                                                       [::get-quiz active-quiz]]})
-       :assign-list-page (when logged-in? {:dispatch-n [[::get-list active-list]
-                                                        [::get-quiz-participants active-quiz]]})
-       {}))))
+(rf/reg-event-db
+ ::switch-active-page
+ (fn [db [_ page]]
+   (assoc db :active-page page)))
 
 (rf/reg-event-fx
  ::session-check-succeeded

@@ -13,17 +13,17 @@
   (accountant/dispatch-current!))
 
 (defn configure-routes []
-  (defroute "/" [] (rf/dispatch [::events/set-active-page {:page :home-page}]))
+  (defroute "/" [] (rf/dispatch [::events/navigate {:page :home-page}]))
   (defroute "/oauth2/:provider" {provider :provider
                                  {:keys [code state]} :query-params} (rf/dispatch [::events/log-in provider code state]))
-  (defroute "/quizzes" [] (rf/dispatch [::events/set-active-page {:page :quizzes-page}]))
-  (defroute "/quiz/:id" [id] (rf/dispatch [::events/set-active-page {:page :quiz-page :quiz-id id}]))
-  (defroute "/quiz/:id/complete" [id] (rf/dispatch [::events/set-active-page {:page :complete-quiz-page :quiz-id id}]))
-  (defroute #"^(/#)?/quiz/([^/]+)/join$" [_ id] (rf/dispatch [::events/set-active-page {:page :join-quiz-page :quiz-id id}]))
-  (defroute "/quiz/:id/results" [id] (rf/dispatch [::events/set-active-page {:page :quiz-results-page :quiz-id id}]))
-  (defroute "/create-quiz" [] (rf/dispatch [::events/set-active-page {:page :create-quiz-page}]))
-  (defroute "/quiz/:quiz-id/list/:list-id" [quiz-id list-id] (rf/dispatch [::events/set-active-page {:page :list-page :quiz-id quiz-id :list-id list-id}]))
+  (defroute "/quizzes" [] (rf/dispatch [::events/navigate {:page :quizzes-page}]))
+  (defroute "/quiz/:id" [id] (rf/dispatch [::events/navigate {:page :quiz-page :quiz-id id}]))
+  (defroute "/quiz/:id/complete" [id] (rf/dispatch [::events/navigate {:page :complete-quiz-page :quiz-id id}]))
+  (defroute #"^(/#)?/quiz/([^/]+)/join$" [_ id] (rf/dispatch [::events/navigate {:page :join-quiz-page :quiz-id id}]))
+  (defroute "/quiz/:id/results" [id] (rf/dispatch [::events/navigate {:page :quiz-results-page :quiz-id id}]))
+  (defroute "/create-quiz" [] (rf/dispatch [::events/navigate {:page :create-quiz-page}]))
+  (defroute "/quiz/:quiz-id/list/:list-id" [quiz-id list-id] (rf/dispatch [::events/navigate {:page :list-page :quiz-id quiz-id :list-id list-id}]))
   (defroute "/quiz/:quiz-id/list/:list-id/personal" [quiz-id list-id]
-    (rf/dispatch [::events/set-active-page {:page :personal-list-page :quiz-id quiz-id :list-id list-id}]))
+    (rf/dispatch [::events/navigate {:page :personal-list-page :quiz-id quiz-id :list-id list-id}]))
   (defroute "/quiz/:quiz-id/list/:list-id/assign" [quiz-id list-id]
-    (rf/dispatch [::events/set-active-page {:page :assign-list-page :quiz-id quiz-id :list-id list-id}])))
+    (rf/dispatch [::events/navigate {:page :assign-list-page :quiz-id quiz-id :list-id list-id}])))
