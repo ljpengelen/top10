@@ -1,7 +1,6 @@
 (ns top10.views.personal-results
   (:require [re-frame.core :as rf]
             [reagent-material-ui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
-            [top10.events :as events]
             [top10.subs :as subs]))
 
 (defn personal-results-page [quiz-id {:keys [name correctAssignments incorrectAssignments]}]
@@ -33,7 +32,7 @@
            [table-cell creatorName]
            [table-cell [link {:href (str "/quiz/" quiz-id "/list/" listId) :color "primary"} "Show top 10"]]])]]]]
     [grid {:item true}
-     [button {:on-click #(rf/dispatch [::events/show-quiz-results])} "Back to quiz results"]]]])
+     [button {:href (str "/quiz/" quiz-id "/results")} "Back to quiz results"]]]])
 
 (defn personal-results-page-container []
   [personal-results-page @(rf/subscribe [::subs/active-quiz]) @(rf/subscribe [::subs/personal-results])])

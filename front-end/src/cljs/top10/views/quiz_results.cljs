@@ -1,11 +1,10 @@
 (ns top10.views.quiz-results
   (:require [re-frame.core :as rf]
             [reagent-material-ui.components :refer [grid link table table-body table-cell table-container table-head table-row]]
-            [top10.events :as events]
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button]]))
 
-(defn quiz-results-page [loading-quiz-results? {:keys [ranking]}]
+(defn quiz-results-page [loading-quiz-results? {:keys [quizId ranking]}]
   [:<>
    [:h1 "Final results"]
    (when-not loading-quiz-results?
@@ -26,12 +25,7 @@
              [table-cell rank]
              [table-cell name]
              [table-cell numberOfCorrectAssignments]
-             [table-cell [link {:href "#"
-                                :color "primary"
-                                :on-click (fn [event]
-                                            (.preventDefault event)
-                                            (rf/dispatch [::events/show-personal-results accountId]))}
-                          "Show details"]]])]]]]
+             [table-cell [link {:href (str "/quiz/" quizId "/account/" accountId "/results") :color "primary"} "Show details"]]])]]]]
       [grid {:item true}
        [back-to-overview-button]]])])
 

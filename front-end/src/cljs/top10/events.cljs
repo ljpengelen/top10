@@ -25,13 +25,14 @@
 
 (rf/reg-event-fx
  ::navigate
- (fn [{:keys [db]} [_ {:keys [page quiz-id list-id]}]]
+ (fn [{:keys [db]} [_ {:keys [page quiz-id list-id account-id]}]]
    (let [{:keys [logged-in?]} db
          events (case page
                   :quiz-page (when logged-in? [[::get-quiz quiz-id]
                                                [::get-quiz-lists quiz-id]
                                                [::get-quiz-participants quiz-id]])
                   :quiz-results-page (when logged-in? [[::get-quiz-results quiz-id]])
+                  :personal-results-page (when logged-in? [[::get-quiz-results quiz-id]])
                   :complete-quiz-page (when logged-in? [[::get-quiz quiz-id]])
                   :join-quiz-page [[::get-quiz quiz-id]]
                   :quizzes-page (when logged-in? [[::get-quizzes]])
@@ -41,7 +42,7 @@
                                                       [::get-quiz-participants quiz-id]])
                   [])]
      {:dispatch-n (conj events [::switch-active-page page])
-      :db (assoc db :active-quiz quiz-id :active-list list-id)})))
+      :db (assoc db :active-quiz quiz-id :active-list list-id :account-id account-id)})))
 
 (rf/reg-event-db
  ::switch-active-page
@@ -426,13 +427,6 @@
                   :response-format ring-json-response-format
                   :on-success [::get-quiz-results-succeeded]
                   :on-failure [::request-failed]}]}))
-
-(rf/reg-event-db
- ::show-personal-results
- (fn [db [_ account-id]]
-   (-> db
-       (assoc :active-page :personal-results-page)
-       (assoc :account-id account-id))))
 
 (rf/reg-event-db
  ::show-quiz-results

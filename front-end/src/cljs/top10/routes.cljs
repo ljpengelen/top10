@@ -21,6 +21,8 @@
   (defroute "/quiz/:id/complete" [id] (rf/dispatch [::events/navigate {:page :complete-quiz-page :quiz-id id}]))
   (defroute #"^(/#)?/quiz/([^/]+)/join$" [_ id] (rf/dispatch [::events/navigate {:page :join-quiz-page :quiz-id id}]))
   (defroute "/quiz/:id/results" [id] (rf/dispatch [::events/navigate {:page :quiz-results-page :quiz-id id}]))
+  (defroute "/quiz/:quiz-id/account/:account-id/results" [quiz-id account-id]
+    (rf/dispatch [::events/navigate {:page :personal-results-page :quiz-id quiz-id :account-id account-id}]))
   (defroute "/create-quiz" [] (rf/dispatch [::events/navigate {:page :create-quiz-page}]))
   (defroute "/quiz/:quiz-id/list/:list-id" [quiz-id list-id] (rf/dispatch [::events/navigate {:page :list-page :quiz-id quiz-id :list-id list-id}]))
   (defroute "/quiz/:quiz-id/list/:list-id/personal" [quiz-id list-id]
