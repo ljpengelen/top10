@@ -42,7 +42,7 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
 
         server.requestHandler(router);
 
-        vertx.deployVerticle(new SessionStatusVerticle(jwt, router, SECRET_KEY), deploymentResult -> {
+        vertx.deployVerticle(new SessionStatusVerticle(jwt, router, SECRET_KEY, true), deploymentResult -> {
             if (deploymentResult.succeeded()) {
                 server.listen().onComplete(asyncServer -> {
                     if (asyncServer.failed()) {

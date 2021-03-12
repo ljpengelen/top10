@@ -25,6 +25,11 @@ public class TestConfig extends AbstractConfig implements Config {
     private final JsonObject jdbcOptions = fetchJdbcOptions();
     private final SecretKey jwtSecretKey = fetchJwtSecretKey("TEST_JWT_ENCODED_SECRET_KEY");
 
+    @Override
+    public boolean useSecureCookies() {
+        return false;
+    }
+
     protected JsonObject fetchJdbcOptions() {
         return new JsonObject()
                 .put("url", jdbcUrl)

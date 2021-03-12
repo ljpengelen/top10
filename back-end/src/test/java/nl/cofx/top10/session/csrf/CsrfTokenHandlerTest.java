@@ -32,7 +32,7 @@ class CsrfTokenHandlerTest {
     private static final String CSRF_TOKEN_CLAIM_NAME = "csrfToken";
 
     private final Jwt jwt = new Jwt(SECRET_KEY);
-    private final CsrfTokenHandler csrfHeaderChecker = new CsrfTokenHandler(jwt, SECRET_KEY);
+    private final CsrfTokenHandler csrfHeaderChecker = new CsrfTokenHandler(jwt, SECRET_KEY, true);
     private final RoutingContext routingContext = mock(RoutingContext.class);
     private final HttpServerRequest request = mock(HttpServerRequest.class);
     private final HttpServerResponse response = mock(HttpServerResponse.class);

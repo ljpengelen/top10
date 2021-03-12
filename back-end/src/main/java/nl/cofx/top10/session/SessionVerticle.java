@@ -13,8 +13,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.Cookie;
-import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -32,6 +31,7 @@ public class SessionVerticle extends AbstractVerticle {
     private final MicrosoftOauth2 microsoftOauth2;
     private final Router router;
     private final SecretKey secretKey;
+    private final boolean useSecureCookies;
 
     @Override
     public void start() {
@@ -74,7 +74,9 @@ public class SessionVerticle extends AbstractVerticle {
             var cookie = Cookie.cookie(JWT_COOKIE_NAME, jwt)
                     .setHttpOnly(true)
                     .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
-                    .setPath("/");
+                    .setPath("/")
+                    .setSameSite(CookieSameSite.LAX)
+                    .setSecure(useSecureCookies);
 
             routingContext.response()
                     .putHeader("content-type", "application/json")
@@ -100,7 +102,9 @@ public class SessionVerticle extends AbstractVerticle {
         var cookie = Cookie.cookie(JWT_COOKIE_NAME, "")
                 .setHttpOnly(true)
                 .setMaxAge(0)
-                .setPath("/");
+                .setPath("/")
+                .setSameSite(CookieSameSite.LAX)
+                .setSecure(useSecureCookies);
 
         routingContext.response()
                 .setStatusCode(204)

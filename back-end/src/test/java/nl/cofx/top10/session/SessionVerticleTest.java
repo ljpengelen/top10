@@ -42,7 +42,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
         ErrorHandlers.configure(router);
         server.requestHandler(router);
 
-        vertx.deployVerticle(new SessionVerticle(googleOauth2, microsoftOauth2, router, SECRET_KEY), deploymentResult -> {
+        vertx.deployVerticle(new SessionVerticle(googleOauth2, microsoftOauth2, router, SECRET_KEY, true), deploymentResult -> {
             if (deploymentResult.succeeded()) {
                 server.listen().onComplete(asyncServer -> {
                     if (asyncServer.failed()) {

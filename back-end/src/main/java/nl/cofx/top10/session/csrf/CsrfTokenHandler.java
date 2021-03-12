@@ -33,6 +33,7 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
     private final Jwt jwt;
     private final SecretKey secretKey;
+    private final boolean useSecureCookies;
 
     @Override
     public void handle(RoutingContext routingContext) {
@@ -91,7 +92,9 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
         var cookie = Cookie.cookie(CSRF_TOKEN_COOKIE_NAME, jwt)
                 .setHttpOnly(true)
-                .setPath("/");
+                .setPath("/")
+                .setSameSite(CookieSameSite.LAX)
+                .setSecure(useSecureCookies);
         response.addCookie(cookie);
     }
 }

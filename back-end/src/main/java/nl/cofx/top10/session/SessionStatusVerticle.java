@@ -12,8 +12,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.Cookie;
-import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -36,6 +35,7 @@ public class SessionStatusVerticle extends AbstractVerticle {
     private final Jwt jwt;
     private final Router router;
     private final SecretKey secretKey;
+    private final boolean useSecureCookies;
 
     @Override
     public void start() {
@@ -81,7 +81,9 @@ public class SessionStatusVerticle extends AbstractVerticle {
         var newCookie = Cookie.cookie(JWT_COOKIE_NAME, jwt)
                 .setHttpOnly(true)
                 .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
-                .setPath("/");
+                .setPath("/")
+                .setSameSite(CookieSameSite.LAX)
+                .setSecure(useSecureCookies);
 
         log.debug("Setting new session cookie");
 

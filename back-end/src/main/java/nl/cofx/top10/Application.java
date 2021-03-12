@@ -77,14 +77,15 @@ public class Application {
 
             var jdbcOptions = config.getJdbcOptions();
             var jwtSecretKey = config.getJwtSecretKey();
+            var useSecureCookies = config.useSecureCookies();
 
             deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
                     .compose(migrationResult ->
                             CompositeFuture.all(List.of(
                                     deploy(new HeartbeatVerticle()),
                                     deploy(new ExternalAccountVerticle(jdbcOptions)),
-                                    deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey)),
-                                    deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey)),
+                                    deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
+                                    deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new QuizHttpVerticle(router)),
                                     deploy(new QuizEntityVerticle(jdbcOptions)),
                                     deploy(new ListHttpVerticle(router)),
@@ -117,7 +118,7 @@ public class Application {
 
             router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
             var jwt = new Jwt(config.getJwtSecretKey());
-            router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey()));
+            router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey(), config.useSecureCookies()));
             router.route("/private/*")
                     .handler(new JwtSessionHandler(jwt))
                     .handler(new PrivateRouteHandler());
