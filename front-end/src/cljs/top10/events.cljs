@@ -35,8 +35,8 @@
                   :complete-quiz-page (when logged-in? [[::get-quiz quiz-id]])
                   :join-quiz-page [[::get-quiz quiz-id]]
                   :quizzes-page (when logged-in? [[::get-quizzes]])
-                  (:list-page :personal-list-page) (when logged-in? [[[::get-list list-id]
-                                                                      [::get-quiz quiz-id]]])
+                  (:list-page :personal-list-page) (when logged-in? [[::get-list list-id]
+                                                                     [::get-quiz quiz-id]])
                   :assign-list-page (when logged-in? [[::get-list list-id]
                                                       [::get-quiz-participants quiz-id]])
                   [])]
