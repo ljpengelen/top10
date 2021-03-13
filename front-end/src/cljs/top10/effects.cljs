@@ -34,3 +34,8 @@
  :redirect
  (fn [url]
    (routes/nav! url)))
+
+(rf/reg-fx
+ :scroll-to
+ (fn [{:keys [x y]}]
+   (js/window.scrollTo x y)))

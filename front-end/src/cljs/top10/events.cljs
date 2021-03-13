@@ -44,10 +44,12 @@
      {:dispatch-n (conj events [::switch-active-page page])
       :db (assoc db :active-quiz quiz-id :active-list list-id :account-id account-id)})))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::switch-active-page
- (fn [db [_ page]]
-   (assoc db :active-page page)))
+ (fn [{:keys [db]} [_ page]]
+   {:db (assoc db :active-page page)
+    :scroll-to {:x 0
+                :y 0}}))
 
 (rf/reg-event-fx
  ::session-check-succeeded
