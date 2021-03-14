@@ -55,8 +55,11 @@
  ::assignee
  :<- [::list]
  (fn [list _]
-   {:id (:assigneeId list)
-    :name (:assigneeName list)}))
+   (let [id (:assigneeId list)
+         name (:assigneeName list)]
+     (when (and id name)
+       {:id id
+        :name name}))))
 
 (rf/reg-sub
  ::list-creator-name
