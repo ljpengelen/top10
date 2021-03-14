@@ -175,6 +175,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listsForQuiz.body()).hasSize(1);
         var list = listsForQuiz.body().getJsonObject(0);
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
         assertThat(list.getString("assigneeId")).isNull();
 
         var assignResponse = httpClient.assignList(listId, accountId2);
@@ -188,6 +189,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listsForQuiz.body()).hasSize(1);
         list = listsForQuiz.body().getJsonObject(0);
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
         assertThat(list.getString("assigneeId")).isEqualTo(accountId2);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
@@ -205,6 +207,7 @@ class ListVerticlesIntegrationTest {
         assertThat(response.body()).hasSize(1);
         var list = response.body().getJsonObject(0);
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
 
         vertxTestContext.completeNow();
     }
@@ -228,6 +231,7 @@ class ListVerticlesIntegrationTest {
         assertThat(body.getBoolean("isActiveQuiz")).isTrue();
         assertThat(body.getInteger("creatorId")).isNull();
         assertThat(body.getString("creatorName")).isNull();
+        assertThat(body.getBoolean("isOwnList")).isTrue();
         assertThat(body.getString("assigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
 
@@ -259,6 +263,7 @@ class ListVerticlesIntegrationTest {
         assertThat(body.getBoolean("isActiveQuiz")).isFalse();
         assertThat(body.getString("creatorId")).isEqualTo(accountId1);
         assertThat(body.getString("creatorName")).isEqualTo(USERNAME_1);
+        assertThat(body.getBoolean("isOwnList")).isTrue();
         assertThat(body.getString("assigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
 
@@ -306,6 +311,7 @@ class ListVerticlesIntegrationTest {
         assertThat(body.getBoolean("isActiveQuiz")).isTrue();
         assertThat(body.getString("creatorId")).isNull();
         assertThat(body.getString("creatorName")).isNull();
+        assertThat(body.getBoolean("isOwnList")).isFalse();
         assertThat(body.getString("assigneeId")).isNull();
         assertThat(body.getString("assigneeName")).isNull();
         assertThat(body.getJsonArray("videos")).isEmpty();
@@ -386,6 +392,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
         var videos = list.getJsonArray("videos");
         assertThat(videos).hasSize(2);
         var video = videos.getJsonObject(0);
@@ -563,6 +570,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
         assertThat(list.getJsonArray("videos")).isEmpty();
         assertThat(list.getBoolean("hasDraftStatus")).isFalse();
 
@@ -642,6 +650,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         var list = listResponse.body();
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
         assertThat(list.getString("assigneeId")).isEqualTo(accountId2);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_2);
 
@@ -654,6 +663,7 @@ class ListVerticlesIntegrationTest {
         assertThat(listResponse.statusCode()).isEqualTo(200);
         list = listResponse.body();
         assertThat(list.getString("id")).isEqualTo(listId);
+        assertThat(list.getBoolean("isOwnList")).isTrue();
         assertThat(list.getString("assigneeId")).isEqualTo(accountId1);
         assertThat(list.getString("assigneeName")).isEqualTo(USERNAME_1);
 

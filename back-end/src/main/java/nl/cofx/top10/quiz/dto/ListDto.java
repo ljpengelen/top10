@@ -13,6 +13,7 @@ public class ListDto {
     String id;
     String creatorId;
     String creatorName;
+    boolean isOwnList;
     String quizId;
     boolean isActiveQuiz;
     String assigneeId;
@@ -27,6 +28,7 @@ public class ListDto {
                 .isActiveQuiz(jsonObject.getBoolean("isActiveQuiz"))
                 .creatorId(jsonObject.getString("creatorId"))
                 .creatorName(jsonObject.getString("creatorName"))
+                .isOwnList(jsonObject.getBoolean("isOwnList"))
                 .assigneeId(jsonObject.getString("assigneeId"))
                 .assigneeName(jsonObject.getString("assigneeName"))
                 .hasDraftStatus(jsonObject.getBoolean("hasDraftStatus"))
@@ -37,7 +39,8 @@ public class ListDto {
     public JsonObject toJsonObject() {
         var jsonObject = new JsonObject()
                 .put("id", id)
-                .put("isActiveQuiz", isActiveQuiz);
+                .put("isActiveQuiz", isActiveQuiz)
+                .put("isOwnList", isOwnList);
 
         if (creatorId != null)
             jsonObject.put("creatorId", creatorId);

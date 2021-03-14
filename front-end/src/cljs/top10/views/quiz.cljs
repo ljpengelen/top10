@@ -93,4 +93,4 @@
    @(rf/subscribe [::subs/loading-quiz-participants?])
    @(rf/subscribe [::subs/quiz])
    @(rf/subscribe [::subs/number-of-participants])
-   @(rf/subscribe [::subs/quiz-lists])])
+   @(rf/subscribe [::subs/other-quiz-lists])])

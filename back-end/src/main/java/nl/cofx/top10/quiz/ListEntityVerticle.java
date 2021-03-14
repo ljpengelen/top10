@@ -54,7 +54,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getString("accountId");
 
         withTransaction(connection ->
-                listRepository.getAllListsForQuiz(connection, quizId).compose(listDtos -> {
+                listRepository.getAllListsForQuiz(connection, quizId, accountId).compose(listDtos -> {
                     var listIds = listDtos.stream()
                             .map(ListDto::getId)
                             .collect(Collectors.toList());
@@ -103,7 +103,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getString("listId");
         var accountId = body.getString("accountId");
 
-        withTransaction(connection -> listRepository.getList(connection, listId)
+        withTransaction(connection -> listRepository.getList(connection, listId, accountId)
                 .compose(list ->
                         listRepository.getAssignments(connection, accountId, Collections.singletonList(listId)).compose(assignments -> {
                             var assignment = assignments.get(listId);
@@ -133,7 +133,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var accountId = body.getString("accountId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId).compose(listDto -> {
+                listRepository.getList(connection, listId, accountId).compose(listDto -> {
                     if (!accountId.equals(listDto.getCreatorId())) {
                         var message = String.format("Account \"%s\" did not create list \"%s\"", accountId, listId);
                         log.debug(message);
@@ -189,7 +189,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var listId = body.getString("listId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId).compose(listDto -> {
+                listRepository.getList(connection, listId, accountId).compose(listDto -> {
                     if (!accountId.equals(listDto.getCreatorId())) {
                         return Future.failedFuture(new ForbiddenException(String.format("Account \"%s\" did not create list \"%s\"", accountId, listId)));
                     } else {
@@ -218,7 +218,7 @@ public class ListEntityVerticle extends AbstractEntityVerticle {
         var assigneeId = body.getString("assigneeId");
 
         withTransaction(connection ->
-                listRepository.getList(connection, listId).compose(listDto -> {
+                listRepository.getList(connection, listId, accountId).compose(listDto -> {
                     if (listDto.getHasDraftStatus()) {
                         log.debug("User \"{}\" cannot assign \"{}\" to non-finalized list \"{}\"", accountId, assigneeId, listId);
                         return Future.failedFuture(new ForbiddenException(String.format("List \"%s\" has not been finalized yet", listId)));

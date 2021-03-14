@@ -18,12 +18,17 @@ import nl.cofx.top10.quiz.dto.*;
 @Log4j2
 public class ListRepository {
 
-    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE = "SELECT replace(l.list_id::text, '-', '') AS list_id FROM list l "
-                                                                  + "JOIN quiz q ON l.quiz_id = q.quiz_id "
-                                                                  + "WHERE q.quiz_id = ? AND NOT l.has_draft_status "
-                                                                  + "ORDER BY list_id";
-    private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE = "SELECT replace(l.list_id::text, '-', '') AS list_id FROM list l WHERE l.account_id = ?";
-    private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, replace(v.list_id::text, '-', '') AS list_id, v.url, v.reference_id FROM video v WHERE v.list_id = ANY (?)";
+    private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE =
+            "SELECT replace(l.list_id::text, '-', '') AS list_id, replace(l.account_id::text, '-', '') AS creator_id, q.is_active FROM list l "
+            + "JOIN quiz q ON l.quiz_id = q.quiz_id "
+            + "WHERE q.quiz_id = ? AND NOT l.has_draft_status "
+            + "ORDER BY list_id";
+    private static final String GET_ALL_LISTS_FOR_ACCOUNT_TEMPLATE =
+            "SELECT replace(l.list_id::text, '-', '') AS list_id, replace(l.account_id::text, '-', '') AS creator_id, q.is_active FROM list l "
+            + "NATURAL JOIN quiz q "
+            + "WHERE l.account_id = ?";
+    private static final String GET_VIDEOS_FOR_LISTS_TEMPLATE = "SELECT v.video_id, replace(v.list_id::text, '-', '') AS list_id, v.url, v.reference_id FROM video v "
+                                                                + "WHERE v.list_id = ANY (?)";
     private static final String ACCOUNT_CAN_ACCESS_LIST_TEMPLATE = "SELECT COUNT(l1.quiz_id) from list l1 "
                                                                    + "JOIN list l2 ON l1.quiz_id = l2.quiz_id "
                                                                    + "JOIN quiz q ON l1.quiz_id = q.quiz_id "
@@ -55,7 +60,7 @@ public class ListRepository {
                                                        + "ON CONFLICT (list_id, account_id) DO "
                                                        + "UPDATE SET assignee_id = EXCLUDED.assignee_id";
 
-    public Future<List<ListDto>> getAllListsForQuiz(SQLConnection connection, String quizId) {
+    public Future<List<ListDto>> getAllListsForQuiz(SQLConnection connection, String quizId, String accountId) {
         return Future.future(promise -> {
             var parameters = new JsonArray().add(toUuid(quizId));
             connection.queryWithParams(GET_ALL_LISTS_FOR_QUIZ_TEMPLATE, parameters, asyncLists -> {
@@ -67,9 +72,13 @@ public class ListRepository {
                 log.debug("Retrieved all lists for quiz \"{}\"", quizId);
 
                 var listDtos = asyncLists.result().getRows().stream()
-                        .map(row -> ListDto.builder()
-                                .id(row.getString("list_id"))
-                                .build())
+                        .map(row -> {
+                            return ListDto.builder()
+                                    .id(row.getString("list_id"))
+                                    .isOwnList(accountId.equals(row.getString("creator_id")))
+                                    .isActiveQuiz(row.getBoolean("is_active"))
+                                    .build();
+                        })
                         .collect(Collectors.toList());
 
                 promise.complete(listDtos);
@@ -95,9 +104,13 @@ public class ListRepository {
                 log.debug("Retrieved all lists for account");
 
                 var listDtos = asyncLists.result().getRows().stream()
-                        .map(row -> ListDto.builder()
-                                .id(row.getString("list_id"))
-                                .build())
+                        .map(row -> {
+                            return ListDto.builder()
+                                    .id(row.getString("list_id"))
+                                    .isOwnList(accountId.equals(row.getString("creator_id")))
+                                    .isActiveQuiz(row.getBoolean("is_active"))
+                                    .build();
+                        })
                         .collect(Collectors.toList());
 
                 promise.complete(listDtos);
@@ -135,7 +148,7 @@ public class ListRepository {
         });
     }
 
-    public Future<ListDto> getList(SQLConnection connection, String listId) {
+    public Future<ListDto> getList(SQLConnection connection, String listId, String accountId) {
         return Future.future(promise -> {
             var parameters = new JsonArray().add(toUuid(listId));
             connection.querySingleWithParams(GET_ONE_LIST_TEMPLATE, parameters, asyncList -> {
@@ -151,13 +164,15 @@ public class ListRepository {
                     log.debug("List \"{}\" not found", listId);
                     promise.fail(new NotFoundException(String.format("List \"%s\" not found", listId)));
                 } else {
+                    var creatorId = row.getString(4);
                     var listDto = ListDto.builder()
                             .id(row.getString(0))
                             .hasDraftStatus(row.getBoolean(1))
                             .quizId(row.getString(2))
                             .isActiveQuiz(row.getBoolean(3))
-                            .creatorId(row.getString(4))
+                            .creatorId(creatorId)
                             .creatorName(row.getString(5))
+                            .isOwnList(accountId.equals(creatorId))
                             .build();
                     log.debug("Retrieved list by ID \"{}\": \"{}\"", listId, listDto);
                     promise.complete(listDto);

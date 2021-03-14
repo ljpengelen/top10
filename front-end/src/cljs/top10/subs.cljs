@@ -94,9 +94,10 @@
         (sort-by (juxt #(false? (empty? (:assignedLists %))) #(:name %))))))
 
 (rf/reg-sub
- ::quiz-lists
+ ::other-quiz-lists
  (fn [db _]
-   (:quiz-lists db)))
+   (->> (:quiz-lists db)
+       (filter #(not (:isOwnList %))))))
 
 (rf/reg-sub
  ::logged-in?

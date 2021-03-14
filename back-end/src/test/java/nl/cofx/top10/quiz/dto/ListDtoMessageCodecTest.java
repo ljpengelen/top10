@@ -18,6 +18,7 @@ class ListDtoMessageCodecTest {
                 .id("123")
                 .creatorId("456")
                 .creatorName("John Doe")
+                .isOwnList(true)
                 .assigneeId("abcd")
                 .isActiveQuiz(true)
                 .quizId("321")
