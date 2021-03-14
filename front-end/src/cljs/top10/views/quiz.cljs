@@ -67,11 +67,11 @@
       [grid {:item true}
        [back-to-overview-button]]])])
 
-(defn single-participant []
+(defn too-few-participants []
   [:<>
    [:p (str
-        "This quiz has reached the final round, "
-        "but you're the only participant. "
+        "This quiz has reached the final round, but there are only one or two participants. "
+        "That means that there's nothing to do in the final round. "
         "Better luck next time!")]
    [back-to-overview-button]])
 
@@ -83,8 +83,8 @@
        (not isActive) [quiz-has-ended]
        (not deadline-has-passed?) [first-round-in-progress number-of-participants deadline id personalListHasDraftStatus personalListId]
        (or (nil? personalListHasDraftStatus) personalListHasDraftStatus) [no-list-submitted]
-       (and personalListId (false? personalListHasDraftStatus) (> number-of-participants 1)) [assign-lists id lists]
-       :else [single-participant])]))
+       (and personalListId (false? personalListHasDraftStatus) (> number-of-participants 2)) [assign-lists id lists]
+       :else [too-few-participants])]))
 
 (defn quiz-page-container []
   [quiz-page
