@@ -66,4 +66,4 @@
    @(rf/subscribe [::subs/active-list])
    @(rf/subscribe [::subs/assignee])
    @(rf/subscribe [::subs/videos])
-   @(rf/subscribe [::subs/participants-with-lists])])
+   @(rf/subscribe [::subs/other-participants-with-lists])])

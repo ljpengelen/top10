@@ -85,11 +85,12 @@
    (count quiz-participants)))
 
 (rf/reg-sub
- ::participants-with-lists
+ ::other-participants-with-lists
  :<- [::quiz-participants]
  (fn [quiz-participants _]
    (->> quiz-participants
         (filter #(not (:listHasDraftStatus %)))
+        (filter #(not (:isOwnAccount %)))
         (sort-by (juxt #(false? (empty? (:assignedLists %))) #(:name %))))))
 
 (rf/reg-sub
