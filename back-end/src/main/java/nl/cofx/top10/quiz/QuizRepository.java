@@ -44,16 +44,26 @@ public class QuizRepository {
             + "WHERE p.quiz_id = ? "
             + "ORDER BY participant_id";
     private static final String GET_QUIZ_RESULT_TEMPLATE =
-            "SELECT replace(ass.list_id::text, '-', '') AS list_id, "
-            + "replace(assigner_acc.account_id::text, '-', '') AS assigner_id, assigner_acc.name AS assigner_name, "
-            + "replace(assignee_acc.account_id::text, '-', '') AS assignee_id, assignee_acc.name AS assignee_name, "
-            + "replace(creator_acc.account_id::text, '-', '') AS creator_id, creator_acc.name AS creator_name FROM quiz q "
-            + "JOIN list l ON l.quiz_id = q.quiz_id "
-            + "JOIN assignment ass ON ass.list_id = l.list_id "
-            + "JOIN account creator_acc ON creator_acc.account_id = l.account_id "
-            + "JOIN account assigner_acc ON assigner_acc.account_id = ass.account_id "
-            + "JOIN account assignee_acc ON assignee_acc.account_id = ass.assignee_id "
-            + "WHERE q.quiz_id = ?";
+            "WITH list AS ("
+            + "  SELECT list_id, account_id FROM list "
+            + "  WHERE quiz_id = ? AND has_draft_status = false"
+            + "), participant AS ("
+            + "  SELECT l.account_id, a.name FROM list l "
+            + "  JOIN account a ON l.account_id = a.account_id"
+            + "), assignment AS ("
+            + "  SELECT ass.list_id, acc.account_id AS assignee_id, acc.name AS assignee_name, ass.account_id AS assigner_id FROM assignment ass "
+            + "  JOIN account acc ON ass.assignee_id = acc.account_id "
+            + "  JOIN list l ON ass.list_id = l.list_id"
+            + ") "
+            + "SELECT "
+            + "replace(assigner.account_id::text, '-', '') AS assigner_id, assigner.name AS assigner_name, "
+            + "replace(creator.account_id::text, '-', '') AS creator_id, creator.name AS creator_name, "
+            + "replace(l.list_id::text, '-', '') AS list_id, "
+            + "replace(a.assignee_id::text, '-', '') AS assignee_id, a.assignee_name "
+            + "FROM participant assigner "
+            + "CROSS JOIN participant creator "
+            + "JOIN list l ON creator.account_id = l.account_id "
+            + "LEFT JOIN assignment a ON (a.list_id = l.list_id AND a.assigner_id = assigner.account_id)";
 
     public Future<QuizzesDto> getAllQuizzes(SQLConnection connection, String accountId) {
         return Future.future(promise ->
@@ -167,7 +177,7 @@ public class QuizRepository {
                     .creatorName(creatorName)
                     .listId(listId)
                     .build();
-            if (assigneeId.equals(creatorId)) {
+            if (Objects.equals(assigneeId, creatorId)) {
                 personalResult.correctAssignment(assignmentDto);
             } else {
                 personalResult.incorrectAssignment(assignmentDto);
