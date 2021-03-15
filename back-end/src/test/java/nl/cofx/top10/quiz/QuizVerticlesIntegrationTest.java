@@ -432,11 +432,6 @@ class QuizVerticlesIntegrationTest {
         httpClient.assignList(listId1, accountId1);
         httpClient.assignList(listId2, accountId2);
 
-        userHandler.logIn(accountId2);
-
-        httpClient.assignList(listId1, accountId1);
-        httpClient.assignList(listId2, accountId2);
-
         userHandler.logIn(accountId1);
 
         httpClient.completeQuiz(quizId);
@@ -454,16 +449,7 @@ class QuizVerticlesIntegrationTest {
         assertThat(firstPersonalResults.getString("name")).isEqualTo(USERNAME_1);
         assertThat(firstPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
         var correctAssignments = firstPersonalResults.getJsonArray("correctAssignments");
-        assertThat(correctAssignments).hasSize(2);
-        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
-            assertThat(rawAssignment).isInstanceOf(JsonObject.class);
-            var assignment = (JsonObject) rawAssignment;
-            assertThat(assignment.getString("creatorId")).isEqualTo(accountId1);
-            assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_1);
-            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId1);
-            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_1);
-            assertThat(assignment.getString("listId")).isEqualTo(listId1);
-        });
+        assertThat(correctAssignments).hasSize(1);
         assertThat(correctAssignments).anySatisfy(rawAssignment -> {
             assertThat(rawAssignment).isInstanceOf(JsonObject.class);
             var assignment = (JsonObject) rawAssignment;
@@ -477,40 +463,31 @@ class QuizVerticlesIntegrationTest {
         var secondPersonalResults = allPersonalResults.getJsonObject(accountId2);
         assertThat(secondPersonalResults.getString("accountId")).isEqualTo(accountId2);
         assertThat(secondPersonalResults.getString("name")).isEqualTo(USERNAME_2);
-        assertThat(secondPersonalResults.getJsonArray("incorrectAssignments")).isEmpty();
-        correctAssignments = secondPersonalResults.getJsonArray("correctAssignments");
-        assertThat(correctAssignments).hasSize(2);
-        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
+        var incorrectAssignments = secondPersonalResults.getJsonArray("incorrectAssignments");
+        assertThat(incorrectAssignments).hasSize(1);
+        assertThat(incorrectAssignments).anySatisfy(rawAssignment -> {
             assertThat(rawAssignment).isInstanceOf(JsonObject.class);
             var assignment = (JsonObject) rawAssignment;
             assertThat(assignment.getString("creatorId")).isEqualTo(accountId1);
             assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_1);
-            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId1);
-            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_1);
+            assertThat(assignment.getString("assigneeId")).isNull();
+            assertThat(assignment.getString("assigneeName")).isNull();
             assertThat(assignment.getString("listId")).isEqualTo(listId1);
         });
-        assertThat(correctAssignments).anySatisfy(rawAssignment -> {
-            assertThat(rawAssignment).isInstanceOf(JsonObject.class);
-            var assignment = (JsonObject) rawAssignment;
-            assertThat(assignment.getString("creatorId")).isEqualTo(accountId2);
-            assertThat(assignment.getString("creatorName")).isEqualTo(USERNAME_2);
-            assertThat(assignment.getString("assigneeId")).isEqualTo(accountId2);
-            assertThat(assignment.getString("assigneeName")).isEqualTo(USERNAME_2);
-            assertThat(assignment.getString("listId")).isEqualTo(listId2);
-        });
+        assertThat(secondPersonalResults.getJsonArray("correctAssignments")).isEmpty();
 
         var ranking = quiz.getJsonArray("ranking");
         assertThat(ranking).hasSize(2);
         var rankEntryForJane = ranking.getJsonObject(0);
         assertThat(rankEntryForJane.getInteger("rank")).isEqualTo(1);
-        assertThat(rankEntryForJane.getString("accountId")).isEqualTo(accountId2);
-        assertThat(rankEntryForJane.getString("name")).isEqualTo(USERNAME_2);
-        assertThat(rankEntryForJane.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
+        assertThat(rankEntryForJane.getString("accountId")).isEqualTo(accountId1);
+        assertThat(rankEntryForJane.getString("name")).isEqualTo(USERNAME_1);
+        assertThat(rankEntryForJane.getInteger("numberOfCorrectAssignments")).isEqualTo(1);
         var rankEntryForJohn = ranking.getJsonObject(1);
-        assertThat(rankEntryForJohn.getInteger("rank")).isEqualTo(1);
-        assertThat(rankEntryForJohn.getString("accountId")).isEqualTo(accountId1);
-        assertThat(rankEntryForJohn.getString("name")).isEqualTo(USERNAME_1);
-        assertThat(rankEntryForJohn.getInteger("numberOfCorrectAssignments")).isEqualTo(2);
+        assertThat(rankEntryForJohn.getInteger("rank")).isEqualTo(2);
+        assertThat(rankEntryForJohn.getString("accountId")).isEqualTo(accountId2);
+        assertThat(rankEntryForJohn.getString("name")).isEqualTo(USERNAME_2);
+        assertThat(rankEntryForJohn.getInteger("numberOfCorrectAssignments")).isEqualTo(0);
 
         vertxTestContext.completeNow();
     }
