@@ -177,6 +177,11 @@ public class QuizRepository {
                     .creatorName(creatorName)
                     .listId(listId)
                     .build();
+
+            if (accountId.equals(creatorId)) {
+                return;
+            }
+
             if (Objects.equals(assigneeId, creatorId)) {
                 personalResult.correctAssignment(assignmentDto);
             } else {
