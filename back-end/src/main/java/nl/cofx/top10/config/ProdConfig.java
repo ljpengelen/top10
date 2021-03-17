@@ -28,4 +28,9 @@ public class ProdConfig extends AbstractConfig implements Config {
                 .put("user", jdbcUsername)
                 .put("password", jdbcPassword);
     }
+
+    @Override
+    public boolean useSecureCookies() {
+        return !fetchOptionalString("USE_SECURE_COOKIES").equalsIgnoreCase("false");
+    }
 }

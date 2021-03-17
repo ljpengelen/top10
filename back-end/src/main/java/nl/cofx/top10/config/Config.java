@@ -37,7 +37,5 @@ public interface Config {
         return new VertxOptions().setHAEnabled(true);
     }
 
-    default boolean useSecureCookies() {
-        return true;
-    }
+    boolean useSecureCookies();
 }
