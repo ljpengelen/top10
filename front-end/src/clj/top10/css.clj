@@ -13,8 +13,17 @@
            :margin "0 auto"
            :max-width "40rem"
            :padding "4rem 2rem"}]
-   [:.join-url {:overflow-wrap "break-word"
+   [:.icon-button {:cursor "pointer"}]
+   [:.icon-button-container {:margin-top "0.25rem"}
+    [:.icon-button {:margin-right "0.25rem"}]]
+   [:.join-url {:font-family "monospace"
+                :margin-right "0.5rem"
+                :max-width "100%"
+                :overflow-wrap "break-word"
                 :white-space "normal"}]
+   [:.join-url-container {:align-items "center"
+                          :display "flex"
+                          :flex-wrap "wrap"}]
    [:.ytEmbeddedContainer {:margin-bottom "8px"
                            :overflow "hidden"
                            :padding-bottom "56.25% !important"
