@@ -31,6 +31,6 @@ public class ProdConfig extends AbstractConfig implements Config {
 
     @Override
     public boolean useSecureCookies() {
-        return !fetchOptionalString("USE_SECURE_COOKIES").equalsIgnoreCase("false");
+        return !"false".equalsIgnoreCase(fetchOptionalString("USE_SECURE_COOKIES"));
     }
 }
