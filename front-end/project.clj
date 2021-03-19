@@ -1,13 +1,13 @@
 (defproject top10 "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.10.1"]
+  :dependencies [[org.clojure/clojure "1.10.3"]
                  [org.clojure/clojurescript "1.10.773"
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
                  [thheller/shadow-cljs "2.11.4"]
-                 [arttuka/reagent-material-ui "4.11.0-3"]
-                 [reagent "0.10.0"]
-                 [re-frame "1.1.1"]
+                 [arttuka/reagent-material-ui "4.11.3-0"]
+                 [reagent "1.0.0"]
+                 [re-frame "1.2.0"]
                  [day8.re-frame/async-flow-fx "0.1.0"]
                  [day8.re-frame/http-fx "0.2.1"]
                  [clj-commons/secretary "1.2.4"]
