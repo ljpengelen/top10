@@ -12,8 +12,10 @@
 		"@material-ui/pickers": "3.2.10",
 		"@sentry/browser": "6.2.2",
 		"dayjs": "1.10.4",
+		"highlight.js": "9.18.1",
 		"react": "17.0.1",
-		"react-dom": "17.0.1"
+		"react-dom": "17.0.1",
+		"react-highlight.js": "1.0.7"
 	},
 	"devDependencies": {
 		"karma": "6.2.0",

@@ -58,6 +58,8 @@
                             ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]
             "dist"          ["run" "-m" "top10.dist/dist" :project/dist]}
 
-  :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]]
+  :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]
+                                   [day8.re-frame/re-frame-10x "1.0.1"]
+                                   [day8.re-frame/tracing "0.6.2"]]
                     :source-paths ["dev"]}
               :prod {}})
