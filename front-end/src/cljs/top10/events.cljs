@@ -1,8 +1,17 @@
 (ns top10.events
   (:require [ajax.core :as ajax]
+            [cljs.spec.alpha :as s]
+            [expound.alpha :as expound]
             [re-frame.core :as rf]
             [top10.config :refer [api-base-url csrf-token-header]]
             [top10.db :as db]))
+
+(defn check-and-throw
+  [spec db]
+  (when-not (s/valid? spec db)
+    (js/console.error "Spec check failed:" (expound/expound-str spec db))))
+
+(def check-spec-interceptor (rf/after (partial check-and-throw :top10.db/db)))
 
 (rf/reg-event-fx
  ::enable-browser-navigation
@@ -11,6 +20,7 @@
 
 (rf/reg-event-fx
  ::initialize
+ [check-spec-interceptor]
  (fn [_ _]
    {:db db/default-db
     :async-flow {:first-dispatch [::check-session]
@@ -25,6 +35,7 @@
 
 (rf/reg-event-fx
  ::navigate
+ [check-spec-interceptor]
  (fn [{:keys [db]} [_ {:keys [page quiz-id list-id account-id]}]]
    (let [{:keys [logged-in?]} db
          events (case page
@@ -42,10 +53,14 @@
                                                       [::get-quiz-participants quiz-id]])
                   [])]
      {:dispatch-n (conj events [::switch-active-page page])
-      :db (assoc db :active-quiz quiz-id :active-list list-id :account-id account-id)})))
+      :db (cond-> db
+            quiz-id (assoc :active-quiz quiz-id)
+            list-id (assoc :active-list list-id)
+            account-id (assoc :account-id account-id))})))
 
 (rf/reg-event-fx
  ::switch-active-page
+ [check-spec-interceptor]
  (fn [{:keys [db]} [_ page]]
    {:db (assoc db :active-page page)
     :scroll-to {:x 0
@@ -53,6 +68,7 @@
 
 (rf/reg-event-fx
  ::session-check-succeeded
+ [check-spec-interceptor]
  (fn [{:keys [db]} [_ response]]
    (let [status (get-in response [:body :status])
          new-access-token (get-in response [:body :token])
@@ -79,6 +95,7 @@
 
 (rf/reg-event-fx
  ::log-in-with-back-end-succeeded
+ [check-spec-interceptor]
  (fn [{:keys [db]} [_ response]]
    (let [status (get-in response [:body :status])
          new-access-token (get-in response [:body :token])
@@ -123,6 +140,7 @@
 
 (rf/reg-event-fx
  ::log-out-with-back-end-succeeded
+ [check-spec-interceptor]
  (fn [{:keys [db]} [_ response]]
    (let [new-csrf-token (get-in response [:headers csrf-token-header])]
      {:set-csrf-token new-csrf-token
@@ -163,26 +181,29 @@
 
 (rf/reg-event-db
  ::get-quiz-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [quiz (:body response)]
      (assoc db :quiz quiz :loading-quiz? false))))
 
 (rf/reg-event-db
  ::get-quiz-lists-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [lists (:body response)]
      (assoc db :quiz-lists lists :loading-quiz-lists? false))))
 
 (rf/reg-event-db
  ::get-quiz-participants-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [participants (:body response)]
      (assoc db :quiz-participants participants :loading-quiz-participants? false))))
 
 (rf/reg-event-db
  ::request-failed
- (fn [db event]
-   (js/console.log event)
+ [check-spec-interceptor]
+ (fn [db _]
    (assoc db :dialog {:show? true
                       :title "Oh no!"
                       :text (str "Something unexpected went wrong. "
@@ -190,6 +211,7 @@
 
 (rf/reg-event-db
  ::dismiss-dialog
+ [check-spec-interceptor]
  (fn [db _]
    (assoc db :dialog {:show? false})))
 
@@ -197,7 +219,7 @@
 
 (rf/reg-event-fx
  ::get-quiz
- [(rf/inject-cofx :access-token)]
+ [check-spec-interceptor (rf/inject-cofx :access-token)]
  (fn [{:keys [access-token db]} [_ quiz-id]]
    {:db (assoc db :loading-quiz? true)
     :http-xhrio [{:method :get
@@ -210,7 +232,7 @@
 
 (rf/reg-event-fx
  ::get-quiz-lists
- [(rf/inject-cofx :access-token)]
+ [check-spec-interceptor (rf/inject-cofx :access-token)]
  (fn [{:keys [access-token db]} [_ quiz-id]]
    {:db (assoc db :loading-quiz-lists? true)
     :http-xhrio [{:method :get
@@ -223,7 +245,7 @@
 
 (rf/reg-event-fx
  ::get-quiz-participants
- [(rf/inject-cofx :access-token)]
+ [check-spec-interceptor (rf/inject-cofx :access-token)]
  (fn [{:keys [access-token db]} [_ quiz-id]]
    {:db (assoc db :loading-quiz-participants? true)
     :http-xhrio [{:method :get
@@ -236,6 +258,7 @@
 
 (rf/reg-event-db
  ::get-quizzes-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [quizzes (:body response)]
      (assoc db :quizzes quizzes))))
@@ -278,6 +301,7 @@
 
 (rf/reg-event-db
  ::add-video-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [video (:body response)]
      (update-in db [:list :videos] conj video))))
@@ -297,6 +321,7 @@
 
 (rf/reg-event-db
  ::remove-video-succeeded
+ [check-spec-interceptor]
  (fn [db [_ video-id _]]
    (let [old-videos (get-in db [:list :videos])
          new-videos (remove (fn [video] (= video-id (:id video))) old-videos)]
@@ -317,6 +342,7 @@
 
 (rf/reg-event-db
  ::get-list-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [list (:body response)
          active-quiz (:quizId list)]
@@ -327,7 +353,7 @@
 
 (rf/reg-event-fx
  ::get-list
- [(rf/inject-cofx :access-token)]
+ [check-spec-interceptor (rf/inject-cofx :access-token)]
  (fn [{:keys [access-token db]} [_ list-id]]
    {:db (assoc db :loading-list? true)
     :http-xhrio {:method :get
@@ -375,6 +401,7 @@
 
 (rf/reg-event-fx
  ::participate-in-quiz-succeeded
+ [check-spec-interceptor]
  (fn [{:keys [db]} [_ quiz-id response]]
    (let [personal-list-id (get-in response [:body :personalListId])]
      {:db (-> db
@@ -413,13 +440,14 @@
 
 (rf/reg-event-db
  ::get-quiz-results-succeeded
+ [check-spec-interceptor]
  (fn [db [_ response]]
    (let [quiz-results (:body response)]
      (assoc db :quiz-results quiz-results :loading-quiz-results? false))))
 
 (rf/reg-event-fx
  ::get-quiz-results
- [(rf/inject-cofx :access-token)]
+ [check-spec-interceptor (rf/inject-cofx :access-token)]
  (fn [{:keys [access-token db]} [_ quiz-id]]
    (let [current-quiz-id (get-in db [:quiz-results :quizId])]
      (when-not (= current-quiz-id quiz-id)
@@ -434,5 +462,6 @@
 
 (rf/reg-event-db
  ::show-quiz-results
+ [check-spec-interceptor]
  (fn [db _]
    (assoc db :active-page :quiz-results-page)))
