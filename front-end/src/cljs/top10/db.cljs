@@ -70,15 +70,15 @@
 (s/def :quiz/creatorId string?)
 (s/def :quiz/isCreator boolean?)
 (s/def :quiz/deadline string?)
-(s/def :quiz/personalListId (s/nilable string?))
-(s/def :quiz/personalListHasDraftStatus (s/nilable boolean?))
+(s/def :quiz/personalListId string?)
+(s/def :quiz/personalListHasDraftStatus boolean?)
 (s/def ::quiz (s/keys :req-un [:quiz/id
                                :quiz/name
                                :quiz/isActive
                                :quiz/creatorId
                                :quiz/isCreator
-                               :quiz/deadline
-                               :quiz/personalListId
+                               :quiz/deadline]
+                      :opt-un [:quiz/personalListId
                                :quiz/personalListHasDraftStatus]))
 (s/def ::quizzes (s/coll-of ::quiz))
 
