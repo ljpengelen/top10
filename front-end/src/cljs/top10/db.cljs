@@ -77,8 +77,8 @@
                                :quiz/isActive
                                :quiz/creatorId
                                :quiz/isCreator
-                               :quiz/deadline
-                               :quiz/personalListId
+                               :quiz/deadline]
+                      :opt-un [:quiz/personalListId
                                :quiz/personalListHasDraftStatus]))
 (s/def ::quizzes (s/coll-of ::quiz))
 
@@ -98,10 +98,10 @@
 (s/def :assignment/creatorId string?)
 (s/def :assignment/creatorName string?)
 (s/def ::assignment (s/keys :req-un [:assignment/listId
-                                     :assignment/assigneeId
-                                     :assignment/assigneeName
                                      :assignment/creatorId
-                                     :assignment/creatorName]))
+                                     :assignment/creatorName]
+                            :opt-un [:assignment/assigneeId
+                                     :assignment/assigneeName]))
 (s/def :personal-results/correctAssignments (s/coll-of ::assignment))
 (s/def :personal-results/incorrectAssignments (s/coll-of ::assignment))
 (s/def ::personalResults (s/keys :req-un [:personal-results/accountId
