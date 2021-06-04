@@ -70,15 +70,15 @@
 (s/def :quiz/creatorId string?)
 (s/def :quiz/isCreator boolean?)
 (s/def :quiz/deadline string?)
-(s/def :quiz/personalListId string?)
-(s/def :quiz/personalListHasDraftStatus boolean?)
+(s/def :quiz/personalListId (s/nilable string?))
+(s/def :quiz/personalListHasDraftStatus (s/nilable boolean?))
 (s/def ::quiz (s/keys :req-un [:quiz/id
                                :quiz/name
                                :quiz/isActive
                                :quiz/creatorId
                                :quiz/isCreator
-                               :quiz/deadline]
-                      :opt-un [:quiz/personalListId
+                               :quiz/deadline
+                               :quiz/personalListId
                                :quiz/personalListHasDraftStatus]))
 (s/def ::quizzes (s/coll-of ::quiz))
 
@@ -93,15 +93,15 @@
 (s/def :personal-results/accountId string?)
 (s/def :personal-results/name string?)
 (s/def :assignment/listId string?)
-(s/def :assignment/assigneeId string?)
-(s/def :assignment/assigneeName string?)
+(s/def :assignment/assigneeId (s/nilable string?))
+(s/def :assignment/assigneeName (s/nilable string?))
 (s/def :assignment/creatorId string?)
 (s/def :assignment/creatorName string?)
 (s/def ::assignment (s/keys :req-un [:assignment/listId
+                                     :assignment/assigneeId
+                                     :assignment/assigneeName
                                      :assignment/creatorId
-                                     :assignment/creatorName]
-                            :opt-un [:assignment/assigneeId
-                                     :assignment/assigneeName]))
+                                     :assignment/creatorName]))
 (s/def :personal-results/correctAssignments (s/coll-of ::assignment))
 (s/def :personal-results/incorrectAssignments (s/coll-of ::assignment))
 (s/def ::personalResults (s/keys :req-un [:personal-results/accountId
