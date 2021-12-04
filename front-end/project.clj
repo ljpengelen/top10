@@ -18,7 +18,8 @@
                  [digest "1.4.10"]]
 
   :plugins [[lein-garden "0.3.0"]
-            [lein-shell "0.5.0"]]
+            [lein-shell "0.5.0"]
+            [com.github.ljpengelen/lein-hash-assets "1.0.0"]]
 
   :min-lein-version "2.9.0"
 
@@ -35,17 +36,17 @@
                      :stylesheet   top10.css/screen
                      :compiler     {:output-to     "resources/public/css/screen.css"
                                     :pretty-print? true}}]}
-  
+
   :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
                               :default-command "node_modules/.bin/karma"}
                      "open"  {:windows         ["cmd" "/c" "start"]
                               :macosx          "open"
                               :linux           "xdg-open"}}}
 
-  :dist {:source-root "resources/public"
-         :target-root "dist"
-         :index "index.html"
-         :files ["favicon.ico" "css/screen.css" "js/compiled/app.js"]}
+  :hash-assets {:source-root "resources/public"
+                :target-root "dist"
+                :index "index.html"
+                :files ["favicon.ico" "css/screen.css" "js/compiled/app.js"]}
 
   :aliases {"watch"        ["with-profile" "dev" "do"
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "watch" "app" "browser-test"]]
@@ -56,8 +57,7 @@
                             ["shell" "open" "target/build-report.html"]]
             "ci"           ["with-profile" "prod" "do"
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "compile" "karma-test"]
-                            ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]
-            "dist"          ["run" "-m" "top10.dist/dist" :project/dist]}
+                            ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
 
   :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]
                                    [day8.re-frame/re-frame-10x "1.0.1"]

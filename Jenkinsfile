@@ -104,7 +104,7 @@ pipeline {
           sh "lein clean"
           sh "lein garden once"
           sh "lein release"
-          sh "lein dist"
+          sh "lein hash-assets"
         }
       }
     }
