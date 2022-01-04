@@ -29,14 +29,14 @@ pipeline {
           def app = docker.build("app", "--pull -f back-end/dockerfiles/ci/Dockerfile .")
 
           withDockerNetwork { n ->
-            database.withRun("--network ${n} --name ${n}") { c ->
+            database.withRun("--network ${n} --name ${n} -e POSTGRES_PASSWORD=top10") { c ->
               app.inside("""
                 --network ${n}
                 -e "SENTRY_ENVIRONMENT=ci"
                 -e "TEST_CSRF_TARGET=http://localhost:8080"
                 -e "TEST_JDBC_POSTGRES_URL=jdbc:postgresql://${n}:5432/top10-test"
                 -e "TEST_JDBC_POSTGRES_USERNAME=postgres"
-                -e "TEST_JDBC_POSTGRES_PASSWORD="
+                -e "TEST_JDBC_POSTGRES_PASSWORD=top10"
                 -e "TEST_JWT_ENCODED_SECRET_KEY=nB5CcPDKKIv/zFyJAACn8iMjfpHzuHgcFbddx0XzigO5p2vkwPbenf4QWVlWV5W8QuR+jRe/8n/Bin04W2j4Fw=="
               """) {
                 dir("back-end") {

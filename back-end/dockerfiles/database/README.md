@@ -3,10 +3,16 @@
 To run PostgreSQL in a Docker container, first build an image by executing the following command.
 
 ```
-docker build -t top10-postgres .
+docker build -t top10-postgres -f back-end/dockerfiles/database/Dockerfile .
 ```
 
-Afterwards, start a container by executing the following command.
+When you start the container for the first time, you need to specify a password by setting the environment variable POSTGRES_PASSWORD.
+
+```
+docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=top10 -v top10-postgres:/var/lib/postgresql/data top10-postgres
+```
+
+Subsequently, you can omit the password when starting a container.
 
 ```
 docker run --rm -p 5432:5432 -v top10-postgres:/var/lib/postgresql/data top10-postgres
