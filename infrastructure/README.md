@@ -42,3 +42,12 @@ If not, one or more of the following issues must be resolved.
 * If you see an error regarding host key verification, ensure that the new host key is correct and add it to the `known_hosts` configuration file for SSH.
 * If you see a warning stating that the authenticity of the host cannot be established, ensure that the host key is correct and continue connecting.
 * If permission to read the repository is denied, update the configuration of SSH to use the correct key.
+
+## Let's Encrypt
+
+Once in a while, the cronjob responsible for updating the TLS certificates disappears.
+Run `sudo crontab -l -u dokku` to check whether the cronjob is still active.
+If not, run `dokku letsencrypt:cron-job --add` to add it (again).
+
+Run `dokku letsencrypt:list` to see the status of all certificates.
+
