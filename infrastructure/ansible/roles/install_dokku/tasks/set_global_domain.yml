@@ -1,3 +1,0 @@
----
-- name: Set global domain
-  command: dokku domains:set-global {{ inventory_hostname }}

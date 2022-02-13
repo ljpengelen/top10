@@ -1,8 +1,0 @@
----
-- hosts: dokku
-  vars:
-    admin_public_key: '{{ admin_public_key }}'
-  remote_user: "{{ root_username }}"
-  roles:
-    - print_affected_hosts
-    - set_up_admin_user
