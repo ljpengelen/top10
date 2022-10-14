@@ -1,2 +1,0 @@
-ALTER TABLE video
-ALTER COLUMN reference_id SET NOT NULL;

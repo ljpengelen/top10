@@ -1,2 +1,0 @@
-docker build --pull -t top10-postgres -f back-end/dockerfiles/database/Dockerfile . && \
-docker run --rm -p 5432:5432 -v top10-postgres:/var/lib/postgresql/data top10-postgres

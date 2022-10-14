@@ -1,9 +1,0 @@
-.idea
-*.iml
-.mvn/wrapper/*
-!.mvn/wrapper/maven-wrapper.properties
-.run
-target
-
-.env
-.env-test
