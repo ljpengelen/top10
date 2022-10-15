@@ -16,4 +16,4 @@ lein garden once
 lein release
 lein hash-assets
 
-cd dist && git add . && git commit -am "Deploy" && cd ..
+cd dist && git add . && git commit -am "Deploy" && git push && cd ..
