@@ -52,7 +52,7 @@
                             ["shell" "open" "target/build-report.html"]]}
 
   :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]
-                                   [day8.re-frame/re-frame-10x "1.0.1"]
+                                   [day8.re-frame/re-frame-10x "1.2.2"]
                                    [day8.re-frame/tracing "0.6.2"]]
                     :source-paths ["dev"]}
               :prod {}})
