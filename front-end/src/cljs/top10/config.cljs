@@ -26,7 +26,4 @@
                :client-id (or (microsoft-oauth2-client-id-from-env) "1861cf5d-8a7f-4c90-88ec-b4bdbb408b61")
                :redirect-uri (or (microsoft-oauth2-redirect-uri-from-env) "http://localhost:9500/oauth2/microsoft")}})
 
-
-(def google-oauth2-redirect-uri )
-
 (def csrf-token-header "x-csrf-token")
