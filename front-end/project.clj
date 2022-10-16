@@ -37,9 +37,7 @@
                      :compiler     {:output-to     "resources/public/css/screen.css"
                                     :pretty-print? true}}]}
 
-  :shell {:commands {"karma" {:windows         ["cmd" "/c" "karma"]
-                              :default-command "node_modules/.bin/karma"}
-                     "open"  {:windows         ["cmd" "/c" "start"]
+  :shell {:commands {"open"  {:windows         ["cmd" "/c" "start"]
                               :macosx          "open"
                               :linux           "xdg-open"}}}
 
@@ -49,15 +47,12 @@
                 :files ["favicon.ico" "css/screen.css" "js/compiled/app.js"]}
 
   :aliases {"watch"        ["with-profile" "dev" "do"
-                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "watch" "app" "browser-test"]]
+                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "watch" "app"]]
             "release"      ["with-profile" "prod" "do"
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "release" "app"]]
             "build-report" ["with-profile" "prod" "do"
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
-                            ["shell" "open" "target/build-report.html"]]
-            "ci"           ["with-profile" "prod" "do"
-                            ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "compile" "karma-test"]
-                            ["shell" "karma" "start" "--single-run" "--reporters" "junit,dots"]]}
+                            ["shell" "open" "target/build-report.html"]]}
 
   :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]
                                    [day8.re-frame/re-frame-10x "1.0.1"]

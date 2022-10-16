@@ -10,14 +10,6 @@ A [re-frame](https://github.com/day8/re-frame) application designed to get to kn
 2. Install [Leiningen](https://leiningen.org/#install) (Clojure/ClojureScript project task & dependency management)
 3. Install [Node.js](https://nodejs.org/) (JavaScript runtime environment) which should include
    [NPM](https://docs.npmjs.com/cli/npm) or if your Node.js installation does not include NPM also install it.
-5. Install [Chrome](https://www.google.com/chrome/) or
-[Chromium](https://www.chromium.org/getting-involved/download-chromium) version 59 or later
-(headless test environment)
-    * For Chromium, set the `CHROME_BIN` environment variable in your shell to the command that
-    launches Chromium. For example, in Ubuntu, add the following line to your `.bashrc`:
-        ```bash
-        export CHROME_BIN=chromium-browser
-       ```
 
 ### Browser Setup
 
