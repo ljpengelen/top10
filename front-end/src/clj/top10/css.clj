@@ -1,6 +1,6 @@
 (ns top10.css
   (:require [garden.def :refer [defstyles]]
-            [garden.selectors :refer [&]]))
+            [garden.selectors :as s]))
 
 (defstyles screen
   [[:h1 {:color "#000"
@@ -29,7 +29,7 @@
                            :padding-bottom "56.25% !important"
                            :position "relative"
                            :width "100%"}
-    [(& :.MuiGrid-item) {:margin "8px 8px 0"}]
+    [(s/& :.MuiGrid-item) {:margin "8px 8px 0"}]
     [:iframe {:height "100%"
               :left "0"
               :position "absolute"

@@ -1,3 +1,5 @@
-{:lint-as {garden.def/defstyles clojure.core/def}
- :linters {:unused-namespace {:exclude [top10.effects]}
-           :unresolved-symbol {:exclude [(secretary.core/defroute)]}}}
+{:lint-as {garden.def/defstyles clojure.core/def
+           garden.selectors/defselector clojure.core/declare}
+ :linters {:clojure-lsp/unused-public-var {:exclude #{top10.css/screen}}
+           :unused-namespace {:exclude #{top10.effects}}
+           :unresolved-symbol {:exclude #{(secretary.core/defroute)}}}}
