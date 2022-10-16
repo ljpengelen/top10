@@ -1,6 +1,5 @@
 (ns top10.db (:require [cljs.spec.alpha :as s]))
 
-(s/def ::loading-lists? boolean?)
 (s/def ::loading-quiz-lists? boolean?)
 
 (s/def :quiz-list/id string?)
@@ -12,7 +11,6 @@
 (s/def ::quiz-lists (s/coll-of ::quiz-list))
 
 (s/def ::loading-quiz? boolean?)
-(s/def ::active-list? string?)
 
 (s/def :participant/id string?)
 (s/def :participant/name string?)
@@ -120,7 +118,7 @@
 (s/def :quiz-results/rankings (s/coll-of ::ranking))
 (s/def ::quiz-results (s/keys :req-un [:quiz-results/quizId
                                        :quiz-results/personalResults
-                                       :quiz-results/ranking]))
+                                       :quiz-results/rankings]))
 
 (s/def ::loading-quiz-participants? boolean?)
 

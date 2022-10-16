@@ -459,9 +459,3 @@
                       :response-format ring-json-response-format
                       :on-success [::get-quiz-results-succeeded]
                       :on-failure [::request-failed]}]}))))
-
-(rf/reg-event-db
- ::show-quiz-results
- [check-spec-interceptor]
- (fn [db _]
-   (assoc db :active-page :quiz-results-page)))
