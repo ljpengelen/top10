@@ -8,8 +8,8 @@ A [re-frame](https://github.com/day8/re-frame) application designed to get to kn
 
 1. Install [JDK 8 or later](https://openjdk.java.net/install/) (Java Development Kit)
 2. Install [Leiningen](https://leiningen.org/#install) (Clojure/ClojureScript project task & dependency management)
-3. Install [Node.js](https://nodejs.org/) (JavaScript runtime environment) which should include
-   [NPM](https://docs.npmjs.com/cli/npm) or if your Node.js installation does not include NPM also install it.
+3. Install [Node.js](https://nodejs.org/) (JavaScript runtime environment), which should include
+   [NPM](https://docs.npmjs.com/cli/npm).
 
 ### Browser Setup
 
@@ -57,7 +57,7 @@ to which you may now connect.
 #### Connecting to the browser REPL from your editor
 
 See [Shadow CLJS User's Guide: Editor Integration](https://shadow-cljs.github.io/docs/UsersGuide.html#_editor_integration).
-Note that `lein watch` runs `shadow-cljs watch` for you, and that this project's running build ids is `app`, `browser-test`, `karma-test`, or the keywords `:app`, `:browser-test`, `:karma-test` in a Clojure context.
+Note that `lein watch` runs `shadow-cljs watch` for you, and that this project's running build ID is `app`, or the keyword `:app` in a Clojure context.
 
 Alternatively, search the web for info on connecting to a `shadow-cljs` ClojureScript browser REPL from your editor and configuration.
 
@@ -83,26 +83,6 @@ For example, in Vim / Neovim with `fireplace.vim`
     The REPL prompt changes to `cljs.user=>`, indicating that this is now a ClojureScript REPL.
 3. See [`user.cljs`](dev/cljs/user.cljs) for symbols that are immediately accessible in the REPL
 without needing to `require`.
-
-### Running Tests
-
-Build the app with the `prod` profile, start a temporary local web server, launch headless Chrome/Chromium, run tests, and stop the web server:
-
-```sh
-lein ci
-```
-
-Please be patient; it may take over 15 seconds to see any output, and over 25 seconds to complete.
-
-Or, for auto-reload:
-```sh
-lein watch
-```
-
-Then in another terminal:
-```sh
-karma start
-```
 
 ### Compiling CSS with `lein-garden`
 

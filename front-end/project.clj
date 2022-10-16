@@ -25,10 +25,7 @@
 
   :source-paths ["src/clj" "src/cljs"]
 
-  :test-paths   ["test/cljs"]
-
   :clean-targets ^{:protect false} ["resources/public/js/compiled" "target"
-                                    "test/js"
                                     "resources/public/css"]
 
   :garden {:builds [{:id           "screen"
