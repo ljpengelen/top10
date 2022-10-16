@@ -2,10 +2,11 @@ package nl.cofx.top10.session;
 
 import java.util.List;
 
-import com.microsoft.graph.auth.confidentialClient.AuthorizationCodeProvider;
+import com.azure.identity.AuthorizationCodeCredentialBuilder;
+import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.core.ClientException;
-import com.microsoft.graph.models.extensions.User;
-import com.microsoft.graph.requests.extensions.GraphServiceClient;
+import com.microsoft.graph.models.User;
+import com.microsoft.graph.requests.GraphServiceClient;
 
 import io.vertx.core.json.JsonObject;
 import lombok.extern.log4j.Log4j2;
@@ -15,7 +16,7 @@ import nl.cofx.top10.config.Config;
 @Log4j2
 public class MicrosoftOauth2 {
 
-    private static final List<String> SCOPES = List.of("openid", "email", "profile");
+    private static final List<String> SCOPES = List.of("openid", "offline_access", "User.Read");
 
     private final String clientId;
     private final String clientSecret;
@@ -39,9 +40,18 @@ public class MicrosoftOauth2 {
 
     private User getUserFromGraph(String code) {
         try {
-            var authProvider = new AuthorizationCodeProvider(clientId, SCOPES, code, redirectUri, clientSecret);
+            var authProvider = new AuthorizationCodeCredentialBuilder()
+                    .clientId(clientId)
+                    .clientSecret(clientSecret)
+                    .authorizationCode(code)
+                    .redirectUrl(redirectUri)
+                    .tenantId("common")
+                    .build();
+
+            var tokenCredentialAuthProvider = new TokenCredentialAuthProvider(SCOPES, authProvider);
+
             var graphServiceClient = GraphServiceClient.builder()
-                    .authenticationProvider(authProvider)
+                    .authenticationProvider(tokenCredentialAuthProvider)
                     .buildClient();
 
             return graphServiceClient.me().buildRequest().get();

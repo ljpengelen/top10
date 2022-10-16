@@ -21,9 +21,11 @@
 (def oauth2
   {:google {:endpoint "https://accounts.google.com/o/oauth2/v2/auth"
             :client-id (or (google-oauth2-client-id-from-env) "442497309318-72n7detrn1ne7bprs59fv8lsm6hsfivh.apps.googleusercontent.com")
-            :redirect-uri (or (google-oauth2-redirect-uri-from-env) "http://localhost:9500/oauth2/google")}
+            :redirect-uri (or (google-oauth2-redirect-uri-from-env) "http://localhost:9500/oauth2/google")
+            :scope "openid email profile"}
    :microsoft {:endpoint "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
                :client-id (or (microsoft-oauth2-client-id-from-env) "1861cf5d-8a7f-4c90-88ec-b4bdbb408b61")
-               :redirect-uri (or (microsoft-oauth2-redirect-uri-from-env) "http://localhost:9500/oauth2/microsoft")}})
+               :redirect-uri (or (microsoft-oauth2-redirect-uri-from-env) "http://localhost:9500/oauth2/microsoft")
+               :scope "openid offline_access User.Read"}})
 
 (def csrf-token-header "x-csrf-token")

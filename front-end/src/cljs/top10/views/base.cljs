@@ -1,7 +1,9 @@
 (ns top10.views.base
   (:require [clojure.string :as string]
             [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button dialog dialog-actions dialog-content dialog-content-text dialog-title]]
+            [reagent-material-ui.components :refer [button dialog
+                                                    dialog-actions dialog-content
+                                                    dialog-content-text dialog-title]]
             [top10.config :as config]
             [top10.events :as events]
             [top10.subs :as subs]))
@@ -15,11 +17,11 @@
   ([provider]
    (log-in-url provider (js/window.location.href.replace js/window.location.origin "")))
   ([provider landing-page]
-   (let [{:keys [endpoint redirect-uri client-id]} (provider config/oauth2)]
+   (let [{:keys [client-id endpoint redirect-uri scope]} (provider config/oauth2)]
      (str
       endpoint "?"
       "response_type=code&"
-      "scope=openid email profile&"
+      "scope=" scope "&"
       "redirect_uri=" redirect-uri "&"
       "state=" (js/encodeURIComponent landing-page) "&"
       "client_id=" client-id))))
