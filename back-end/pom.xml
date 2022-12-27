@@ -28,7 +28,7 @@
         <microsoft-graph.version>5.38.0</microsoft-graph.version>
         <mockito.version>3.2.4</mockito.version>
         <vertx.version>4.0.2</vertx.version>
-        <postgresql.version>42.3.7</postgresql.version>
+        <postgresql.version>42.3.8</postgresql.version>
         <sentry-log4j2.version>1.7.30</sentry-log4j2.version>
 
         <maven-jar-plugin.version>3.0.0</maven-jar-plugin.version>
