@@ -18,7 +18,7 @@
         <commons-math3.version>3.6.1</commons-math3.version>
         <flyway.version>6.5.5</flyway.version>
         <google-api-client.version>1.30.10</google-api-client.version>
-        <guava.version>31.1-jre</guava.version>
+        <guava.version>32.0.0-jre</guava.version>
         <jacoco.version>0.8.4</jacoco.version>
         <jackson-databind.version>2.14.0-rc2</jackson-databind.version>
         <jjwt.version>0.11.2</jjwt.version>
