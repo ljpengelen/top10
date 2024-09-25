@@ -115,10 +115,10 @@
                                   :ranking/accountId
                                   :ranking/name
                                   :ranking/numberOfCorrectAssignments]))
-(s/def :quiz-results/rankings (s/coll-of ::ranking))
+(s/def :quiz-results/ranking (s/coll-of ::ranking))
 (s/def ::quiz-results (s/keys :req-un [:quiz-results/quizId
                                        :quiz-results/personalResults
-                                       :quiz-results/rankings]))
+                                       :quiz-results/ranking]))
 
 (s/def ::loading-quiz-participants? boolean?)
 
