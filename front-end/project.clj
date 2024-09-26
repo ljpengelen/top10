@@ -1,10 +1,10 @@
 (defproject top10 "0.1.0-SNAPSHOT"
-  :dependencies [[org.clojure/clojure "1.10.3"]
-                 [org.clojure/clojurescript "1.10.773"
+  :dependencies [[org.clojure/clojure "1.12.0"]
+                 [org.clojure/clojurescript "1.11.132"
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
-                 [thheller/shadow-cljs "2.11.4"]
+                 [thheller/shadow-cljs "2.28.15"]
                  [arttuka/reagent-material-ui "4.11.3-0"]
                  [reagent "1.0.0"]
                  [re-frame "1.2.0"]
