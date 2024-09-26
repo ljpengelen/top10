@@ -8,6 +8,8 @@
 
 .clj-kondo/.cache
 
+.calva/output-window
+
 /.lein-*
 /.lsp
 /.nrepl-port
