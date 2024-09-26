@@ -1,4 +1,4 @@
-FROM maven:3-jdk-13 AS COMPILATION_STAGE
+FROM maven:3-openjdk-17 AS COMPILATION_STAGE
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN mvn package -Dmaven.test.skip --fail-never
 COPY back-end .
 RUN mvn package -Dmaven.test.skip
 
-FROM openjdk:13 AS EXECUTION_STAGE
+FROM openjdk:17 AS EXECUTION_STAGE
 
 EXPOSE 8080
 
