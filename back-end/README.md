@@ -4,7 +4,7 @@
 
 For development, you need:
 
-- [Java 13](https://openjdk.java.net/projects/jdk/13/)
+- [Java 17](https://openjdk.java.net/projects/jdk/17/)
 - [Postgres database](back-end/dockerfiles/database)
 
 ## Configuration
