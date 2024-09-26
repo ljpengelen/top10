@@ -28,7 +28,7 @@
         <mockito.version>5.13.0</mockito.version>
         <vertx.version>4.5.10</vertx.version>
         <postgresql.version>42.7.4</postgresql.version>
-        <sentry-log4j2.version>1.7.30</sentry-log4j2.version>
+        <sentry-log4j2.version>7.14.0</sentry-log4j2.version>
 
         <maven-jar-plugin.version>3.4.2</maven-jar-plugin.version>
         <maven-shade-plugin.version>3.6.0</maven-shade-plugin.version>
@@ -269,6 +269,27 @@
                     </compilerArgs>
                 </configuration>
                 <executions>
+                    <execution>
+                        <id>generate-log4j-plugin-descriptor</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <phase>process-classes</phase>
+                        <configuration>
+                            <proc>only</proc>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.apache.logging.log4j</groupId>
+                                    <artifactId>log4j-core</artifactId>
+                                    <version>${log4j.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                            <annotationProcessors>
+                                <processor>org.apache.logging.log4j.core.config.plugins.processor.PluginProcessor
+                                </processor>
+                            </annotationProcessors>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>default-compile</id>
                         <phase>none</phase>
