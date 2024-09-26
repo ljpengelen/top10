@@ -1,16 +1,6 @@
 package nl.cofx.top10.session;
 
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
-import javax.crypto.SecretKey;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.vertx.core.http.HttpServerRequest;
@@ -19,6 +9,14 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import nl.cofx.top10.jwt.Jwt;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import javax.crypto.SecretKey;
+
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 class JwtSessionHandlerTest {
 
@@ -74,10 +72,10 @@ class JwtSessionHandlerTest {
     @Test
     public void setsUserGivenValidToken() {
         var token = Jwts.builder()
-                .setSubject(ACCOUNT_ID)
+                .subject(ACCOUNT_ID)
                 .claim("name", NAME)
                 .claim("emailAddress", EMAIL_ADDRESS)
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .signWith(SECRET_KEY, Jwts.SIG.HS512)
                 .compact();
         when(request.getHeader("Authorization")).thenReturn("Bearer " + token);
         jwtSessionHandler.handle(routingContext);

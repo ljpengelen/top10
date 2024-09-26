@@ -1,17 +1,5 @@
 package nl.cofx.top10.healthcheck;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.time.Duration;
-import java.time.Instant;
-
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
@@ -20,6 +8,18 @@ import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.RandomPort;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.http.JsonObjectBodyHandler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.time.Instant;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Log4j2
 @DisplayName("Health-check verticle")
@@ -102,11 +102,11 @@ public class HealthCheckVerticleTest {
                 .GET()
                 .uri(URI.create("http://localhost:" + port + PATH))
                 .build();
+        var before = Instant.now();
         var response = httpClient.send(request, new JsonObjectBodyHandler());
+        var after = Instant.now();
 
         var timestamp = response.body().getInstant("databaseTimestamp");
-        assertThat(timestamp).isNotNull();
-        var twoSecondFromNow = Instant.now().plus(Duration.ofSeconds(2));
-        assertThat(timestamp).isBefore(twoSecondFromNow);
+        assertThat(timestamp).isBetween(before, after);
     }
 }

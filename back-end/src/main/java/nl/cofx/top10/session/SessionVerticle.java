@@ -1,19 +1,11 @@
 package nl.cofx.top10.session;
 
-import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
-import static nl.cofx.top10.session.SessionConfiguration.JWT_COOKIE_NAME;
-import static nl.cofx.top10.session.SessionConfiguration.SESSION_EXPIRATION_IN_SECONDS;
-
-import java.time.Instant;
-import java.util.Date;
-
-import javax.crypto.SecretKey;
-
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.*;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -22,6 +14,14 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.InternalServerErrorException;
 import nl.cofx.top10.ValidationException;
+
+import javax.crypto.SecretKey;
+import java.time.Instant;
+import java.util.Date;
+
+import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
+import static nl.cofx.top10.session.SessionConfiguration.JWT_COOKIE_NAME;
+import static nl.cofx.top10.session.SessionConfiguration.SESSION_EXPIRATION_IN_SECONDS;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -64,11 +64,11 @@ public class SessionVerticle extends AbstractVerticle {
 
             var account = (JsonObject) reply.result().body();
             var jwt = Jwts.builder()
-                    .setExpiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
-                    .setSubject(account.getString("accountId"))
+                    .expiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
+                    .subject(account.getString("accountId"))
                     .claim("name", account.getString("name"))
                     .claim("emailAddress", account.getString("emailAddress"))
-                    .signWith(secretKey, SignatureAlgorithm.HS512)
+                    .signWith(secretKey, Jwts.SIG.HS512)
                     .compact();
 
             var cookie = Cookie.cookie(JWT_COOKIE_NAME, jwt)
@@ -86,14 +86,11 @@ public class SessionVerticle extends AbstractVerticle {
     }
 
     private JsonObject getExternalUser(String provider, String code) {
-        switch (provider) {
-            case "google":
-                return googleOauth2.getUser(code);
-            case "microsoft":
-                return microsoftOauth2.getUser(code);
-            default:
-                throw new ValidationException(String.format("Invalid login provider: \"%s\"", provider));
-        }
+        return switch (provider) {
+            case "google" -> googleOauth2.getUser(code);
+            case "microsoft" -> microsoftOauth2.getUser(code);
+            default -> throw new ValidationException(String.format("Invalid login provider: \"%s\"", provider));
+        };
     }
 
     private void handleLogOut(RoutingContext routingContext) {
@@ -114,7 +111,7 @@ public class SessionVerticle extends AbstractVerticle {
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {
         try {
-            return routingContext.getBodyAsJson();
+            return routingContext.body().asJsonObject();
         } catch (Exception e) {
             log.debug("Unable to parse request body as JSON");
             return null;

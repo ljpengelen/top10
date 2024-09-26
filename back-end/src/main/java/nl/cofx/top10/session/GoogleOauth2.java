@@ -1,23 +1,25 @@
 package nl.cofx.top10.session;
 
-import java.util.Collections;
-
-import com.google.api.client.googleapis.auth.oauth2.*;
+import com.google.api.client.googleapis.auth.oauth2.GoogleAuthorizationCodeTokenRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.HttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
-
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
 import io.vertx.core.json.JsonObject;
 import lombok.SneakyThrows;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.InvalidCredentialsException;
 import nl.cofx.top10.config.Config;
 
+import java.util.Collections;
+
 @Log4j2
 public class GoogleOauth2 {
 
     private static final HttpTransport HTTP_TRANSPORT = httpTransport();
-    private static final JacksonFactory JSON_FACTORY = new JacksonFactory();
+    private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
     private final String clientId;

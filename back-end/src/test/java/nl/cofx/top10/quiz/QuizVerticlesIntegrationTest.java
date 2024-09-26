@@ -1,18 +1,7 @@
 package nl.cofx.top10.quiz;
 
-import static nl.cofx.top10.postgresql.PostgreSql.toTimestamptz;
-import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.io.IOException;
-import java.sql.*;
-import java.time.Instant;
-import java.time.Period;
-
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.ThreadingModel;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -20,11 +9,29 @@ import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.*;
+import nl.cofx.top10.ErrorHandlers;
+import nl.cofx.top10.RandomPort;
+import nl.cofx.top10.UserHandler;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.eventbus.MessageCodecs;
 import nl.cofx.top10.http.HttpClient;
 import nl.cofx.top10.migration.MigrationVerticle;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Instant;
+import java.time.Period;
+
+import static nl.cofx.top10.postgresql.PostgreSql.toTimestamptz;
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Log4j2
 @ExtendWith(VertxExtension.class)
@@ -51,7 +58,7 @@ class QuizVerticlesIntegrationTest {
     @BeforeAll
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
         var verticle = new MigrationVerticle(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
-        var deploymentOptions = new DeploymentOptions().setWorker(true);
+        var deploymentOptions = new DeploymentOptions().setThreadingModel(ThreadingModel.WORKER);
         vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.succeedingThenComplete());
 
         MessageCodecs.register(vertx.eventBus());

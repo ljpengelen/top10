@@ -1,20 +1,22 @@
 package nl.cofx.top10.session.csrf;
 
-import java.util.Set;
-
-import javax.crypto.SecretKey;
-
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.*;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.jwt.Jwt;
 import nl.cofx.top10.random.TokenGenerator;
+
+import javax.crypto.SecretKey;
+import java.util.Set;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -69,7 +71,7 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
             return false;
         }
 
-        var tokenInJws = csrfJws.getBody().get(CSRF_TOKEN_CLAIM_NAME, String.class);
+        var tokenInJws = csrfJws.getPayload().get(CSRF_TOKEN_CLAIM_NAME, String.class);
         var tokenInHeader = request.getHeader(CSRF_TOKEN_HEADER_NAME);
 
         if (tokenInJws == null || tokenInHeader == null) {
@@ -87,7 +89,7 @@ public class CsrfTokenHandler implements Handler<RoutingContext> {
 
         var jwt = Jwts.builder()
                 .claim(CSRF_TOKEN_CLAIM_NAME, token)
-                .signWith(secretKey, SignatureAlgorithm.HS512)
+                .signWith(secretKey, Jwts.SIG.HS512)
                 .compact();
 
         var cookie = Cookie.cookie(CSRF_TOKEN_COOKIE_NAME, jwt)

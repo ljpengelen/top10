@@ -1,25 +1,27 @@
 package nl.cofx.top10.session;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Router;
+import io.vertx.junit5.VertxTestContext;
+import lombok.extern.log4j.Log4j2;
+import nl.cofx.top10.AbstractVerticleTest;
+import nl.cofx.top10.ErrorHandlers;
+import nl.cofx.top10.InvalidCredentialsException;
+import nl.cofx.top10.RandomPort;
+import nl.cofx.top10.http.BodyPublisher;
+import nl.cofx.top10.http.JsonObjectBodyHandler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Router;
-import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.*;
-import nl.cofx.top10.http.BodyPublisher;
-import nl.cofx.top10.http.JsonObjectBodyHandler;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @Log4j2
 class SessionVerticleTest extends AbstractVerticleTest {
@@ -130,7 +132,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var claims = jwt.getJws(cookieValue);
         assertThat(claims).isNotNull();
 
-        var body = claims.getBody();
+        var body = claims.getPayload();
         assertThat(body).isNotNull();
         assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
         assertThat(body.get("name")).isEqualTo(NAME);
@@ -163,7 +165,7 @@ class SessionVerticleTest extends AbstractVerticleTest {
         var claims = jwt.getJws(token);
         assertThat(claims).isNotNull();
 
-        var body = claims.getBody();
+        var body = claims.getPayload();
         assertThat(body).isNotNull();
         assertThat(body.getSubject()).isEqualTo(String.valueOf(INTERNAL_ID));
         assertThat(body.get("name")).isEqualTo(NAME);

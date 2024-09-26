@@ -1,15 +1,7 @@
 package nl.cofx.top10.account;
 
-import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.ThreadingModel;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
@@ -18,6 +10,16 @@ import io.vertx.junit5.VertxTestContext;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.migration.MigrationVerticle;
 import nl.cofx.top10.random.TokenGenerator;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(VertxExtension.class)
 class ExternalAccountVerticleTest {
@@ -32,7 +34,7 @@ class ExternalAccountVerticleTest {
     @BeforeAll
     public static void migrate(Vertx vertx, VertxTestContext vertxTestContext) {
         var verticle = new MigrationVerticle(TEST_CONFIG.getJdbcUrl(), TEST_CONFIG.getJdbcUsername(), TEST_CONFIG.getJdbcPassword());
-        var deploymentOptions = new DeploymentOptions().setWorker(true);
+        var deploymentOptions = new DeploymentOptions().setThreadingModel(ThreadingModel.WORKER);
         vertx.deployVerticle(verticle, deploymentOptions, vertxTestContext.succeedingThenComplete());
     }
 

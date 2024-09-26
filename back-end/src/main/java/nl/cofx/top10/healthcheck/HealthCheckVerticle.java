@@ -1,8 +1,5 @@
 package nl.cofx.top10.healthcheck;
 
-import java.time.Instant;
-import java.util.Properties;
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
@@ -14,11 +11,16 @@ import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.Properties;
+
 @Log4j2
 @RequiredArgsConstructor
 public class HealthCheckVerticle extends AbstractVerticle {
 
     private static final String SELECT_NOW = "SELECT NOW()";
+
     private final JsonObject jdbcOptions;
     private final Router router;
 
@@ -53,16 +55,19 @@ public class HealthCheckVerticle extends AbstractVerticle {
                     return;
                 }
 
-                asyncConnection.result().querySingle(SELECT_NOW, asyncTimestamp -> {
-                    if (asyncTimestamp.failed()) {
-                        var cause = asyncTimestamp.cause();
-                        log.error("Unable to execute query \"{}\"", SELECT_NOW, cause);
-                        promise.fail(cause);
-                        return;
-                    }
+                try (var connection = asyncConnection.result()) {
+                    connection.querySingle(SELECT_NOW, asyncTimestamp -> {
+                        if (asyncTimestamp.failed()) {
+                            var cause = asyncTimestamp.cause();
+                            log.error("Unable to execute query \"{}\"", SELECT_NOW, cause);
+                            promise.fail(cause);
+                            return;
+                        }
 
-                    promise.complete(asyncTimestamp.result().getInstant(0));
-                });
+                        var value = (OffsetDateTime) asyncTimestamp.result().getValue(0);
+                        promise.complete(value.toInstant());
+                    });
+                }
             });
         });
     }

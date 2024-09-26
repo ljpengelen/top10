@@ -1,11 +1,5 @@
 package nl.cofx.top10.quiz;
 
-import static nl.cofx.top10.quiz.QuizEntityVerticle.*;
-
-import java.time.Instant;
-
-import org.apache.commons.lang3.StringUtils;
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.http.HttpMethod;
@@ -17,7 +11,14 @@ import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import nl.cofx.top10.*;
-import nl.cofx.top10.quiz.dto.*;
+import nl.cofx.top10.quiz.dto.QuizDto;
+import nl.cofx.top10.quiz.dto.QuizzesDto;
+import nl.cofx.top10.quiz.dto.ResultSummaryDto;
+import org.apache.commons.lang3.StringUtils;
+
+import java.time.Instant;
+
+import static nl.cofx.top10.quiz.QuizEntityVerticle.*;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -116,7 +117,7 @@ public class QuizHttpVerticle extends AbstractVerticle {
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {
         try {
-            return routingContext.getBodyAsJson();
+            return routingContext.body().asJsonObject();
         } catch (Exception e) {
             log.debug("Unable to parse request body as JSON", e);
             return null;

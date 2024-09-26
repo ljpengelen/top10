@@ -1,12 +1,9 @@
 package nl.cofx.top10;
 
-import static nl.cofx.top10.session.JwtSessionHandler.AUTHORIZATION_HEADER_NAME;
-import static nl.cofx.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
-
-import java.util.List;
-import java.util.Set;
-
-import io.vertx.core.*;
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
+import io.vertx.core.Verticle;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
@@ -19,10 +16,19 @@ import nl.cofx.top10.healthcheck.HealthCheckVerticle;
 import nl.cofx.top10.heartbeat.HeartbeatVerticle;
 import nl.cofx.top10.jwt.Jwt;
 import nl.cofx.top10.migration.MigrationVerticle;
-import nl.cofx.top10.quiz.*;
+import nl.cofx.top10.quiz.ListEntityVerticle;
+import nl.cofx.top10.quiz.ListHttpVerticle;
+import nl.cofx.top10.quiz.QuizEntityVerticle;
+import nl.cofx.top10.quiz.QuizHttpVerticle;
 import nl.cofx.top10.session.*;
 import nl.cofx.top10.session.csrf.CsrfHeaderChecker;
 import nl.cofx.top10.session.csrf.CsrfTokenHandler;
+
+import java.util.List;
+import java.util.Set;
+
+import static nl.cofx.top10.session.JwtSessionHandler.AUTHORIZATION_HEADER_NAME;
+import static nl.cofx.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
 
 @Log4j2
 public class Application {
@@ -79,9 +85,10 @@ public class Application {
             var jwtSecretKey = config.getJwtSecretKey();
             var useSecureCookies = config.useSecureCookies();
 
-            deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), new DeploymentOptions().setWorker(true))
+            var deploymentOptions = new DeploymentOptions().setThreadingModel(io.vertx.core.ThreadingModel.WORKER);
+            deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), deploymentOptions)
                     .compose(migrationResult ->
-                            CompositeFuture.all(List.of(
+                            Future.all(List.of(
                                     deploy(new HeartbeatVerticle()),
                                     deploy(new ExternalAccountVerticle(jdbcOptions)),
                                     deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
@@ -107,7 +114,8 @@ public class Application {
 
             var router = Router.router(vertx);
 
-            var corsHandler = CorsHandler.create(config.getCsrfTarget())
+            var corsHandler = CorsHandler.create()
+                    .addOrigin(config.getCsrfTarget())
                     .allowCredentials(true)
                     .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
                     .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT))

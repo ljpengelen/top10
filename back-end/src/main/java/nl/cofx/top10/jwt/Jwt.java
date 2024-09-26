@@ -1,15 +1,18 @@
 package nl.cofx.top10.jwt;
 
-import javax.crypto.SecretKey;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
 
-import io.jsonwebtoken.*;
+import javax.crypto.SecretKey;
 
 public class Jwt {
 
     private final JwtParser jwtParser;
 
     public Jwt(SecretKey secretKey) {
-        jwtParser = Jwts.parserBuilder().setSigningKey(secretKey).build();
+        jwtParser = Jwts.parser().verifyWith(secretKey).build();
     }
 
     public Jws<Claims> getJws(String token) {
@@ -18,7 +21,7 @@ public class Jwt {
         }
 
         try {
-            return jwtParser.parseClaimsJws(token);
+            return jwtParser.parseSignedClaims(token);
         } catch (Exception e) {
             return null;
         }

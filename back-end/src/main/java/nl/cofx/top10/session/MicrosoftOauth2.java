@@ -1,22 +1,14 @@
 package nl.cofx.top10.session;
 
-import java.util.List;
-
 import com.azure.identity.AuthorizationCodeCredentialBuilder;
-import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
-import com.microsoft.graph.core.ClientException;
 import com.microsoft.graph.models.User;
-import com.microsoft.graph.requests.GraphServiceClient;
-
+import com.microsoft.graph.serviceclient.GraphServiceClient;
 import io.vertx.core.json.JsonObject;
-import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.InvalidCredentialsException;
 import nl.cofx.top10.config.Config;
 
-@Log4j2
 public class MicrosoftOauth2 {
 
-    private static final List<String> SCOPES = List.of("openid", "offline_access", "User.Read");
+    private static final String[] SCOPES = {"openid", "offline_access", "User.Read"};
 
     private final String clientId;
     private final String clientSecret;
@@ -32,32 +24,23 @@ public class MicrosoftOauth2 {
         var user = getUserFromGraph(code);
 
         return new JsonObject()
-                .put("name", user.displayName)
-                .put("emailAddress", user.mail != null ? user.mail : user.userPrincipalName)
-                .put("id", user.id)
+                .put("name", user.getDisplayName())
+                .put("emailAddress", user.getMail() != null ? user.getMail() : user.getUserPrincipalName())
+                .put("id", user.getId())
                 .put("provider", "microsoft");
     }
 
     private User getUserFromGraph(String code) {
-        try {
-            var authProvider = new AuthorizationCodeCredentialBuilder()
-                    .clientId(clientId)
-                    .clientSecret(clientSecret)
-                    .authorizationCode(code)
-                    .redirectUrl(redirectUri)
-                    .tenantId("common")
-                    .build();
+        var authProvider = new AuthorizationCodeCredentialBuilder()
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .authorizationCode(code)
+                .redirectUrl(redirectUri)
+                .tenantId("common")
+                .build();
 
-            var tokenCredentialAuthProvider = new TokenCredentialAuthProvider(SCOPES, authProvider);
+        var graphServiceClient = new GraphServiceClient(authProvider, SCOPES);
 
-            var graphServiceClient = GraphServiceClient.builder()
-                    .authenticationProvider(tokenCredentialAuthProvider)
-                    .buildClient();
-
-            return graphServiceClient.me().buildRequest().get();
-        } catch (ClientException e) {
-            log.debug("Unable to get user for authorization code \"{}\"", code, e);
-            throw new InvalidCredentialsException(String.format("Invalid authorization code: \"%s\"", code));
-        }
+        return graphServiceClient.me().get();
     }
 }

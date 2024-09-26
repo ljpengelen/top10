@@ -1,27 +1,27 @@
 package nl.cofx.top10.session.csrf;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
-
-import java.util.Set;
-
-import javax.crypto.SecretKey;
-
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
+import nl.cofx.top10.jwt.Jwt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.*;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
-import nl.cofx.top10.jwt.Jwt;
+import javax.crypto.SecretKey;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 class CsrfTokenHandlerTest {
 
@@ -66,7 +66,7 @@ class CsrfTokenHandlerTest {
             assertThat(headerValue).isNotBlank();
             var cookieValue = cookieCaptor.getValue().getValue();
             var jws = jwt.getJws(cookieValue);
-            assertThat(jws.getBody().get(CSRF_TOKEN_CLAIM_NAME)).isEqualTo(headerValue);
+            assertThat(jws.getPayload().get(CSRF_TOKEN_CLAIM_NAME)).isEqualTo(headerValue);
         });
     }
 
@@ -76,7 +76,7 @@ class CsrfTokenHandlerTest {
         var token = "abcdefg12345";
         var cookieValue = Jwts.builder()
                 .claim(CSRF_TOKEN_CLAIM_NAME, token)
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .signWith(SECRET_KEY, Jwts.SIG.HS512)
                 .compact();
         when(request.getCookie(CSRF_COOKIE_NAME)).thenReturn(Cookie.cookie(CSRF_COOKIE_NAME, cookieValue));
         when(request.getHeader(TOKEN_HEADER_NAME)).thenReturn(token);
@@ -92,7 +92,7 @@ class CsrfTokenHandlerTest {
         assertThat(headerValue).isNotBlank();
         var newCookieValue = cookieCaptor.getValue().getValue();
         var jws = jwt.getJws(newCookieValue);
-        var tokenInCookie = jws.getBody().get(CSRF_TOKEN_CLAIM_NAME);
+        var tokenInCookie = jws.getPayload().get(CSRF_TOKEN_CLAIM_NAME);
         assertThat(tokenInCookie).isEqualTo(headerValue);
 
         assertThat(headerValue).isNotEqualTo(token);
@@ -127,8 +127,8 @@ class CsrfTokenHandlerTest {
     @Test
     public void rejectsRequestWithCookieWithMissingClaim() {
         var cookieValue = Jwts.builder()
-                .setSubject("abcde5678")
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .subject("abcde5678")
+                .signWith(SECRET_KEY, Jwts.SIG.HS512)
                 .compact();
         when(request.getCookie(CSRF_COOKIE_NAME)).thenReturn(Cookie.cookie(CSRF_COOKIE_NAME, cookieValue));
         when(request.method()).thenReturn(HttpMethod.POST);

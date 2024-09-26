@@ -1,12 +1,11 @@
 package nl.cofx.top10.config;
 
-import javax.crypto.SecretKey;
-
-import org.apache.commons.lang3.RandomStringUtils;
-
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
 import nl.cofx.top10.RandomPort;
+import org.apache.commons.lang3.RandomStringUtils;
+
+import javax.crypto.SecretKey;
 
 @Getter
 public class TestConfig extends AbstractConfig implements Config {
@@ -38,6 +37,6 @@ public class TestConfig extends AbstractConfig implements Config {
     }
 
     protected String randomString() {
-        return RandomStringUtils.random(10);
+        return RandomStringUtils.insecure().next(10);
     }
 }

@@ -1,11 +1,5 @@
 package nl.cofx.top10.quiz;
 
-import static nl.cofx.top10.quiz.ListEntityVerticle.*;
-
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.ReplyException;
 import io.vertx.core.http.HttpMethod;
@@ -15,10 +9,18 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.*;
+import nl.cofx.top10.ForbiddenException;
+import nl.cofx.top10.InternalServerErrorException;
+import nl.cofx.top10.NotFoundException;
+import nl.cofx.top10.ValidationException;
 import nl.cofx.top10.quiz.dto.ListDto;
 import nl.cofx.top10.quiz.dto.ListsDto;
 import nl.cofx.top10.url.YouTubeUrl;
+import org.apache.commons.lang3.StringUtils;
+
+import java.util.stream.Collectors;
+
+import static nl.cofx.top10.quiz.ListEntityVerticle.*;
 
 @Log4j2
 @RequiredArgsConstructor
@@ -182,7 +184,7 @@ public class ListHttpVerticle extends AbstractVerticle {
 
     private JsonObject getRequestBodyAsJson(RoutingContext routingContext) {
         try {
-            return routingContext.getBodyAsJson();
+            return routingContext.body().asJsonObject();
         } catch (Exception e) {
             log.warn("Unable to parse request body as JSON", e);
             return null;

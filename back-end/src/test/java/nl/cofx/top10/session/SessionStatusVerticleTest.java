@@ -1,6 +1,15 @@
 package nl.cofx.top10.session;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.jsonwebtoken.Jwts;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.Router;
+import io.vertx.junit5.VertxTestContext;
+import lombok.extern.log4j.Log4j2;
+import nl.cofx.top10.AbstractVerticleTest;
+import nl.cofx.top10.RandomPort;
+import nl.cofx.top10.http.JsonObjectBodyHandler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URI;
@@ -10,18 +19,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.vertx.core.Vertx;
-import io.vertx.ext.web.Router;
-import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.AbstractVerticleTest;
-import nl.cofx.top10.RandomPort;
-import nl.cofx.top10.http.JsonObjectBodyHandler;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Log4j2
 class SessionStatusVerticleTest extends AbstractVerticleTest {
@@ -76,9 +74,9 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
     @Test
     public void returnsNoSessionGivenInvalidSessionCookie() throws IOException, InterruptedException {
         var jwt = Jwts.builder()
-                .setExpiration(Date.from(Instant.now().minusSeconds(1)))
-                .setSubject(USER_ID)
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .expiration(Date.from(Instant.now().minusSeconds(1)))
+                .subject(USER_ID)
+                .signWith(SECRET_KEY, Jwts.SIG.HS512)
                 .compact();
 
         var httpClient = HttpClient.newHttpClient();
@@ -96,10 +94,10 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
     @Test
     public void returnsAccessTokenGivenSessionCookie() throws IOException, InterruptedException {
         var token = Jwts.builder()
-                .setSubject(USER_ID)
+                .subject(USER_ID)
                 .claim("name", NAME)
                 .claim("emailAddress", EMAIL_ADDRESS)
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .signWith(SECRET_KEY, Jwts.SIG.HS512)
                 .compact();
 
         var httpClient = HttpClient.newHttpClient();
@@ -121,8 +119,8 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
     @Test
     public void extendsSessionCookie() throws IOException, InterruptedException {
         var token = Jwts.builder()
-                .setSubject(USER_ID)
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS512)
+                .subject(USER_ID)
+                .signWith(SECRET_KEY, Jwts.SIG.HS512)
                 .compact();
 
         var httpClient = HttpClient.newHttpClient();
@@ -140,7 +138,7 @@ class SessionStatusVerticleTest extends AbstractVerticleTest {
         var claims = jwt.getJws(cookieValue);
         assertThat(claims).isNotNull();
 
-        var body = claims.getBody();
+        var body = claims.getPayload();
         assertThat(body.getSubject()).isEqualTo(USER_ID);
 
         var eightHoursFromNow = Date.from(Instant.now().plus(8, ChronoUnit.HOURS));
