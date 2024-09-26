@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.sql.SQLConnection;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.ConflictException;
 import nl.cofx.top10.NotFoundException;
 import nl.cofx.top10.quiz.dto.*;
@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
 
-@Log4j2
+@Slf4j
 public class QuizRepository {
 
     private static final String GET_ALL_QUIZZES_TEMPLATE =

@@ -1,9 +1,9 @@
 package nl.cofx.top10.heartbeat;
 
 import io.vertx.core.AbstractVerticle;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 
-@Log4j2
+@Slf4j
 public class HeartbeatVerticle extends AbstractVerticle {
 
     private static final int INTERVAL_IN_MILLISECONDS = 60 * 1000;

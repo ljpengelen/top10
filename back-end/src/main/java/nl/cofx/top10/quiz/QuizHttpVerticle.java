@@ -9,7 +9,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.*;
 import nl.cofx.top10.quiz.dto.QuizDto;
 import nl.cofx.top10.quiz.dto.QuizzesDto;
@@ -20,7 +20,7 @@ import java.time.Instant;
 
 import static nl.cofx.top10.quiz.QuizEntityVerticle.*;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class QuizHttpVerticle extends AbstractVerticle {
 

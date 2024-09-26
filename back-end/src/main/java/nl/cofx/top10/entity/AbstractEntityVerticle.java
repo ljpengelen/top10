@@ -1,13 +1,14 @@
 package nl.cofx.top10.entity;
 
-import java.util.function.Function;
-
-import io.vertx.core.*;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Future;
 import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 
-@Log4j2
+import java.util.function.Function;
+
+@Slf4j
 public abstract class AbstractEntityVerticle extends AbstractVerticle {
 
     protected SQLClient sqlClient;

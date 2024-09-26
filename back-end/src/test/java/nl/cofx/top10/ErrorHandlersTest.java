@@ -1,25 +1,24 @@
 package nl.cofx.top10;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.Router;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import lombok.extern.slf4j.Slf4j;
+import nl.cofx.top10.http.JsonObjectBodyHandler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.Router;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.http.JsonObjectBodyHandler;
-
-@Log4j2
+@Slf4j
 @ExtendWith(VertxExtension.class)
 class ErrorHandlersTest {
 

@@ -1,14 +1,13 @@
 package nl.cofx.top10.postgresql;
 
+import lombok.extern.slf4j.Slf4j;
+import org.postgresql.util.PGobject;
+
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 
-import org.postgresql.util.PGobject;
-
-import lombok.extern.log4j.Log4j2;
-
-@Log4j2
+@Slf4j
 public class PostgreSql {
 
     public static PGobject toUuids(List<String> ids) {

@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.RandomPort;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.http.JsonObjectBodyHandler;
@@ -21,7 +21,7 @@ import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Log4j2
+@Slf4j
 @DisplayName("Health-check verticle")
 @ExtendWith(VertxExtension.class)
 public class HealthCheckVerticleTest {

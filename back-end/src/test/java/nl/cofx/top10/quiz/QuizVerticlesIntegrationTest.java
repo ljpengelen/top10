@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.ErrorHandlers;
 import nl.cofx.top10.RandomPort;
 import nl.cofx.top10.UserHandler;
@@ -33,7 +33,7 @@ import static nl.cofx.top10.postgresql.PostgreSql.toTimestamptz;
 import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@Log4j2
+@Slf4j
 @ExtendWith(VertxExtension.class)
 class QuizVerticlesIntegrationTest {
 

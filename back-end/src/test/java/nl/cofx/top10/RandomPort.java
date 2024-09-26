@@ -1,12 +1,12 @@
 package nl.cofx.top10;
 
-import java.net.ServerSocket;
-
 import io.vertx.core.http.HttpServerOptions;
 import lombok.SneakyThrows;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 
-@Log4j2
+import java.net.ServerSocket;
+
+@Slf4j
 public class RandomPort {
 
     @SneakyThrows

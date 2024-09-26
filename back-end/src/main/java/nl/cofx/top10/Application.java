@@ -7,7 +7,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.account.ExternalAccountVerticle;
 import nl.cofx.top10.config.Config;
 import nl.cofx.top10.config.ProdConfig;
@@ -30,7 +30,7 @@ import java.util.Set;
 import static nl.cofx.top10.session.JwtSessionHandler.AUTHORIZATION_HEADER_NAME;
 import static nl.cofx.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
 
-@Log4j2
+@Slf4j
 public class Application {
 
     private final Config config;

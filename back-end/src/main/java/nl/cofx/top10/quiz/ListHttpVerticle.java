@@ -8,7 +8,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.ForbiddenException;
 import nl.cofx.top10.InternalServerErrorException;
 import nl.cofx.top10.NotFoundException;
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 import static nl.cofx.top10.quiz.ListEntityVerticle.*;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class ListHttpVerticle extends AbstractVerticle {
 

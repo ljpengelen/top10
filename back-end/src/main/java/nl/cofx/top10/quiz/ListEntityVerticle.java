@@ -1,22 +1,22 @@
 package nl.cofx.top10.quiz;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.stream.Collectors;
-
 import io.vertx.core.Future;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.ForbiddenException;
 import nl.cofx.top10.NotFoundException;
 import nl.cofx.top10.entity.AbstractEntityVerticle;
 import nl.cofx.top10.quiz.dto.ListDto;
 import nl.cofx.top10.quiz.dto.ListsDto;
 
-@Log4j2
+import java.time.Instant;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
+@Slf4j
 @RequiredArgsConstructor
 public class ListEntityVerticle extends AbstractEntityVerticle {
 

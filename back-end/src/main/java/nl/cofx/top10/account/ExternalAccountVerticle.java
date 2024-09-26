@@ -1,7 +1,5 @@
 package nl.cofx.top10.account;
 
-import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
-
 import io.vertx.core.Future;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.JsonArray;
@@ -9,10 +7,12 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.entity.AbstractEntityVerticle;
 
-@Log4j2
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
+
+@Slf4j
 @RequiredArgsConstructor
 public class ExternalAccountVerticle extends AbstractEntityVerticle {
 

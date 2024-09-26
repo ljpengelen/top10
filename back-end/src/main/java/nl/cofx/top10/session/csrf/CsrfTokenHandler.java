@@ -3,22 +3,18 @@ package nl.cofx.top10.session.csrf;
 import io.jsonwebtoken.Jwts;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.Cookie;
-import io.vertx.core.http.CookieSameSite;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.jwt.Jwt;
 import nl.cofx.top10.random.TokenGenerator;
 
 import javax.crypto.SecretKey;
 import java.util.Set;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class CsrfTokenHandler implements Handler<RoutingContext> {
 

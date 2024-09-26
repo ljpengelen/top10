@@ -1,21 +1,30 @@
 package nl.cofx.top10.quiz;
 
-import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
-import static nl.cofx.top10.postgresql.PostgreSql.toUuids;
-
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import io.vertx.core.*;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.SQLConnection;
 import lombok.SneakyThrows;
-import lombok.extern.log4j.Log4j2;
-import nl.cofx.top10.*;
-import nl.cofx.top10.quiz.dto.*;
+import lombok.extern.slf4j.Slf4j;
+import nl.cofx.top10.ForbiddenException;
+import nl.cofx.top10.InternalServerErrorException;
+import nl.cofx.top10.NotFoundException;
+import nl.cofx.top10.quiz.dto.AssignmentDto;
+import nl.cofx.top10.quiz.dto.ListDto;
+import nl.cofx.top10.quiz.dto.VideoDto;
 
-@Log4j2
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
+import static nl.cofx.top10.postgresql.PostgreSql.toUuids;
+
+@Slf4j
 public class ListRepository {
 
     private static final String GET_ALL_LISTS_FOR_QUIZ_TEMPLATE =

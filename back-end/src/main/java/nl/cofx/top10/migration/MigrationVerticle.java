@@ -1,12 +1,11 @@
 package nl.cofx.top10.migration;
 
-import org.flywaydb.core.Flyway;
-
 import io.vertx.core.AbstractVerticle;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
+import org.flywaydb.core.Flyway;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class MigrationVerticle extends AbstractVerticle {
 

@@ -9,13 +9,13 @@ import io.vertx.ext.sql.SQLClient;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Properties;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class HealthCheckVerticle extends AbstractVerticle {
 

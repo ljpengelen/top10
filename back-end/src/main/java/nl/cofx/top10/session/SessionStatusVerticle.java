@@ -10,7 +10,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.jwt.Jwt;
 
 import javax.crypto.SecretKey;
@@ -20,7 +20,7 @@ import java.util.Date;
 import static nl.cofx.top10.session.SessionConfiguration.JWT_COOKIE_NAME;
 import static nl.cofx.top10.session.SessionConfiguration.SESSION_EXPIRATION_IN_SECONDS;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class SessionStatusVerticle extends AbstractVerticle {
 

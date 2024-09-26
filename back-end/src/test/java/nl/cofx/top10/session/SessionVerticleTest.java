@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxTestContext;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.AbstractVerticleTest;
 import nl.cofx.top10.ErrorHandlers;
 import nl.cofx.top10.InvalidCredentialsException;
@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Log4j2
+@Slf4j
 class SessionVerticleTest extends AbstractVerticleTest {
 
     private static final String PATH = "/session/logIn";

@@ -5,10 +5,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.web.RoutingContext;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.jwt.Jwt;
 
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class JwtSessionHandler implements Handler<RoutingContext> {
 
