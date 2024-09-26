@@ -20,7 +20,6 @@
         <google-api-client.version>2.7.0</google-api-client.version>
         <guava.version>33.3.1-jre</guava.version>
         <jacoco.version>0.8.12</jacoco.version>
-        <jackson-databind.version>2.17.2</jackson-databind.version>
         <jjwt.version>0.12.6</jjwt.version>
         <junit-jupiter.version>5.11.0</junit-jupiter.version>
         <log4j.version>2.24.0</log4j.version>
@@ -94,16 +93,6 @@
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
             <version>${azure-identity.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>${jackson-databind.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>${jackson-databind.version}</version>
         </dependency>
 
         <dependency>
