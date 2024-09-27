@@ -2,10 +2,10 @@ FROM maven:3-openjdk-17 AS COMPILATION_STAGE
 
 WORKDIR /app
 
-COPY back-end/pom.xml .
+COPY pom.xml .
 RUN mvn package -Dmaven.test.skip --fail-never
 
-COPY back-end .
+COPY . .
 RUN mvn package -Dmaven.test.skip
 
 FROM openjdk:17 AS EXECUTION_STAGE
