@@ -7,6 +7,7 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import nl.cofx.top10.PostgresExtension;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.migration.MigrationVerticle;
 import nl.cofx.top10.random.TokenGenerator;
@@ -21,6 +22,7 @@ import java.sql.SQLException;
 import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(PostgresExtension.class)
 @ExtendWith(VertxExtension.class)
 class ExternalAccountVerticleTest {
 

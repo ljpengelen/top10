@@ -1,29 +1,35 @@
 package nl.cofx.top10.session;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-import java.net.*;
-import java.net.http.HttpClient;
-import java.net.http.*;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.SneakyThrows;
 import nl.cofx.top10.Application;
+import nl.cofx.top10.PostgresExtension;
 import nl.cofx.top10.config.TestConfig;
-import nl.cofx.top10.http.*;
+import nl.cofx.top10.http.BodyPublisher;
+import nl.cofx.top10.http.JsonArrayBodyHandler;
+import nl.cofx.top10.http.JsonObjectBodyHandler;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 
+import java.io.IOException;
+import java.net.CookieHandler;
+import java.net.CookieManager;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(PostgresExtension.class)
 @ExtendWith(VertxExtension.class)
 public class SessionIntegrationTest {
 

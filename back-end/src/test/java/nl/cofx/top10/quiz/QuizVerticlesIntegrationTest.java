@@ -10,6 +10,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.ErrorHandlers;
+import nl.cofx.top10.PostgresExtension;
 import nl.cofx.top10.RandomPort;
 import nl.cofx.top10.UserHandler;
 import nl.cofx.top10.config.TestConfig;
@@ -34,6 +35,7 @@ import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
+@ExtendWith(PostgresExtension.class)
 @ExtendWith(VertxExtension.class)
 class QuizVerticlesIntegrationTest {
 

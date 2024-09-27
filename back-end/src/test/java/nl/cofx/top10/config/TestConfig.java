@@ -2,6 +2,7 @@ package nl.cofx.top10.config;
 
 import io.vertx.core.json.JsonObject;
 import lombok.Getter;
+import nl.cofx.top10.PostgresExtension;
 import nl.cofx.top10.RandomPort;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -18,11 +19,23 @@ public class TestConfig extends AbstractConfig implements Config {
     private final String microsoftOauth2ClientSecret = randomString();
     private final String microsoftOauth2RedirectUri = "https://www.example.org/microsoft/oauth2";
     private final int httpPort = RandomPort.get();
-    private final String jdbcUrl = fetchMandatoryString("TEST_JDBC_POSTGRES_URL");
-    private final String jdbcUsername = fetchMandatoryString("TEST_JDBC_POSTGRES_USERNAME");
-    private final String jdbcPassword = fetchOptionalString("TEST_JDBC_POSTGRES_PASSWORD");
     private final JsonObject jdbcOptions = fetchJdbcOptions();
     private final SecretKey jwtSecretKey = fetchJwtSecretKey("TEST_JWT_ENCODED_SECRET_KEY");
+
+    @Override
+    public String getJdbcUrl() {
+        return PostgresExtension.JDBC_URL;
+    }
+
+    @Override
+    public String getJdbcUsername() {
+        return PostgresExtension.USERNAME;
+    }
+
+    @Override
+    public String getJdbcPassword() {
+        return PostgresExtension.PASSWORD;
+    }
 
     @Override
     public boolean useSecureCookies() {
@@ -31,9 +44,9 @@ public class TestConfig extends AbstractConfig implements Config {
 
     protected JsonObject fetchJdbcOptions() {
         return new JsonObject()
-                .put("url", jdbcUrl)
-                .put("user", jdbcUsername)
-                .put("password", jdbcPassword);
+                .put("url", getJdbcUrl())
+                .put("user", getJdbcUsername())
+                .put("password", getJdbcPassword());
     }
 
     protected String randomString() {

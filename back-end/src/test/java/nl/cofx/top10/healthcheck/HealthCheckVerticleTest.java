@@ -5,6 +5,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import lombok.extern.slf4j.Slf4j;
+import nl.cofx.top10.PostgresExtension;
 import nl.cofx.top10.RandomPort;
 import nl.cofx.top10.config.TestConfig;
 import nl.cofx.top10.http.JsonObjectBodyHandler;
@@ -23,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
 @DisplayName("Health-check verticle")
+@ExtendWith(PostgresExtension.class)
 @ExtendWith(VertxExtension.class)
 public class HealthCheckVerticleTest {
 
