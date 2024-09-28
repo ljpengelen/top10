@@ -1,13 +1,3 @@
-def withDockerNetwork(Closure inner) {
-  try {
-    networkId = UUID.randomUUID().toString()
-    sh "docker network create ${networkId}"
-    inner.call(networkId)
-  } finally {
-    sh "docker network rm ${networkId}"
-  }
-}
-
 pipeline {
   agent none
 
@@ -21,37 +11,30 @@ pipeline {
 
   stages {
     stage("Test back end") {
-      agent any
+      agent {
+        dockerfile {
+          additionalBuildArgs "--pull"
+          args '-v /var/run/docker.sock:/var/run/docker.sock'
+          filename "back-end/dockerfiles/ci/Dockerfile"
+        }
+      }
+
+      environment {
+        SENTRY_ENVIRONMENT = "ci"
+        TEST_CSRF_TARGET = "http://localhost:8080"
+        TEST_JWT_ENCODED_SECRET_KEY = "nB5CcPDKKIv/zFyJAACn8iMjfpHzuHgcFbddx0XzigO5p2vkwPbenf4QWVlWV5W8QuR+jRe/8n/Bin04W2j4Fw=="
+      }
 
       steps {
-        script {
-          def database = docker.build("db", "--pull -f back-end/dockerfiles/database/Dockerfile .")
-          def app = docker.build("app", "--pull -f back-end/dockerfiles/ci/Dockerfile .")
-
-          withDockerNetwork { n ->
-            database.withRun("--network ${n} --name ${n} -e POSTGRES_PASSWORD=top10") { c ->
-              app.inside("""
-                --network ${n}
-                -e "SENTRY_ENVIRONMENT=ci"
-                -e "TEST_CSRF_TARGET=http://localhost:8080"
-                -e "TEST_JDBC_POSTGRES_URL=jdbc:postgresql://${n}:5432/top10-test"
-                -e "TEST_JDBC_POSTGRES_USERNAME=postgres"
-                -e "TEST_JDBC_POSTGRES_PASSWORD=top10"
-                -e "TEST_JWT_ENCODED_SECRET_KEY=nB5CcPDKKIv/zFyJAACn8iMjfpHzuHgcFbddx0XzigO5p2vkwPbenf4QWVlWV5W8QuR+jRe/8n/Bin04W2j4Fw=="
-              """) {
-                dir("back-end") {
-                  sh "mvn clean verify"
-                }
-              }
-            }
-          }
+        dir("back-end") {
+          sh "mvn clean verify"
         }
       }
 
       post {
         always {
           dir("back-end") {
-            publishCoverage adapters: [jacocoAdapter('target/site/jacoco/jacoco.xml')]
+            recordCoverage tools: [[parser: 'JACOCO']]
             publishHTML target: [
               allowMissing: false,
               alwaysLinkToLastBuild: false,
@@ -66,54 +49,15 @@ pipeline {
       }
     }
 
-    stage("Test front end") {
-      agent {
-        dockerfile {
-          additionalBuildArgs "--pull"
-          filename "front-end/dockerfiles/ci/Dockerfile"
-        }
-      }
-
-      steps {
-        dir("front-end") {
-          sh "rm -f node_modules && ln -s /app/node_modules node_modules"
-          sh "lein ci"
-        }
-      }
-    }
-
-    stage("Build front end") {
-      agent {
-        dockerfile {
-          filename "front-end/dockerfiles/ci/Dockerfile"
-        }
-      }
-
-      environment {
-        API_BASE_URL = "https://top10-api.cofx.nl"
-        FRONT_END_BASE_URL = "https://top10.cofx.nl"
-        GOOGLE_OAUTH2_CLIENT_ID = "442497309318-72n7detrn1ne7bprs59fv8lsm6hsfivh.apps.googleusercontent.com"
-        GOOGLE_OAUTH2_REDIRECT_URI = "https://top10.cofx.nl/oauth2/google"
-        MICROSOFT_OAUTH2_CLIENT_ID = "1861cf5d-8a7f-4c90-88ec-b4bdbb408b61"
-        MICROSOFT_OAUTH2_REDIRECT_URI = "https://top10.cofx.nl/oauth2/microsoft"
-      }
-
-      steps {
-        dir("front-end") {
-          sh "rm -f node_modules && ln -s /app/node_modules node_modules"
-          sh "lein clean"
-          sh "lein garden once"
-          sh "lein release"
-          sh "lein hash-assets"
-        }
-      }
-    }
-
     stage("Deploy back end") {
       agent any
 
       steps {
-        sh "git push -f dokku@cofx.nl:top10-api HEAD:refs/heads/master"
+        withCredentials([string(credentialsId: 'ssh-username-cofx', variable: 'USERNAME'), string(credentialsId: 'ssh-host-cofx', variable: 'HOST')]) {
+          dir("back-end") {
+            sh './deploy.sh $USERNAME $HOST'
+          }
+        }
       }
     }
 
@@ -121,13 +65,9 @@ pipeline {
       agent any
 
       steps {
-        sh "rm -rf deploy-front-end"
-        sh "git clone dokku@cofx.nl:top10 deploy-front-end"
-        sh "rm -rf deploy-front-end/dist"
-        sh "cp -R front-end/dist deploy-front-end"
-        sh "cp -R front-end/dokku/. deploy-front-end"
-        sh "cp -R front-end/azure/. deploy-front-end/dist"
-        sh "cd deploy-front-end && git add . && git commit -m \"Deploy\" --allow-empty && git push"
+        dir("front-end") {
+          sh "./deploy.sh"
+        }
       }
     }
   }
