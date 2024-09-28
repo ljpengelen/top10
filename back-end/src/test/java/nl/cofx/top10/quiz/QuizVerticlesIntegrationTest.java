@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.time.Period;
+import java.time.temporal.ChronoUnit;
 
 import static nl.cofx.top10.postgresql.PostgreSql.toTimestamptz;
 import static nl.cofx.top10.postgresql.PostgreSql.toUuid;
@@ -44,7 +45,7 @@ class QuizVerticlesIntegrationTest {
     private static final String NON_EXISTING_QUIZ_ID = "f30e86fa-f2ab-4790-ac4b-63a052534510";
 
     private static final String QUIZ_NAME = "Greatest Hits";
-    private static final Instant DEADLINE = Instant.now().plus(Period.ofDays(1));
+    private static final Instant DEADLINE = Instant.now().plus(Period.ofDays(1)).truncatedTo(ChronoUnit.MILLIS);
     private static final String USERNAME_1 = "John Doe";
     private static final String USERNAME_2 = "Jane Doe";
     private static final String EMAIL_ADDRESS_1 = "john.doe@example.com";
