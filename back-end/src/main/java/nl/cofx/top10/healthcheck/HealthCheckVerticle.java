@@ -13,7 +13,6 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.Properties;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -27,22 +26,18 @@ public class HealthCheckVerticle extends AbstractVerticle {
     private SQLClient sqlClient;
 
     private String getCommitHash() {
-        var commitHash = System.getenv("DEPLOY_REVISION");
-        if (commitHash == null) {
-            return "untracked";
-        }
+        var commitHash = System.getenv("GIT_COMMIT_HASH");
+        if (commitHash == null) return "untracked";
+
 
         return commitHash;
     }
 
     private String getVersion() {
-        var properties = new Properties();
-        try {
-            properties.load(this.getClass().getClassLoader().getResourceAsStream("build.properties"));
-            return properties.getProperty("project.version");
-        } catch (Throwable t) {
-            return "unknown";
-        }
+        var version = System.getenv("VERSION");
+        if (version == null) return "untracked";
+
+        return version;
     }
 
     private Future<Instant> getDatabaseTimestamp() {

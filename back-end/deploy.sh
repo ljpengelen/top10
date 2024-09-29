@@ -6,6 +6,7 @@ if [ -z "$1" ] || [ -z "$2" ]; then
 fi
 
 VERSION="v0.1.$(git rev-list HEAD --count)"
+GIT_COMMIT_HASH="$(git rev-parse --short HEAD)"
 USERNAME=$1
 HOST=$2
 IMAGE="dokku/top10-api:$VERSION"
@@ -14,6 +15,7 @@ DESTINATION="$USERNAME@$HOST"
 docker build \
     -t $IMAGE \
     --build-arg VERSION="$VERSION" \
+    --build-arg GIT_COMMIT_HASH="$GIT_COMMIT_HASH" \
     --platform linux/amd64 \
     -f dockerfiles/deploy/Dockerfile \
     .
