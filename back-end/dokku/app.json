@@ -1,0 +1,14 @@
+{
+    "healthchecks": {
+        "web": [
+            {
+                "attempts": 3,
+                "type": "startup",
+                "path": "/health",
+                "content": "version",
+                "initialDelay": 20,
+                "wait": 10
+            }
+        ]
+      }
+}

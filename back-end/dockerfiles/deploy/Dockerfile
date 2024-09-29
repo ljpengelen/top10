@@ -22,7 +22,7 @@ WORKDIR /app
 
 COPY --from=compilation_state /app/target/top10*.jar /app/app.jar
 
-COPY --from=compilation_state /app/CHECKS .
+COPY --from=compilation_state /app/dokku/app.json .
 
 USER appuser
 
