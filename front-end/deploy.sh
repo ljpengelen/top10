@@ -1,4 +1,6 @@
-#! /bin/sh
+#! /bin/bash
+
+set -euo pipefail
 
 export API_BASE_URL=https://top10-api.cofx.nl
 export FRONT_END_BASE_URL=https://top10.cofx.nl
