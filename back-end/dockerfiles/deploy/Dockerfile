@@ -1,4 +1,4 @@
-FROM maven:3-openjdk-17 AS compilation_state
+FROM maven:3.9.9-eclipse-temurin-17-focal AS compilation_state
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN mvn package -Dmaven.test.skip --fail-never
 COPY . .
 RUN mvn package -Dmaven.test.skip
 
-FROM openjdk:17 AS execution_stage
+FROM eclipse-temurin:17-jre-focal AS execution_stage
 
 EXPOSE 8080
 
