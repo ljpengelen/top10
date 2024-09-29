@@ -1,4 +1,4 @@
-FROM maven:3-openjdk-17 AS COMPILATION_STAGE
+FROM maven:3-openjdk-17 AS compilation_state
 
 WORKDIR /app
 
@@ -8,7 +8,7 @@ RUN mvn package -Dmaven.test.skip --fail-never
 COPY . .
 RUN mvn package -Dmaven.test.skip
 
-FROM openjdk:17 AS EXECUTION_STAGE
+FROM openjdk:17 AS execution_stage
 
 EXPOSE 8080
 
@@ -20,9 +20,9 @@ RUN mkdir /app \
 
 WORKDIR /app
 
-COPY --from=COMPILATION_STAGE /app/target/top10*.jar /app/app.jar
+COPY --from=compilation_state /app/target/top10*.jar /app/app.jar
 
-COPY --from=COMPILATION_STAGE /app/CHECKS .
+COPY --from=compilation_state /app/CHECKS .
 
 USER appuser
 
