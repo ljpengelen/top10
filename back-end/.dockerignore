@@ -1,0 +1,6 @@
+**/.idea
+**/.mvn
+**/target
+
+deploy.sh
+README.md

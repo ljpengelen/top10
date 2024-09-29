@@ -1,0 +1,10 @@
+**/.clj-kondo/.cache
+**/.lsp
+**/.shadow-cljs
+**/node_modules
+**/resources/public/css
+**/resources/public/js
+**/target
+
+deploy.sh
+README.md
