@@ -16,6 +16,7 @@ IMAGE="dokku/top10-api:$VERSION"
 DESTINATION="$USERNAME@$HOST"
 
 docker build \
+    --pull  \
     -t $IMAGE \
     --build-arg VERSION="$VERSION" \
     --platform linux/amd64 \
