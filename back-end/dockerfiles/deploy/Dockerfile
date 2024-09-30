@@ -26,8 +26,6 @@ COPY --from=compilation_state /app/dokku/app.json .
 
 USER appuser
 
-ARG GIT_COMMIT_HASH=untracked
-ENV GIT_COMMIT_HASH="${GIT_COMMIT_HASH}"
 ARG VERSION=untracked
 ENV VERSION="${VERSION}"
 

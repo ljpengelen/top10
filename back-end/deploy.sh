@@ -1,12 +1,15 @@
-#! /bin/sh
+#! /bin/bash
+
+set -euo pipefail
 
 if [ -z "$1" ] || [ -z "$2" ]; then
     echo "Usage: $0 USERNAME HOST"
     exit 1;
 fi
 
-VERSION="v0.1.$(git rev-list HEAD --count)"
 GIT_COMMIT_HASH="$(git rev-parse --short HEAD)"
+GIT_COMMIT_COUNT="$(git rev-list HEAD --count)"
+VERSION="v0.1.$GIT_COMMIT_COUNT.$GIT_COMMIT_HASH"
 USERNAME=$1
 HOST=$2
 IMAGE="dokku/top10-api:$VERSION"
@@ -15,7 +18,6 @@ DESTINATION="$USERNAME@$HOST"
 docker build \
     -t $IMAGE \
     --build-arg VERSION="$VERSION" \
-    --build-arg GIT_COMMIT_HASH="$GIT_COMMIT_HASH" \
     --platform linux/amd64 \
     -f dockerfiles/deploy/Dockerfile \
     .

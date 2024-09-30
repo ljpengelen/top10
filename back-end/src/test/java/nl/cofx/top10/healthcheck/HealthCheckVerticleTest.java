@@ -71,19 +71,6 @@ public class HealthCheckVerticleTest {
     }
 
     @Test
-    @DisplayName("Returns commit hash on every request")
-    public void returnsCommitHash() throws IOException, InterruptedException {
-        var httpClient = HttpClient.newHttpClient();
-        var request = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create("http://localhost:" + port + PATH))
-                .build();
-        var response = httpClient.send(request, new JsonObjectBodyHandler());
-
-        assertThat(response.body().getString("commitHash")).isNotBlank();
-    }
-
-    @Test
     @DisplayName("Returns version on every request")
     public void returnsVersion() throws IOException, InterruptedException {
         var httpClient = HttpClient.newHttpClient();

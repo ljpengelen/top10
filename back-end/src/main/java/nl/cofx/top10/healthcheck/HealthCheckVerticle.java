@@ -25,14 +25,6 @@ public class HealthCheckVerticle extends AbstractVerticle {
 
     private SQLClient sqlClient;
 
-    private String getCommitHash() {
-        var commitHash = System.getenv("GIT_COMMIT_HASH");
-        if (commitHash == null) return "untracked";
-
-
-        return commitHash;
-    }
-
     private String getVersion() {
         var version = System.getenv("VERSION");
         if (version == null) return "untracked";
@@ -78,7 +70,6 @@ public class HealthCheckVerticle extends AbstractVerticle {
             }
 
             response.end(new JsonObject()
-                    .put("commitHash", getCommitHash())
                     .put("version", getVersion())
                     .put("databaseTimestamp", asyncTimestamp.result())
                     .toBuffer());
