@@ -137,13 +137,21 @@ public class Application {
             var server = vertx.createHttpServer();
             server.requestHandler(router);
             var port = config.getHttpPort();
-            server.listen(port, ar -> {
-                if (ar.succeeded()) {
-                    log.info("Listening for HTTP requests on port {}", port);
-                    deployVerticles(jwt, router).onComplete(promise);
+
+            deployVerticles(jwt, router).onComplete(deploymentResult -> {
+                if (deploymentResult.succeeded()) {
+                    server.listen(port, asyncServer -> {
+                        if (asyncServer.succeeded()) {
+                            log.info("Listening for HTTP requests on port {}", port);
+                            promise.complete();
+                        } else {
+                            log.error("Failed to listen for HTTP requests on port {}", port, asyncServer.cause());
+                            promise.fail(asyncServer.cause());
+                        }
+                    });
                 } else {
-                    log.error("Failed to listen for HTTP requests on port {}", port, ar.cause());
-                    promise.fail(ar.cause());
+                    log.error("Failed to deploy verticles", deploymentResult.cause());
+                    promise.fail(deploymentResult.cause());
                 }
             });
         });
