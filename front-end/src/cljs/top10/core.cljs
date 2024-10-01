@@ -25,7 +25,7 @@
     (rdom/render [views/main-panel] root-el)))
 
 (defn init []
-  (js/console.log (version))
+  (println version)
   (dev-setup)
   (set-up-sentry)
   (routes/configure-routes)
