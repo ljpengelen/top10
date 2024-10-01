@@ -5,7 +5,8 @@
             [day8.re-frame.http-fx]
             [re-frame.core :as rf]
             [reagent.dom :as rdom]
-            [top10.config :as config :refer [version]]
+            [top10.config :as config]
+            [top10.effects :as effects]
             [top10.events :as events]
             [top10.routes :as routes]
             [top10.views.core :as views]))
@@ -25,7 +26,7 @@
     (rdom/render [views/main-panel] root-el)))
 
 (defn init []
-  (println version)
+  (println config/version)
   (dev-setup)
   (set-up-sentry)
   (routes/configure-routes)
