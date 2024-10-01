@@ -1,4 +1,5 @@
-(ns top10.config (:require-macros [top10.config :refer [api-base-url-from-env
+(ns top10.config (:require-macros [top10.config :refer [version-from-env
+                                                        api-base-url-from-env
                                                         front-end-base-url-from-env
                                                         google-oauth2-client-id-from-env
                                                         google-oauth2-redirect-uri-from-env
@@ -6,6 +7,9 @@
                                                         microsoft-oauth2-redirect-uri-from-env]]))
 
 (def debug? ^boolean goog.DEBUG)
+
+(declare version-from-env)
+(def version (or (version-from-env) "unknown"))
 
 (declare api-base-url-from-env)
 (def api-base-url (or (api-base-url-from-env)  "http://localhost:8080"))
