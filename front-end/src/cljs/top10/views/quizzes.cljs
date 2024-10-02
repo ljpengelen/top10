@@ -1,6 +1,6 @@
 (ns top10.views.quizzes
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
+            [reagent-mui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
             [top10.subs :as subs]))
 
 (defn quizzes-page [quizzes]

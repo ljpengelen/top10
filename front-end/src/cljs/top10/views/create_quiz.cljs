@@ -1,12 +1,10 @@
 (ns top10.views.create-quiz
   (:require
-   [reagent.core :as r]
-   ["@date-io/dayjs" :as dayjs-utils]
-   [reagent-material-ui.core.button :refer [button]]
-   [reagent-material-ui.pickers.date-time-picker :refer [date-time-picker]]
-   [reagent-material-ui.core.grid :refer [grid]]
-   [reagent-material-ui.core.text-field :refer [text-field]]
-   [reagent-material-ui.pickers.mui-pickers-utils-provider :refer [mui-pickers-utils-provider]]
+   [reagent.core :as r] 
+   ["@mui/x-date-pickers/AdapterDayjs" :refer [AdapterDayjs]]
+   [reagent-mui.components :refer [button grid text-field]]
+   [reagent-mui.x.date-time-picker :refer [date-time-picker]]
+   [reagent-mui.x.localization-provider :refer [localization-provider]]
    [re-frame.core :as rf]
    [top10.events :as events]
    [top10.views.base :refer [back-to-overview-button event-value]]))
@@ -26,7 +24,7 @@
         "You, the creator of this quiz, can end the quiz at any time. "
         "Once you do that, the end results will be available for all participants."]
        [:div
-        [mui-pickers-utils-provider {:utils dayjs-utils}
+        [localization-provider {:dateAdapter AdapterDayjs}
          [:form {:on-submit (fn [event]
                               (.preventDefault event)
                               (if-not @deadline
@@ -44,13 +42,14 @@
                                :ampm false
                                :disablePast true
                                :error @deadline-error
-                               :fullWidth true
-                               :format "MMMM D, YYYY HH:mm"
+                               :format "MMMM DD, YYYY HH:mm"
                                :label "Deadline"
                                :on-change (fn [new-deadline]
                                             (reset! deadline-error false)
                                             (reset! deadline new-deadline))
                                :required true
+                               :slotProps #js {:textField #js {:error @deadline-error
+                                                               :fullWidth true}}
                                :value @deadline}]]
            [grid {:item true}
             [grid {:container true :direction "row" :spacing 2}

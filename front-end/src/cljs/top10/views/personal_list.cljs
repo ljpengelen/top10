@@ -1,6 +1,6 @@
 (ns top10.views.personal-list
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button grid text-field]]
+            [reagent-mui.components :refer [button grid text-field]]
             [reagent.core :as r]
             [top10.events :as events]
             [top10.subs :as subs]
@@ -47,6 +47,7 @@
             [grid {:container true :direction "column" :spacing 2}
              [grid {:item true}
               [text-field {:disabled is-complete?
+                           :fullWidth true
                            :label "YouTube URL"
                            :on-change #(reset! new-url (event-value %))
                            :required true

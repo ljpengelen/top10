@@ -1,6 +1,6 @@
 (ns top10.views.join-quiz
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button grid]]
+            [reagent-mui.components :refer [button grid]]
             [top10.events :as events]
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button log-in-url]]))

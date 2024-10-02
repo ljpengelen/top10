@@ -1,6 +1,6 @@
 (ns top10.views.list
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button]]
+            [reagent-mui.components :refer [button]]
             [top10.subs :as subs]
             [top10.views.base :refer [embedded-video]]))
 

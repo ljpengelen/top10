@@ -1,5 +1,5 @@
 (ns top10.views.please-log-in
-  (:require [reagent-material-ui.components :refer [button grid]]
+  (:require [reagent-mui.components :refer [button grid]]
             [top10.views.base :refer [log-in-url]]))
 
 (defn please-log-in-page []

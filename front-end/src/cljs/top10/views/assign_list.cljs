@@ -1,8 +1,7 @@
 (ns top10.views.assign-list
-  (:require ["@material-ui/core" :refer [TextField]]
-            [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button grid]]
-            [reagent-material-ui.lab.autocomplete :refer [autocomplete]]
+  (:require-macros [reagent-mui.util :refer [react-component]])
+  (:require [re-frame.core :as rf]
+            [reagent-mui.components :refer [autocomplete button grid text-field]]
             [reagent.core :as r]
             [top10.events :as events]
             [top10.subs :as subs]
@@ -40,12 +39,14 @@
                  :style {:margin-top "1rem"}}
           [grid {:container true :direction "column" :spacing 2}
            [grid {:item true :xs 6}
-            [autocomplete {:get-option-label (fn [^js option] (when option (.-name option)))
-                           :get-option-selected (fn [option value] (= (.-id option) (.-id value)))
+            [autocomplete {
+                           :get-option-key (fn [^js option] (.-assigneeId option))
+                           :get-option-label (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
+                           :is-option-equal-to-value (fn [^js option ^js value] (= (.-id option) (.-id value)))
                            :on-change (fn [_ value] (reset! assignee value))
                            :options participants
-                           :render-input (fn [^js params] (r/create-element TextField params))
-                           :render-option (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
+                           :render-input #_{:clj-kondo/ignore [:unresolved-symbol]}
+                                         (react-component [props] [text-field props])
                            :required true
                            :value (or @assignee current-assignee)}]]
            [grid {:item true}

@@ -1,6 +1,6 @@
 (ns top10.views.personal-results
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
+            [reagent-mui.components :refer [button grid link table table-body table-cell table-container table-head table-row]]
             [top10.subs :as subs]))
 
 (defn personal-results-page [loading-quiz-results? quiz-id {:keys [name correctAssignments incorrectAssignments]}]

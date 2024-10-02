@@ -6,7 +6,8 @@
 /*-init.clj
 /*.log
 
-.clj-kondo/.cache
+.clj-kondo/*
+!.clj-kondo/config.edn
 
 .calva/output-window
 

@@ -1,6 +1,6 @@
 (ns top10.views.quiz-results
   (:require [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [grid link table table-body table-cell table-container table-head table-row]]
+            [reagent-mui.components :refer [grid link table table-body table-cell table-container table-head table-row]]
             [top10.subs :as subs]
             [top10.views.base :refer [back-to-overview-button]]))
 

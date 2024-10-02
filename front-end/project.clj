@@ -4,17 +4,17 @@
                   :exclusions [com.google.javascript/closure-compiler-unshaded
                                org.clojure/google-closure-library
                                org.clojure/google-closure-library-third-party]]
-                 [thheller/shadow-cljs "2.28.15"]
-                 [arttuka/reagent-material-ui "4.11.3-0"]
-                 [reagent "1.0.0"]
-                 [re-frame "1.2.0"]
-                 [day8.re-frame/async-flow-fx "0.1.0"]
-                 [day8.re-frame/http-fx "0.2.1"]
+                 [thheller/shadow-cljs "2.28.16"]
+                 [arttuka/reagent-material-ui "5.11.12-0"]
+                 [reagent "1.2.0"]
+                 [re-frame "1.4.3"]
+                 [day8.re-frame/async-flow-fx "0.4.0"]
+                 [day8.re-frame/http-fx "0.2.4"]
                  [clj-commons/secretary "1.2.4"]
-                 [expound "0.8.9"]
+                 [expound "0.9.0"]
                  [venantius/accountant "0.2.5"]
                  [garden "1.3.10"]
-                 [ns-tracker "0.4.0"]
+                 [ns-tracker "1.0.0"]
                  [digest "1.4.10"]]
 
   :plugins [[lein-garden "0.3.0"]
@@ -52,7 +52,7 @@
                             ["shell" "open" "target/build-report.html"]]}
 
   :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]
-                                   [day8.re-frame/re-frame-10x "1.2.2"]
+                                   [day8.re-frame/re-frame-10x "1.9.9"]
                                    [day8.re-frame/tracing "0.6.2"]]
                     :source-paths ["dev"]}
               :prod {}})

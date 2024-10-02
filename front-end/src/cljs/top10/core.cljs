@@ -1,10 +1,9 @@
 (ns top10.core
   (:require ["@sentry/browser" :as Sentry]
-            ["@sentry/integrations" :as SentryIntegrations]
             [day8.re-frame.async-flow-fx]
             [day8.re-frame.http-fx]
             [re-frame.core :as rf]
-            [reagent.dom :as rdom]
+            [reagent.dom.client :as rc]
             [top10.config :as config]
             #_{:clj-kondo/ignore [:unused-namespace]}
             [top10.effects :as effects]
@@ -18,13 +17,13 @@
 
 (defn set-up-sentry []
   (.init Sentry #js {:dsn "https://af15232561f8401b941d26f709e51f17@o136594.ingest.sentry.io/5403220"
-                     :integrations #js [(new SentryIntegrations/CaptureConsole #js {:levels #js ["error"]})]}))
+                     :integrations #js [(Sentry/captureConsoleIntegration #js {:levels #js ["error"]})]}))
+
+(defonce root (rc/create-root (.getElementById js/document "app")))
 
 (defn ^:dev/after-load mount-root []
   (rf/clear-subscription-cache!)
-  (let [root-el (.getElementById js/document "app")]
-    (rdom/unmount-component-at-node root-el)
-    (rdom/render [views/main-panel] root-el)))
+  (rc/render root [views/main-panel]))
 
 (defn init []
   (println config/version)

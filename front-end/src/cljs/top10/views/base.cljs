@@ -1,9 +1,9 @@
 (ns top10.views.base
   (:require [clojure.string :as string]
             [re-frame.core :as rf]
-            [reagent-material-ui.components :refer [button dialog
-                                                    dialog-actions dialog-content
-                                                    dialog-content-text dialog-title]]
+            [reagent-mui.components :refer [button dialog
+                                            dialog-actions dialog-content
+                                            dialog-content-text dialog-title]]
             [top10.config :as config]
             [top10.events :as events]
             [top10.subs :as subs]))
