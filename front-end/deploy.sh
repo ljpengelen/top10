@@ -17,7 +17,7 @@ rm -rf dist
 git clone https://github.com/ljpengelen/top10.git -b deploy dist
 cd dist && rm -rf * && cd ..
 
-npm install -legacy-peer-deps
+npm install 
 
 lein clean
 lein garden once
