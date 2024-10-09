@@ -140,6 +140,7 @@ public class Application {
 
             deployVerticles(jwt, router).onComplete(deploymentResult -> {
                 if (deploymentResult.succeeded()) {
+                    FailureHandler.add(router.getRoutes());
                     server.listen(port, asyncServer -> {
                         if (asyncServer.succeeded()) {
                             log.info("Listening for HTTP requests on port {}", port);
