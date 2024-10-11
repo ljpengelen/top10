@@ -51,8 +51,7 @@
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
                             ["shell" "open" "target/build-report.html"]]}
 
-  :profiles  {:dev {:dependencies [[binaryage/devtools "1.0.2"]
-                                   [day8.re-frame/re-frame-10x "1.9.9"]
+  :profiles  {:dev {:dependencies [[day8.re-frame/re-frame-10x "1.9.9"]
                                    [day8.re-frame/tracing "0.6.2"]]
                     :source-paths ["dev"]}
               :prod {}})
