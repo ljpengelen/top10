@@ -10,6 +10,7 @@
                  [re-frame "1.4.3"]
                  [day8.re-frame/async-flow-fx "0.4.0"]
                  [day8.re-frame/http-fx "0.2.4"]
+                 [day8.re-frame/tracing "0.6.2"]
                  [clj-commons/secretary "1.2.4"]
                  [expound "0.9.0"]
                  [venantius/accountant "0.2.5"]
@@ -51,7 +52,6 @@
                             ["run" "-m" "shadow.cljs.devtools.cli" "--npm" "run" "shadow.cljs.build-report" "app" "target/build-report.html"]
                             ["shell" "open" "target/build-report.html"]]}
 
-  :profiles  {:dev {:dependencies [[day8.re-frame/re-frame-10x "1.9.9"]
-                                   [day8.re-frame/tracing "0.6.2"]]
+  :profiles  {:dev {:dependencies [[day8.re-frame/re-frame-10x "1.9.9"]]
                     :source-paths ["dev"]}
               :prod {}})

@@ -1,4 +1,5 @@
-{:lint-as {garden.def/defstyles clojure.core/def
+{:lint-as {day8.re-frame.tracing/fn-traced clojure.core/fn
+           garden.def/defstyles clojure.core/def
            garden.selectors/defselector clojure.core/declare}
  :linters {:clojure-lsp/unused-public-var {:exclude #{top10.css/screen}}
            :unused-namespace {:exclude #{top10.effects}}
