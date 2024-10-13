@@ -1,8 +1,6 @@
 package nl.cofx.top10;
 
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -10,7 +8,7 @@ public class ErrorHandlers {
 
     public static void configure(Router router) {
         router.errorHandler(404, routingContext ->
-                respondWithErrorMessage(routingContext, 404, "Resource not found"));
+                Respond.withErrorMessage(routingContext, 404, "Resource not found"));
 
         router.errorHandler(500, routingContext -> {
             var failure = routingContext.failure();
@@ -40,14 +38,7 @@ public class ErrorHandlers {
                 log.error(message, failure);
             }
 
-            respondWithErrorMessage(routingContext, statusCode, message);
+            Respond.withErrorMessage(routingContext, statusCode, message);
         });
-    }
-
-    public static void respondWithErrorMessage(RoutingContext routingContext, int statusCode, String message) {
-        routingContext.response()
-                .putHeader("content-type", "application/json")
-                .setStatusCode(statusCode)
-                .end(new JsonObject().put("error", message).toBuffer());
     }
 }

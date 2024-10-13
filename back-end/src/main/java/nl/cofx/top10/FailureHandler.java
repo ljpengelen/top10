@@ -6,20 +6,26 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 
-import static nl.cofx.top10.ErrorHandlers.respondWithErrorMessage;
-
 @Slf4j
 public class FailureHandler {
 
-    private static void handleFailure(Route route, RoutingContext routingContext) {
-        log.error("Unexpected error when handling route for path {} and methods {}",
-                route.getPath(), route.methods(), routingContext.failure());
-        respondWithErrorMessage(routingContext, 500, "Internal server error");
+    private static void handleFailure(RoutingContext routingContext) {
+        var route = routingContext.currentRoute();
+        var statusCode = routingContext.statusCode();
+        var failure = routingContext.failure();
+        log.error("Unexpected failure when handling route for path {} and methods {} resulted in status code {}",
+                route.getPath(), route.methods(), statusCode, failure);
+        if (failure != null) {
+            Respond.withErrorMessage(routingContext, 500, "Internal server error");
+            return;
+        }
+
+        Respond.withErrorMessage(routingContext, statusCode);
     }
 
     public static void add(List<Route> routes) {
         for (Route route : routes) {
-            route.failureHandler(routingContext -> handleFailure(route, routingContext));
+            route.failureHandler(FailureHandler::handleFailure);
         }
     }
 }
