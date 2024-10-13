@@ -9,7 +9,7 @@
     <Loggers>
         <Logger name="com.mchange" level="warn"/>
         <Logger name="io.netty" level="info"/>
-        <Root level="debug">
+        <Root level="info">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="Sentry" level="warn"/>
         </Root>
