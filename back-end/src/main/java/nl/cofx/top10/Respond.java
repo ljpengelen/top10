@@ -11,10 +11,14 @@ public class Respond {
     private static final String APPLICATION_JSON = "application/json";
 
     void withErrorMessage(RoutingContext routingContext, int statusCode, String message) {
-        routingContext.response()
-                .putHeader(CONTENT_TYPE, APPLICATION_JSON)
-                .setStatusCode(statusCode)
-                .end(new JsonObject().put("error", message).toBuffer());
+        var response = routingContext.response();
+        if (!response.headWritten()) {
+            response.putHeader(CONTENT_TYPE, APPLICATION_JSON)
+                    .setStatusCode(statusCode);
+        }
+
+        if (!response.ended())
+            response.end(new JsonObject().put("error", message).toBuffer());
     }
 
     void withErrorMessage(RoutingContext routingContext, int statusCode) {
