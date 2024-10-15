@@ -10,6 +10,9 @@ public class ErrorHandlers {
         router.errorHandler(404, routingContext ->
                 Respond.withErrorMessage(routingContext, 404, "Resource not found"));
 
+        router.errorHandler(400, routingContext ->
+                Respond.withErrorMessage(routingContext, 400, "Bad request"));
+
         router.errorHandler(500, routingContext -> {
             var failure = routingContext.failure();
 
