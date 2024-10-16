@@ -13,7 +13,6 @@ import nl.cofx.top10.config.Config;
 import nl.cofx.top10.config.ProdConfig;
 import nl.cofx.top10.eventbus.MessageCodecs;
 import nl.cofx.top10.healthcheck.HealthCheckVerticle;
-import nl.cofx.top10.heartbeat.HeartbeatVerticle;
 import nl.cofx.top10.jwt.Jwt;
 import nl.cofx.top10.migration.MigrationVerticle;
 import nl.cofx.top10.quiz.ListEntityVerticle;
@@ -89,7 +88,6 @@ public class Application {
             deploy(new MigrationVerticle(config.getJdbcUrl(), config.getJdbcUsername(), config.getJdbcPassword()), deploymentOptions)
                     .compose(migrationResult ->
                             Future.all(List.of(
-                                    deploy(new HeartbeatVerticle()),
                                     deploy(new ExternalAccountVerticle(jdbcOptions)),
                                     deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey, useSecureCookies)),
