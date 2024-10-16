@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 public class FailureHandler {
 
     private static void handleFailure(RoutingContext routingContext) {
+        log.info("Handling failure");
+
         var route = routingContext.currentRoute();
         var path = route.getPath();
         var methods = route.methods();

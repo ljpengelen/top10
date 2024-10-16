@@ -7,13 +7,19 @@ import lombok.extern.slf4j.Slf4j;
 public class ErrorHandlers {
 
     public static void configure(Router router) {
-        router.errorHandler(404, routingContext ->
-                Respond.withErrorMessage(routingContext, 404, "Resource not found"));
+        router.errorHandler(404, routingContext -> {
+            log.info("Handling 404");
+            Respond.withErrorMessage(routingContext, 404, "Resource not found");
+        });
 
-        router.errorHandler(400, routingContext ->
-                Respond.withErrorMessage(routingContext, 400, "Bad request"));
+        router.errorHandler(400, routingContext -> {
+            log.info("Handling 400");
+            Respond.withErrorMessage(routingContext, 400, "Bad request");
+        });
 
         router.errorHandler(500, routingContext -> {
+            log.info("Handling 500");
+
             var failure = routingContext.failure();
 
             var message = "Internal server error";
