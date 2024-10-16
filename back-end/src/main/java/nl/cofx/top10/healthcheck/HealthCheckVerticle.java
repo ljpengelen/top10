@@ -69,9 +69,14 @@ public class HealthCheckVerticle extends AbstractVerticle {
                 return;
             }
 
+            var version = getVersion();
+            var timestamp = asyncTimestamp.result();
+
+            log.info("Version {}, timestamp {}", version, timestamp);
+
             response.end(new JsonObject()
-                    .put("version", getVersion())
-                    .put("databaseTimestamp", asyncTimestamp.result())
+                    .put("version", version)
+                    .put("databaseTimestamp", timestamp)
                     .toBuffer());
         });
     }
