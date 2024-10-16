@@ -1,6 +1,7 @@
 package nl.cofx.top10;
 
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -21,33 +22,44 @@ public class ErrorHandlers {
             log.info("Handling 500");
 
             var failure = routingContext.failure();
-
-            var message = "Internal server error";
-            var statusCode = 500;
-
-            if (failure instanceof InternalServerErrorException) {
-                message = failure.getMessage();
-                log.error(message, failure);
-            } else if (failure instanceof InvalidCredentialsException) {
-                message = failure.getMessage();
-                statusCode = 401;
-            } else if (failure instanceof ValidationException) {
-                message = failure.getMessage();
-                statusCode = 400;
-            } else if (failure instanceof ForbiddenException) {
-                message = failure.getMessage();
-                statusCode = 403;
-            } else if (failure instanceof NotFoundException) {
-                message = failure.getMessage();
-                statusCode = 404;
-            } else if (failure instanceof ConflictException) {
-                message = failure.getMessage();
-                statusCode = 409;
+            if (failure != null) {
+                handleThrowable(failure, routingContext);
             } else {
-                log.error(message, failure);
+                handleStatusCode(routingContext.statusCode(), routingContext);
             }
-
-            Respond.withErrorMessage(routingContext, statusCode, message);
         });
+    }
+
+    private static void handleStatusCode(int statusCode, RoutingContext routingContext) {
+        Respond.withErrorMessage(routingContext, statusCode);
+    }
+
+    private static void handleThrowable(Throwable failure, RoutingContext routingContext) {
+        var message = "Internal server error";
+        var statusCode = 500;
+
+        if (failure instanceof InternalServerErrorException) {
+            message = failure.getMessage();
+            log.error(message, failure);
+        } else if (failure instanceof InvalidCredentialsException) {
+            message = failure.getMessage();
+            statusCode = 401;
+        } else if (failure instanceof ValidationException) {
+            message = failure.getMessage();
+            statusCode = 400;
+        } else if (failure instanceof ForbiddenException) {
+            message = failure.getMessage();
+            statusCode = 403;
+        } else if (failure instanceof NotFoundException) {
+            message = failure.getMessage();
+            statusCode = 404;
+        } else if (failure instanceof ConflictException) {
+            message = failure.getMessage();
+            statusCode = 409;
+        } else {
+            log.error(message, failure);
+        }
+
+        Respond.withErrorMessage(routingContext, statusCode, message);
     }
 }

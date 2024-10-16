@@ -26,9 +26,10 @@ class FailureHandlerTest {
     private Router router;
 
     @BeforeEach
-    public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
+    void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
         router = Router.router(vertx);
         FailureHandler.configure(router);
+        ErrorHandlers.configure(router);
 
         var server = vertx.createHttpServer(RandomPort.httpServerOptions());
         server.requestHandler(router);
