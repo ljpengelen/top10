@@ -28,6 +28,8 @@ class FailureHandlerTest {
     @BeforeEach
     public void setUp(Vertx vertx, VertxTestContext vertxTestContext) {
         router = Router.router(vertx);
+        FailureHandler.configure(router);
+
         var server = vertx.createHttpServer(RandomPort.httpServerOptions());
         server.requestHandler(router);
 
@@ -47,7 +49,6 @@ class FailureHandlerTest {
     void respondsWithInternalServerError_givenRoutingFailureWithException() throws IOException, InterruptedException {
         router.route(HttpMethod.GET, "/").handler(routingContext ->
                 routingContext.fail(new RuntimeException("Something went wrong")));
-        FailureHandler.add(router.getRoutes());
 
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()
@@ -64,7 +65,6 @@ class FailureHandlerTest {
     void respondsWithStatusCode_givenRoutingFailureWithStatusCode() throws IOException, InterruptedException {
         router.route(HttpMethod.GET, "/").handler(routingContext ->
                 routingContext.fail(418));
-        FailureHandler.add(router.getRoutes());
 
         var httpClient = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder()

@@ -1,10 +1,8 @@
 package nl.cofx.top10;
 
-import io.vertx.ext.web.Route;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.List;
 
 @Slf4j
 public class FailureHandler {
@@ -43,9 +41,7 @@ public class FailureHandler {
         Respond.withErrorMessage(routingContext, statusCode);
     }
 
-    public static void add(List<Route> routes) {
-        for (Route route : routes) {
-            route.failureHandler(FailureHandler::handleFailure);
-        }
+    public static void configure(Router router) {
+        router.route().failureHandler(FailureHandler::handleFailure);
     }
 }

@@ -123,6 +123,7 @@ public class Application {
             router.route().handler(corsHandler);
 
             ErrorHandlers.configure(router);
+            FailureHandler.configure(router);
 
             router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
             var jwt = new Jwt(config.getJwtSecretKey());
@@ -140,7 +141,6 @@ public class Application {
 
             deployVerticles(jwt, router).onComplete(deploymentResult -> {
                 if (deploymentResult.succeeded()) {
-                    FailureHandler.add(router.getRoutes());
                     server.listen(port, asyncServer -> {
                         if (asyncServer.succeeded()) {
                             log.info("Listening for HTTP requests on port {}", port);
