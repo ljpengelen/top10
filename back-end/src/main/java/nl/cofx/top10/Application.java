@@ -121,7 +121,6 @@ public class Application {
             router.route().handler(corsHandler);
 
             ErrorHandlers.configure(router);
-            FailureHandler.configure(router);
 
             router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
             var jwt = new Jwt(config.getJwtSecretKey());
