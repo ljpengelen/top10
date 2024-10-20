@@ -5,7 +5,6 @@
             [re-frame.core :as rf]
             [reagent.dom.client :as rc]
             [top10.config :as config]
-            #_{:clj-kondo/ignore [:unused-namespace]}
             [top10.effects :as effects]
             [top10.events :as events]
             [top10.routes :as routes]
