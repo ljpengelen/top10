@@ -1,4 +1,4 @@
-(ns top10.views.core
+(ns ^:dev/always top10.views.core
   (:require [re-frame.core :as rf]
             [top10.subs :as subs]
             [top10.views.assign-list :refer [assign-list-page-container]]
