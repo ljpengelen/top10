@@ -45,7 +45,7 @@
  (fn [{:keys [x y]}]
    (js/window.scrollTo x y)))
 
-(defn relative-path [] 
+(defn relative-path []
   (.replace js/window.location.href js/window.location.origin ""))
 
 (comment (relative-path))
