@@ -86,11 +86,17 @@ public class SessionVerticle extends AbstractVerticle {
     }
 
     private JsonObject getExternalUser(String provider, String code) {
+        if (provider == null) throw invalidProviderException(provider);
+
         return switch (provider) {
             case "google" -> googleOauth2.getUser(code);
             case "microsoft" -> microsoftOauth2.getUser(code);
-            default -> throw new ValidationException(String.format("Invalid login provider: \"%s\"", provider));
+            default -> throw invalidProviderException(provider);
         };
+    }
+
+    private static ValidationException invalidProviderException(String provider) {
+        return new ValidationException(String.format("Invalid login provider: \"%s\"", provider));
     }
 
     private void handleLogOut(RoutingContext routingContext) {
