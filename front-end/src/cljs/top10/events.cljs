@@ -476,6 +476,10 @@
       "state=" state "&"
       "client_id=" client-id))))
 
+(comment
+  oauth2
+  (log-in-url :google "abcd"))
+
 (rf/reg-event-fx
  ::navigate-to-log-in-form
  [(rf/inject-cofx :relative-path) (rf/inject-cofx :random-uuid)]

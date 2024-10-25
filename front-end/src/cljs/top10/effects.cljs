@@ -48,6 +48,8 @@
 (defn relative-path [] 
   (.replace js/window.location.href js/window.location.origin ""))
 
+(comment (relative-path))
+
 (rf/reg-cofx
  :relative-path
  (fn [cofx]
@@ -56,6 +58,8 @@
 (defn random-uuid []
   (.randomUUID js/crypto))
 
+(comment (random-uuid))
+
 (rf/reg-cofx
  :random-uuid
  (fn [cofx]
@@ -63,10 +67,15 @@
 
 (def oauth-state-key "oauth-state")
 
+(defn auth-state []
+  (reader/read-string (.getItem js/sessionStorage oauth-state-key)))
+
+(comment (auth-state))
+
 (rf/reg-cofx
  :oauth-state
  (fn [cofx]
-   (assoc cofx :oauth-state (reader/read-string (.getItem js/sessionStorage oauth-state-key)))))
+   (assoc cofx :oauth-state (auth-state))))
 
 (rf/reg-fx
  :store-oauth-state
