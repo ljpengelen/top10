@@ -1,5 +1,7 @@
 (ns top10.effects
-  (:require [re-frame.core :as rf]
+  (:refer-clojure :exclude [random-uuid])
+  (:require [cljs.reader :as reader]
+            [re-frame.core :as rf]
             [top10.routes :as routes]))
 
 (rf/reg-fx
@@ -31,11 +33,42 @@
    (assoc cofx :csrf-token @csrf-token)))
 
 (rf/reg-fx
- :redirect
- (fn [url]
-   (routes/nav! url)))
+ :relative-redirect
+ (fn [url] (routes/nav! url)))
+
+(rf/reg-fx
+ :absolute-redirect
+ (fn [url] (.replace js/window.location url)))
 
 (rf/reg-fx
  :scroll-to
  (fn [{:keys [x y]}]
    (js/window.scrollTo x y)))
+
+(defn relative-path [] 
+  (.replace js/window.location.href js/window.location.origin ""))
+
+(rf/reg-cofx
+ :relative-path
+ (fn [cofx]
+   (assoc cofx :relative-path (relative-path))))
+
+(defn random-uuid []
+  (.randomUUID js/crypto))
+
+(rf/reg-cofx
+ :random-uuid
+ (fn [cofx]
+   (assoc cofx :random-uuid (random-uuid))))
+
+(def oauth-state-key "oauth-state")
+
+(rf/reg-cofx
+ :oauth-state
+ (fn [cofx]
+   (assoc cofx :oauth-state (reader/read-string (.getItem js/sessionStorage oauth-state-key)))))
+
+(rf/reg-fx
+ :store-oauth-state
+ (fn [state]
+   (.setItem js/sessionStorage oauth-state-key (pr-str state))))

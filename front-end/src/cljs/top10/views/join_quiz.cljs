@@ -3,7 +3,7 @@
             [reagent-mui.components :refer [button grid]]
             [top10.events :as events]
             [top10.subs :as subs]
-            [top10.views.base :refer [back-to-overview-button log-in-url]]))
+            [top10.views.base :refer [back-to-overview-button]]))
 
 (defn join-quiz-page [loading-quiz? logged-in? {:keys [name id deadline deadline-has-passed? isActive personalListHasDraftStatus]}]
    (when-not loading-quiz?
@@ -17,13 +17,13 @@
         [grid {:container true :spacing 2}
          [grid {:item true}
           [button {:color "primary"
-                   :variant "contained"
-                   :href (log-in-url :google)}
+                   :on-click #(rf/dispatch [::events/navigate-to-log-in-form :google])
+                   :variant "contained"}
            "Log in with Google"]]
          [grid {:item true}
           [button {:color "primary"
-                   :variant "contained"
-                   :href (log-in-url :microsoft)}
+                   :on-click #(rf/dispatch [::events/navigate-to-log-in-form :microsoft])
+                   :variant "contained"}
            "Log in with Microsoft"]]]]
        [:<>
         [:h1 name]

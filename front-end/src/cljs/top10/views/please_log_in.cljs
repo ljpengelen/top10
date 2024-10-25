@@ -1,6 +1,7 @@
 (ns top10.views.please-log-in
-  (:require [reagent-mui.components :refer [button grid]]
-            [top10.views.base :refer [log-in-url]]))
+  (:require [re-frame.core :as rf]
+            [reagent-mui.components :refer [button grid]]
+            [top10.events :as events]))
 
 (defn please-log-in-page []
   [:<>
@@ -12,11 +13,11 @@
     [grid {:container true :spacing 2}
      [grid {:item true}
       [button {:color "primary"
-               :variant "contained"
-               :href (log-in-url :google)}
+               :on-click #(rf/dispatch [::events/navigate-to-log-in-form :google])
+               :variant "contained"}
        "Log in with Google"]]
      [grid {:item true}
       [button {:color "primary"
-               :variant "contained"
-               :href (log-in-url :microsoft)}
+               :on-click #(rf/dispatch [::events/navigate-to-log-in-form :microsoft])
+               :variant "contained"}
        "Log in with Microsoft"]]]]])

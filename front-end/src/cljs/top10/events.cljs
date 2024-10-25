@@ -4,7 +4,7 @@
             [day8.re-frame.tracing :refer-macros [fn-traced]]
             [expound.alpha :as expound]
             [re-frame.core :as rf]
-            [top10.config :refer [api-base-url csrf-token-header]]
+            [top10.config :refer [api-base-url csrf-token-header oauth2]]
             [top10.db :as db]))
 
 (defn check-and-throw
@@ -125,19 +125,23 @@
 
 (rf/reg-event-fx
  ::log-in
- (fn-traced [_ [_ provider code redirect-url]]
-   {:async-flow {:first-dispatch [::check-session]
-                 :rules [{:when :seen?
-                          :events ::session-check-succeeded
-                          :dispatch [::log-in-with-back-end provider code]}
-                         {:when :seen?
-                          :events ::log-in-with-back-end-succeeded
-                          :dispatch (when redirect-url [::redirect redirect-url])
-                          :halt? true}
-                         {:when :seen-any-of?
-                          :events [::session-check-failed ::log-in-with-back-end-failed]
-                          :dispatch-n [[::request-failed] [::redirect "/"]]
-                          :halt? true}]}}))
+ [(rf/inject-cofx :oauth-state)]
+ (fn-traced [{:keys [oauth-state]} [_ provider code state]]
+   (if (= state (:uuid oauth-state))
+     {:async-flow {:first-dispatch [::check-session]
+                   :rules [{:when :seen?
+                            :events ::session-check-succeeded
+                            :dispatch [::log-in-with-back-end provider code]}
+                           {:when :seen?
+                            :events ::log-in-with-back-end-succeeded
+                            :dispatch (when (:path oauth-state) [::relative-redirect (:path oauth-state)])
+                            :halt? true}
+                           {:when :seen-any-of?
+                            :events [::session-check-failed ::log-in-with-back-end-failed]
+                            :dispatch-n [[::request-failed] [::relative-redirect "/"]]
+                            :halt? true}]}}
+     {:dispatch [::request-failed]
+      :relative-redirect "/"})))
 
 (rf/reg-event-fx
  ::log-out-with-back-end-succeeded
@@ -277,15 +281,15 @@
                  :on-failure [::request-failed]}}))
 
 (rf/reg-event-fx
- ::redirect
+ ::relative-redirect
  (fn-traced [_ [_ url]]
-   {:redirect url}))
+   {:relative-redirect url}))
 
 (rf/reg-event-fx
  ::create-quiz-succeeded
  (fn-traced [_ [_ response]]
    (let [quiz-id (get-in response [:body :id])]
-     {:redirect (str "/quiz/" quiz-id)})))
+     {:relative-redirect (str "/quiz/" quiz-id)})))
 
 (rf/reg-event-fx
  ::create-quiz
@@ -368,7 +372,7 @@
 (rf/reg-event-fx
  ::finalize-list-succeeded
  (fn-traced [_ [_ quiz-id list-id]]
-   {:redirect (str "/quiz/" quiz-id "/list/" list-id "/personal")}))
+   {:relative-redirect (str "/quiz/" quiz-id "/list/" list-id "/personal")}))
 
 (rf/reg-event-fx
  ::finalize-list
@@ -385,7 +389,7 @@
 (rf/reg-event-fx
  ::assign-list-succeeded
  (fn-traced [_ [_ quiz-id]]
-   {:redirect (str "/quiz/" quiz-id)}))
+   {:relative-redirect (str "/quiz/" quiz-id)}))
 
 (rf/reg-event-fx
  ::assign-list
@@ -408,7 +412,7 @@
      {:db (-> db
               (assoc-in [:quiz :personalListId] personal-list-id)
               (assoc-in [:quiz :personalListHasDraftStatus] true))
-      :redirect (str "/quiz/" quiz-id)})))
+      :relative-redirect (str "/quiz/" quiz-id)})))
 
 (rf/reg-event-fx
  ::participate-in-quiz
@@ -425,7 +429,7 @@
 (rf/reg-event-fx
  ::complete-quiz-succeeded
  (fn-traced [_ _]
-   {:redirect "/quizzes"}))
+   {:relative-redirect "/quizzes"}))
 
 (rf/reg-event-fx
  ::complete-quiz
@@ -460,3 +464,23 @@
                       :response-format ring-json-response-format
                       :on-success [::get-quiz-results-succeeded]
                       :on-failure [::request-failed]}]}))))
+
+(defn log-in-url
+  ([provider state]
+   (let [{:keys [client-id endpoint redirect-uri scope]} (provider oauth2)]
+     (str
+      endpoint "?"
+      "response_type=code&"
+      "scope=" scope "&"
+      "redirect_uri=" redirect-uri "&"
+      "state=" state "&"
+      "client_id=" client-id))))
+
+(rf/reg-event-fx
+ ::navigate-to-log-in-form
+ [(rf/inject-cofx :relative-path) (rf/inject-cofx :random-uuid)]
+ (fn-traced [{:keys [relative-path random-uuid]} [_ provider path]]
+   (let [path (or path relative-path)]
+     {:store-oauth-state {:uuid random-uuid
+                          :path path}
+      :absolute-redirect (log-in-url provider random-uuid)})))

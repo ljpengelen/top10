@@ -4,7 +4,6 @@
             [reagent-mui.components :refer [button dialog
                                             dialog-actions dialog-content
                                             dialog-content-text dialog-title]]
-            [top10.config :as config]
             [top10.events :as events]
             [top10.subs :as subs]))
 
@@ -12,19 +11,6 @@
   [button {:href "/quizzes"} "Show quiz overview"])
 
 (defn event-value [^js/Event e] (.. e -target -value))
-
-(defn log-in-url
-  ([provider]
-   (log-in-url provider (js/window.location.href.replace js/window.location.origin "")))
-  ([provider landing-page]
-   (let [{:keys [client-id endpoint redirect-uri scope]} (provider config/oauth2)]
-     (str
-      endpoint "?"
-      "response_type=code&"
-      "scope=" scope "&"
-      "redirect_uri=" redirect-uri "&"
-      "state=" (js/encodeURIComponent landing-page) "&"
-      "client_id=" client-id))))
 
 (defn iframe [url]
   [:iframe {:allow "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

@@ -2,8 +2,7 @@
   (:require [re-frame.core :as rf]
             [reagent-mui.components :refer [button grid]]
             [top10.events :as events]
-            [top10.subs :as subs]
-            [top10.views.base :refer [log-in-url]]))
+            [top10.subs :as subs]))
 
 (defn home-page []
   (let [logged-in? @(rf/subscribe [::subs/logged-in?])]
@@ -42,11 +41,11 @@
          [:<>
           [grid {:item true}
            [button {:color "primary"
-                    :variant "contained"
-                    :href (log-in-url :google "/quizzes")}
+                    :on-click #(rf/dispatch [::events/navigate-to-log-in-form :google "/quizzes"])
+                    :variant "contained"}
             "Log in with Google"]]
           [grid {:item true}
            [button {:color "primary"
                     :variant "contained"
-                    :href (log-in-url :microsoft "/quizzes")}
+                    :on-click #(rf/dispatch [::events/navigate-to-log-in-form :microsoft "/quizzes"])}
             "Log in with Microsoft"]]])]]]))
