@@ -8,6 +8,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import nl.cofx.top10.InvalidCredentialsException;
@@ -22,14 +23,20 @@ public class GoogleOauth2 {
     private static final JsonFactory JSON_FACTORY = GsonFactory.getDefaultInstance();
 
     private final GoogleIdTokenVerifier googleIdTokenVerifier;
+
     private final String clientId;
     private final String clientSecret;
+    private final String endpoint;
     private final String redirectUri;
+    private final String scope;
 
     public GoogleOauth2(Config config) {
         clientId = config.getGoogleOauth2ClientId();
         clientSecret = config.getGoogleOauth2ClientSecret();
-        redirectUri = config.getGoogleOauth2RedirectUri();
+        endpoint = config.getGoogleOauth2Endpoint();
+        redirectUri = config.getGoogleOauth2RedirectUrl();
+        scope = config.getGoogleOauth2Scope();
+
         googleIdTokenVerifier = new GoogleIdTokenVerifier.Builder(HTTP_TRANSPORT, JSON_FACTORY)
                 .setAudience(Collections.singletonList(clientId))
                 .build();
@@ -61,5 +68,13 @@ public class GoogleOauth2 {
             log.debug("Unable to get ID token for authorization code \"{}\"", code, e);
             throw new InvalidCredentialsException(String.format("Invalid authorization code: \"%s\"", code));
         }
+    }
+
+    public void redirectToLoginForm(RoutingContext routingContext, String state) {
+        routingContext.redirect(endpoint + "?response_type=code&" +
+                "scope=" + scope + "&" +
+                "redirect_uri=" + redirectUri + "&" +
+                "state=" + state + "&" +
+                "client_id=" + clientId);
     }
 }

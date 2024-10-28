@@ -1,9 +1,9 @@
 package nl.cofx.top10.config;
 
-import javax.crypto.SecretKey;
-
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
+
+import javax.crypto.SecretKey;
 
 public interface Config {
 
@@ -13,13 +13,23 @@ public interface Config {
 
     String getGoogleOauth2ClientSecret();
 
-    String getGoogleOauth2RedirectUri();
+    String getGoogleOauth2Endpoint();
+
+    String getGoogleOauth2RedirectUrl();
+
+    String getGoogleOauth2Scope();
+
+    String getHomeUrl();
 
     String getMicrosoftOauth2ClientId();
 
     String getMicrosoftOauth2ClientSecret();
 
-    String getMicrosoftOauth2RedirectUri();
+    String getMicrosoftOauth2Endpoint();
+
+    String getMicrosoftOauth2RedirectUrl();
+
+    String getMicrosoftOauth2Scope();
 
     int getHttpPort();
 

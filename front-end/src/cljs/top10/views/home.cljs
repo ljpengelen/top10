@@ -31,7 +31,7 @@
           [grid {:item true}
            [button {:color "primary"
                     :variant "contained"
-                    :on-click #(rf/dispatch [::events/log-out])}
+                    :on-click #(rf/dispatch [::events/initiate-log-out])}
             "Log out"]]
           [grid {:item true}
            [button {:color "primary"
@@ -41,11 +41,11 @@
          [:<>
           [grid {:item true}
            [button {:color "primary"
-                    :on-click #(rf/dispatch [::events/navigate-to-log-in-form :google "/quizzes"])
+                    :on-click #(rf/dispatch [::events/initiate-login :google "/quizzes"])
                     :variant "contained"}
             "Log in with Google"]]
           [grid {:item true}
            [button {:color "primary"
                     :variant "contained"
-                    :on-click #(rf/dispatch [::events/navigate-to-log-in-form :microsoft "/quizzes"])}
+                    :on-click #(rf/dispatch [::events/initiate-login :microsoft "/quizzes"])}
             "Log in with Microsoft"]]])]]]))

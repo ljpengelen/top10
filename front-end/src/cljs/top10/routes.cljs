@@ -14,8 +14,7 @@
 
 (defn configure-routes []
   (defroute "/" [] (rf/dispatch [::events/navigate {:page :home-page}]))
-  (defroute "/oauth2/:provider" {provider :provider
-                                 {:keys [code state]} :query-params} (rf/dispatch [::events/log-in provider code state]))
+  (defroute "/oauth" {{:keys [code state]} :query-params} (rf/dispatch [::events/log-in code state]))
   (defroute "/quizzes" [] (rf/dispatch [::events/navigate {:page :quizzes-page}]))
   (defroute "/quiz/:id" [id] (rf/dispatch [::events/navigate {:page :quiz-page :quiz-id id}]))
   (defroute "/quiz/:id/complete" [id] (rf/dispatch [::events/navigate {:page :complete-quiz-page :quiz-id id}]))

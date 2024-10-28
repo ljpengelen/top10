@@ -148,4 +148,5 @@
    :logged-in? false
    :active-page :blank
    :dialog {:show? false}
+   :digests {}
    :loading-quiz-participants? false})
