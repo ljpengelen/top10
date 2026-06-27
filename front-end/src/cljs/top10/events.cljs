@@ -1,11 +1,12 @@
 (ns top10.events
-  (:require [ajax.core :as ajax]
-            [cljs.spec.alpha :as s]
-            [day8.re-frame.tracing :refer-macros [fn-traced]]
-            [expound.alpha :as expound]
-            [re-frame.core :as rf]
-            [top10.config :refer [api-base-url csrf-token-header oauth2]]
-            [top10.db :as db]))
+  (:require
+   [ajax.core :as ajax]
+   [cljs.spec.alpha :as s]
+   [day8.re-frame.tracing :refer-macros [fn-traced]]
+   [expound.alpha :as expound]
+   [re-frame.core :as rf]
+   [top10.config :refer [api-base-url oauth2 redirect-url]]
+   [top10.db :as db]))
 
 (defn check-and-throw
   [spec db]
@@ -19,19 +20,34 @@
  (fn-traced [_ _]
    {:enable-browser-navigation nil}))
 
+(rf/reg-event-db
+ ::access-token-found
+ (fn-traced [db _]
+   (assoc db :logged-in? true)))
+
+(rf/reg-event-fx ::no-access-token-found (fn-traced [_ _]))
+
+(rf/reg-event-fx
+ ::check-access-token
+ [(rf/inject-cofx :access-token)]
+ (fn-traced [{:keys [access-token]} [_ _]]
+   (if access-token
+     (rf/dispatch [::access-token-found])
+     (rf/dispatch [::no-access-token-found]))))
+
 (rf/reg-event-fx
  ::initialize
  [check-spec-interceptor]
  (fn-traced [_ _]
    {:db db/default-db
-    :async-flow {:first-dispatch [::check-session]
+    :async-flow {:first-dispatch [::check-access-token]
                  :rules [{:when :seen?
-                          :events ::session-check-succeeded
+                          :events ::access-token-found
                           :dispatch [::enable-browser-navigation]
                           :halt? true}
                          {:when :seen?
-                          :events ::session-check-failed
-                          :dispatch-n [[::enable-browser-navigation] [::request-failed]]
+                          :events ::no-access-token-found
+                          :dispatch [::enable-browser-navigation]
                           :halt? true}]}}))
 
 (rf/reg-event-fx
@@ -67,120 +83,81 @@
     :scroll-to {:x 0
                 :y 0}}))
 
-(rf/reg-event-fx
- ::session-check-succeeded
- [check-spec-interceptor]
- (fn-traced [{:keys [db]} [_ response]]
-   (let [status (get-in response [:body :status])
-         new-access-token (get-in response [:body :token])
-         new-csrf-token (get-in response [:headers csrf-token-header])]
-     {:set-access-token new-access-token
-      :set-csrf-token new-csrf-token
-      :db (assoc db :logged-in? (= "VALID_SESSION" status))})))
-
 (def ring-json-response-format (ajax/ring-response-format {:format (ajax/json-response-format {:keywords? true})}))
 
 (rf/reg-event-fx
- ::session-check-failed
- (fn-traced [_ _]))
-
-(rf/reg-event-fx
- ::check-session
- (fn-traced [_ _]
-   {:http-xhrio {:method :get
-                 :uri (str api-base-url "/session/status")
-                 :response-format ring-json-response-format
-                 :with-credentials true
-                 :on-success [::session-check-succeeded]
-                 :on-failure [::session-check-failed]}}))
-
-(rf/reg-event-fx
- ::log-in-with-back-end-succeeded
+ ::token-fetch-succeeded
  [check-spec-interceptor]
  (fn-traced [{:keys [db]} [_ response]]
-   (let [status (get-in response [:body :status])
-         new-access-token (get-in response [:body :token])
-         new-csrf-token (get-in response [:headers csrf-token-header])]
+   (let [new-access-token (get-in response [:body :token])]
      {:set-access-token new-access-token
-      :set-csrf-token new-csrf-token
-      :db (assoc db :logged-in? (= "SESSION_CREATED" status))})))
+      :db (assoc db :logged-in? true)})))
 
 (rf/reg-event-fx
- ::log-in-with-back-end-failed
+ ::token-fetch-failed
  (fn-traced [_ _]))
 
 (rf/reg-event-fx
- ::log-in-with-back-end
- [(rf/inject-cofx :csrf-token)]
- (fn-traced [{:keys [csrf-token]} [_ provider code]]
+ ::fetch-token
+ (fn-traced [_ [_ code code-verifier]]
    {:http-xhrio {:method :post
-                 :uri (str api-base-url "/session/logIn")
-                 :headers {csrf-token-header csrf-token}
-                 :params {:code code :provider provider}
+                 :uri (str api-base-url "/oauth/token")
+                 :params {:code code :codeVerifier code-verifier :redirectUrl redirect-url}
                  :format (ajax/json-request-format)
                  :response-format ring-json-response-format
                  :with-credentials true
-                 :on-success [::log-in-with-back-end-succeeded]
-                 :on-failure [::log-in-with-back-end-failed]}}))
+                 :on-success [::token-fetch-succeeded]
+                 :on-failure [::token-fetch-failed]}}))
 
 (rf/reg-event-fx
  ::log-in
  [(rf/inject-cofx :oauth-state)]
- (fn-traced [{:keys [oauth-state]} [_ provider code state]]
-   (if (= state (:uuid oauth-state))
-     {:async-flow {:first-dispatch [::check-session]
+ (fn-traced [{{:keys [code-verifier path state]} :oauth-state} [_ code returned-state]]
+   (if (= state returned-state)
+     {:async-flow {:first-dispatch [::fetch-token code code-verifier]
                    :rules [{:when :seen?
-                            :events ::session-check-succeeded
-                            :dispatch [::log-in-with-back-end provider code]}
-                           {:when :seen?
-                            :events ::log-in-with-back-end-succeeded
-                            :dispatch (when (:path oauth-state) [::relative-redirect (:path oauth-state)])
+                            :events ::token-fetch-succeeded
+                            :dispatch [::relative-redirect path]
                             :halt? true}
-                           {:when :seen-any-of?
-                            :events [::session-check-failed ::log-in-with-back-end-failed]
+                           {:when :seen?
+                            :events ::token-fetch-failed
                             :dispatch-n [[::request-failed] [::relative-redirect "/"]]
-                            :halt? true}]}}
+                            :halt? true}
+                           ]}}
      {:dispatch [::request-failed]
       :relative-redirect "/"})))
 
 (rf/reg-event-fx
- ::log-out-with-back-end-succeeded
+ ::log-out-succeeded
  [check-spec-interceptor]
- (fn-traced [{:keys [db]} [_ response]]
-   (let [new-csrf-token (get-in response [:headers csrf-token-header])]
-     {:set-csrf-token new-csrf-token
-      :db (assoc db :logged-in? false)})))
+ (fn-traced [{:keys [db]} [_ _]]
+   {:db (assoc db :logged-in? false)}))
 
 (rf/reg-event-fx
- ::log-out-with-back-end-failed
+ ::log-out-failed
  (fn-traced [_ _]))
-
-(rf/reg-event-fx
- ::log-out-with-backend
- [(rf/inject-cofx :csrf-token)]
- (fn-traced [{:keys [csrf-token]} _]
-   {:set-access-token nil
-    :http-xhrio {:method :post
-                 :uri (str api-base-url "/session/logOut")
-                 :headers {csrf-token-header csrf-token}
-                 :format (ajax/json-request-format)
-                 :response-format (ajax/ring-response-format)
-                 :with-credentials true
-                 :on-success [::log-out-with-back-end-succeeded]
-                 :on-failure [::log-out-with-back-end-failed]}}))
 
 (rf/reg-event-fx
  ::log-out
  (fn-traced [_ _]
-   {:async-flow {:first-dispatch [::check-session]
+   {:set-access-token nil
+    :http-xhrio {:method :post
+                 :uri (str api-base-url "/oauth/log-out")
+                 :format (ajax/json-request-format)
+                 :response-format (ajax/ring-response-format)
+                 :with-credentials true
+                 :on-success [::log-out-succeeded]
+                 :on-failure [::log-out-failed]}}))
+
+(rf/reg-event-fx
+ ::initiate-log-out
+ (fn-traced [_ _]
+   {:async-flow {:first-dispatch [::log-out]
                  :rules [{:when :seen?
-                          :events ::session-check-succeeded
-                          :dispatch [::log-out-with-backend]}
-                         {:when :seen-all-of?
-                          :events [::session-check-succeeded ::log-out-with-back-end-succeeded]
+                          :events ::log-out-succeeded
                           :halt? true}
-                         {:when :seen-any-of?
-                          :events [::session-check-failed ::log-out-with-back-end-failed]
+                         {:when :seen?
+                          :events :log-out-failed
                           :dispatch [::request-failed]
                           :halt? true}]}}))
 
@@ -465,26 +442,59 @@
                       :on-success [::get-quiz-results-succeeded]
                       :on-failure [::request-failed]}]}))))
 
+(rf/reg-event-fx
+ ::initiate-login
+ [(rf/inject-cofx :relative-path) (rf/inject-cofx :random-uuid [:code :state])]
+ (fn-traced [{:keys [relative-path] {:keys [code state]} :random-uuid} [_ provider path]]
+   (let [path (or path relative-path)]
+     {:async-flow {:first-dispatch [::calculate-digest code]
+                   :rules [{:when :seen?
+                            :events ::digest-calculated
+                            :dispatch [::store-oauth-state {:code code :path path :state state}]}
+                           {:when :seen?
+                            :events ::oauth-state-stored
+                            :dispatch [::navigate-to-log-in-form provider]
+                            :halt? true}]}})))
+
 (defn log-in-url
-  ([provider state]
-   (let [{:keys [client-id endpoint redirect-uri scope]} (provider oauth2)]
-     (str
-      endpoint "?"
-      "response_type=code&"
-      "scope=" scope "&"
-      "redirect_uri=" redirect-uri "&"
-      "state=" state "&"
-      "client_id=" client-id))))
+  ([code-challenge provider state]
+   (str
+    (:authorize-endpoint oauth2) "?"
+    "code_challenge=" code-challenge "&"
+    "provider=" (name provider) "&"
+    "redirect_url=" redirect-url "&"
+    "state=" state)))
 
 (comment
   oauth2
-  (log-in-url :google "abcd"))
+  (log-in-url "challenge" :google "state"))
 
 (rf/reg-event-fx
  ::navigate-to-log-in-form
- [(rf/inject-cofx :relative-path) (rf/inject-cofx :random-uuid)]
- (fn-traced [{:keys [relative-path random-uuid]} [_ provider path]]
-   (let [path (or path relative-path)]
-     {:store-oauth-state {:uuid random-uuid
-                          :path path}
-      :absolute-redirect (log-in-url provider random-uuid)})))
+ [(rf/inject-cofx :oauth-state)]
+ (fn-traced [{{:keys [code-challenge state]} :oauth-state} [_ provider]]
+   {:absolute-redirect (log-in-url code-challenge provider state)}))
+
+(rf/reg-event-fx
+ ::calculate-digest 
+ (fn-traced [_ [_ value]]
+   {:calculate-digest value}))
+
+(rf/reg-event-db
+ ::digest-calculated
+ [check-spec-interceptor]
+ (fn-traced [db [_ value digest]]
+   (assoc-in db [:digests value] digest)))
+
+(rf/reg-event-fx ::oauth-state-stored (fn-traced [_ _]))
+
+(rf/reg-event-fx
+ ::store-oauth-state
+ [check-spec-interceptor]
+ (fn-traced [{:keys [db]} [_ {:keys [code path state]}]]
+   (when-let [digest (get-in db [:digests code])]
+     {:dispatch [::oauth-state-stored]
+      :store-oauth-state {:code-challenge digest
+                          :code-verifier code
+                          :path path
+                          :state state}})))

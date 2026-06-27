@@ -5,7 +5,7 @@
             [reagent.core :as r]
             [top10.events :as events]
             [top10.subs :as subs]
-            [top10.views.base :refer [embedded-video]]))
+            [top10.views.base :refer [embedded-videos]]))
 
 (defn assign-list-page []
   (let [assignee (r/atom nil)]
@@ -17,21 +17,7 @@
           "The playlist below contains someone's 10 favorite songs. "
           "Do you know who's top 10 this is? "
           "Until the quiz has ended, you can come back and change your assignment anytime."]
-         [:p
-          "To see an overview of all the songs on this list, "
-          "use the playlist button "
-          [:svg {:xmlns "http://www.w3.org/2000/svg" :width "24" :height "24" :viewBox "0 0 24 24" :fill "#000000" :style {:vertical-align "bottom"}}
-           [:g
-            [:rect {:fill "none" :height "24" :width "24"}]]
-           [:g
-            [:g
-             [:rect {:height "2" :width "11" :x "3" :y "10"}]
-             [:rect {:height "2" :width "11" :x "3" :y "6"}]
-             [:rect {:height "2" :width "7" :x "3" :y "14"}]
-             [:polygon {:points "16,13 16,21 22,17"}]]]]
-          " in the top-right corner."]
-         [:div {:class "ytEmbeddedContainer"}
-          [embedded-video (first videos) videos]]
+         [embedded-videos videos]
          [:form {:on-submit (fn [event]
                               (.preventDefault event)
                               (when @assignee
@@ -39,14 +25,12 @@
                  :style {:margin-top "1rem"}}
           [grid {:container true :direction "column" :spacing 2}
            [grid {:item true :xs 6}
-            [autocomplete {
-                           :get-option-key (fn [^js option] (.-assigneeId option))
+            [autocomplete {:get-option-key (fn [^js option] (.-assigneeId option))
                            :get-option-label (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
                            :is-option-equal-to-value (fn [^js option ^js value] (= (.-id option) (.-id value)))
                            :on-change (fn [_ value] (reset! assignee value))
                            :options participants
-                           :render-input #_{:clj-kondo/ignore [:unresolved-symbol]}
-                                         (react-component [props] [text-field props])
+                           :render-input (react-component [props] [text-field props])
                            :required true
                            :value (or @assignee current-assignee)}]]
            [grid {:item true}

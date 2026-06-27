@@ -15,6 +15,7 @@ import nl.cofx.top10.eventbus.MessageCodecs;
 import nl.cofx.top10.healthcheck.HealthCheckVerticle;
 import nl.cofx.top10.jwt.Jwt;
 import nl.cofx.top10.migration.MigrationVerticle;
+import nl.cofx.top10.oauth.OAuthVerticle;
 import nl.cofx.top10.quiz.ListEntityVerticle;
 import nl.cofx.top10.quiz.ListHttpVerticle;
 import nl.cofx.top10.quiz.QuizEntityVerticle;
@@ -80,6 +81,7 @@ public class Application {
         return Future.future(promise -> {
             log.info("Deploying verticles");
 
+            var homeUrl = config.getHomeUrl();
             var jdbcOptions = config.getJdbcOptions();
             var jwtSecretKey = config.getJwtSecretKey();
             var useSecureCookies = config.useSecureCookies();
@@ -89,6 +91,7 @@ public class Application {
                     .compose(migrationResult ->
                             Future.all(List.of(
                                     deploy(new ExternalAccountVerticle(jdbcOptions)),
+                                    deploy(new OAuthVerticle(googleOauth2, homeUrl, jwt, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new QuizHttpVerticle(router)),

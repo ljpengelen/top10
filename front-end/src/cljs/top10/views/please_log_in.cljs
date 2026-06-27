@@ -13,11 +13,11 @@
     [grid {:container true :spacing 2}
      [grid {:item true}
       [button {:color "primary"
-               :on-click #(rf/dispatch [::events/navigate-to-log-in-form :google])
+               :on-click #(rf/dispatch [::events/initiate-login :google])
                :variant "contained"}
        "Log in with Google"]]
      [grid {:item true}
       [button {:color "primary"
-               :on-click #(rf/dispatch [::events/navigate-to-log-in-form :microsoft])
+               :on-click #(rf/dispatch [::events/initiate-login :microsoft])
                :variant "contained"}
        "Log in with Microsoft"]]]]])

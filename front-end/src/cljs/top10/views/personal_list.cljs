@@ -4,7 +4,7 @@
             [reagent.core :as r]
             [top10.events :as events]
             [top10.subs :as subs]
-            [top10.views.base :refer [embedded-video event-value]]))
+            [top10.views.base :refer [embedded-video embedded-videos event-value]]))
 
 (defn back-to-quiz-button [quiz-id]
   [button {:href (str "/quiz/" quiz-id)} "Show quiz"])
@@ -14,8 +14,7 @@
    [:p
     "This is a playlist of the 10 songs you picked for this quiz. "
     "Do you think anyone will know they're yours?"]
-   [:div {:class "ytEmbeddedContainer"}
-    [embedded-video (first videos) videos]]
+   [embedded-videos videos]
    [back-to-quiz-button quiz-id]])
 
 (defn draft-list []

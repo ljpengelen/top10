@@ -1,7 +1,7 @@
 (ns top10.views.base
   (:require [clojure.string :as string]
             [re-frame.core :as rf]
-            [reagent-mui.components :refer [button dialog
+            [reagent-mui.components :refer [button dialog grid
                                             dialog-actions dialog-content
                                             dialog-content-text dialog-title]]
             [top10.events :as events]
@@ -28,6 +28,14 @@
          ids (map :referenceId videos)
          joined-ids (string/join "," ids)]
      (iframe (str video-url-prefix first-video-id "?playlist=" joined-ids)))))
+
+(defn embedded-videos [videos]
+  [grid {:container true :direction "column" :spacing 2}
+   (for [video videos]
+     ^{:key (:id video)}
+     [:<>
+      [grid {:class "ytEmbeddedContainer" :item true}
+       [embedded-video video]]])])
 
 (defn base-page [content]
   (let [show-dialog? @(rf/subscribe [::subs/show-dialog?])

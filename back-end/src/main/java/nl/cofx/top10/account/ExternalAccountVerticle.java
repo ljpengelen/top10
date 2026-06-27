@@ -112,14 +112,11 @@ public class ExternalAccountVerticle extends AbstractEntityVerticle {
     }
 
     private String getRetrievalTemplate(String provider) {
-        switch (provider) {
-            case "google":
-                return GET_ACCOUNT_BY_GOOGLE_ID_TEMPLATE;
-            case "microsoft":
-                return GET_ACCOUNT_BY_MICROSOFT_ID_TEMPLATE;
-            default:
-                throw new IllegalStateException(String.format("Unexpected provider: \"%s\"", provider));
-        }
+        return switch (provider) {
+            case "google" -> GET_ACCOUNT_BY_GOOGLE_ID_TEMPLATE;
+            case "microsoft" -> GET_ACCOUNT_BY_MICROSOFT_ID_TEMPLATE;
+            default -> throw new IllegalArgumentException(String.format("Unexpected provider: \"%s\"", provider));
+        };
     }
 
     private Future<Void> updateStatisticsForAccount(String accountId) {
@@ -175,13 +172,10 @@ public class ExternalAccountVerticle extends AbstractEntityVerticle {
     }
 
     private String getCreationTemplate(String provider) {
-        switch (provider) {
-            case "google":
-                return CREATE_GOOGLE_ACCOUNT_TEMPLATE;
-            case "microsoft":
-                return CREATE_MICROSOFT_ACCOUNT_TEMPLATE;
-            default:
-                throw new IllegalStateException(String.format("Invalid provider: \"%s\"", provider));
-        }
+        return switch (provider) {
+            case "google" -> CREATE_GOOGLE_ACCOUNT_TEMPLATE;
+            case "microsoft" -> CREATE_MICROSOFT_ACCOUNT_TEMPLATE;
+            default -> throw new IllegalArgumentException(String.format("Invalid provider: \"%s\"", provider));
+        };
     }
 }

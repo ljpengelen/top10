@@ -42,7 +42,7 @@ public class ListRepository {
                                                                    + "JOIN list l2 ON l1.quiz_id = l2.quiz_id "
                                                                    + "JOIN quiz q ON l1.quiz_id = q.quiz_id "
                                                                    + "WHERE l1.account_id = ? AND l2.list_id = ? "
-                                                                   + "AND (q.deadline <= NOW() OR l1.list_id = l2.list_id)";
+                                                                   + "AND (q.deadline <= NOW() OR q.is_active = false OR l1.list_id = l2.list_id)";
     private static final String ACCOUNT_PARTICIPATES_IN_QUIZ_TEMPLATE = "SELECT COUNT(l.account_id) FROM list l "
                                                                         + "JOIN account a ON l.account_id = a.account_id "
                                                                         + "WHERE a.account_id = ? AND l.quiz_id = ?";
