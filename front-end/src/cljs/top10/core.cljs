@@ -25,7 +25,7 @@
   (rc/render root [views/main-panel]))
 
 (defn init []
-  (println config/version)
+  (println "version:" config/version)
   (dev-setup)
   (set-up-sentry)
   (routes/configure-routes)
