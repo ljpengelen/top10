@@ -45,8 +45,7 @@
                            :is-option-equal-to-value (fn [^js option ^js value] (= (.-id option) (.-id value)))
                            :on-change (fn [_ value] (reset! assignee value))
                            :options participants
-                           :render-input #_{:clj-kondo/ignore [:unresolved-symbol]}
-                                         (react-component [props] [text-field props])
+                           :render-input (react-component [props] [text-field props])
                            :required true
                            :value (or @assignee current-assignee)}]]
            [grid {:item true}
