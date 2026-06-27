@@ -194,7 +194,7 @@ public class ListHttpVerticle extends AbstractVerticle {
     private void handleGetOne(RoutingContext routingContext) {
         var listId = routingContext.pathParam("listId");
 
-        log.debug(String.format("Get list \"%s\"", listId));
+        log.debug("Get list \"{}\"", listId);
 
         var accountId = routingContext.user().principal().getString("accountId");
         var getListRequest = new JsonObject()
