@@ -39,8 +39,7 @@
                  :style {:margin-top "1rem"}}
           [grid {:container true :direction "column" :spacing 2}
            [grid {:item true :xs 6}
-            [autocomplete {
-                           :get-option-key (fn [^js option] (.-assigneeId option))
+            [autocomplete {:get-option-key (fn [^js option] (.-assigneeId option))
                            :get-option-label (fn [^js option] (str (when (seq (.-assignedLists option)) "✓ ") (.-name option)))
                            :is-option-equal-to-value (fn [^js option ^js value] (= (.-id option) (.-id value)))
                            :on-change (fn [_ value] (reset! assignee value))
