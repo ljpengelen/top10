@@ -9,7 +9,7 @@
 .clj-kondo/*
 !.clj-kondo/config.edn
 
-.calva/output-window
+.calva
 
 /.lein-*
 /.lsp
