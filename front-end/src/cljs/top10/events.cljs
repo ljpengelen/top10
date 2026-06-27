@@ -23,7 +23,6 @@
 (rf/reg-event-db
  ::access-token-found
  (fn-traced [db _]
-   (print "found")
    (assoc db :logged-in? true)))
 
 (rf/reg-event-fx ::no-access-token-found (fn-traced [_ _]))
@@ -32,7 +31,6 @@
  ::check-access-token
  [(rf/inject-cofx :access-token)]
  (fn-traced [{:keys [access-token]} [_ _]]
-   (print access-token)
    (if access-token
      (rf/dispatch [::access-token-found])
      (rf/dispatch [::no-access-token-found]))))
