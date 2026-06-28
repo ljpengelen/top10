@@ -20,7 +20,10 @@ import nl.cofx.top10.quiz.ListEntityVerticle;
 import nl.cofx.top10.quiz.ListHttpVerticle;
 import nl.cofx.top10.quiz.QuizEntityVerticle;
 import nl.cofx.top10.quiz.QuizHttpVerticle;
-import nl.cofx.top10.session.*;
+import nl.cofx.top10.session.GoogleOauth2;
+import nl.cofx.top10.session.JwtSessionHandler;
+import nl.cofx.top10.session.MicrosoftOauth2;
+import nl.cofx.top10.session.PrivateRouteHandler;
 import nl.cofx.top10.session.csrf.CsrfHeaderChecker;
 import nl.cofx.top10.session.csrf.CsrfTokenHandler;
 
@@ -92,8 +95,6 @@ public class Application {
                             Future.all(List.of(
                                     deploy(new ExternalAccountVerticle(jdbcOptions)),
                                     deploy(new OAuthVerticle(googleOauth2, homeUrl, jwt, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
-                                    deploy(new SessionVerticle(googleOauth2, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
-                                    deploy(new SessionStatusVerticle(jwt, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new QuizHttpVerticle(router)),
                                     deploy(new QuizEntityVerticle(jdbcOptions)),
                                     deploy(new ListHttpVerticle(router)),
