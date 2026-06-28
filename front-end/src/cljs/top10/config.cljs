@@ -9,9 +9,11 @@
 
 (declare api-base-url-from-env)
 (def api-base-url (or (api-base-url-from-env)  "http://localhost:8080"))
+(comment api-base-url)
 
 (declare front-end-base-url-from-env)
 (def front-end-base-url (or (front-end-base-url-from-env) "http://localhost:9500"))
+(comment front-end-base-url)
 
 (def oauth2-authorize-endpoint (str api-base-url "/oauth/authorize"))
 
