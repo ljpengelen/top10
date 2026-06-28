@@ -168,11 +168,19 @@ public class OAuthVerticle extends AbstractVerticle {
             return;
         }
 
-        var externalUser = getExternalUser(routingContext);
+        var provider = routingContext.pathParam("provider");
+        if (provider == null) throw invalidProviderException(null);
+
+        var code = routingContext.queryParams().get("code");
+        if (code == null) {
+            log.debug("No code provided by provider {}", provider);
+            routingContext.redirect(clientState.getRedirectUrl() + "?error=error");
+            return;
+        }
+
+        var externalUser = getExternalUser(provider, code);
 
         vertx.eventBus().request(EXTERNAL_LOGIN_ADDRESS, externalUser, reply -> {
-            var provider = externalUser.getString("provider");
-
             if (reply.failed()) {
                 var id = externalUser.getString("id");
                 var errorMessage = String.format("Unable to retrieve account ID for external ID \"%s\" and provider \"%s\"", id, provider);
@@ -189,8 +197,8 @@ public class OAuthVerticle extends AbstractVerticle {
                     .signWith(secretKey, Jwts.SIG.HS512)
                     .compact();
 
-            var code = TokenGenerator.generateToken();
-            codeToOAuthState.put(code, OAuthState.builder()
+            var newCode = TokenGenerator.generateToken();
+            codeToOAuthState.put(newCode, OAuthState.builder()
                     .codeChallenge(clientState.getCodeChallenge())
                     .redirectUrl(clientState.getRedirectUrl())
                     .token(jwt)
@@ -198,7 +206,7 @@ public class OAuthVerticle extends AbstractVerticle {
 
             var redirectUrl = clientState.getRedirectUrl() +
                     "?state=" + clientState.getState() +
-                    "&code=" + code;
+                    "&code=" + newCode;
             routingContext.redirect(redirectUrl);
         });
     }
@@ -226,12 +234,7 @@ public class OAuthVerticle extends AbstractVerticle {
         return jws;
     }
 
-    private JsonObject getExternalUser(RoutingContext routingContext) {
-        var provider = routingContext.pathParam("provider");
-        if (provider == null) throw invalidProviderException(null);
-
-        var code = routingContext.queryParams().get("code");
-
+    private JsonObject getExternalUser(String provider, String code) {
         return switch (provider) {
             case "google" -> googleOauth2.getUser(code);
             case "microsoft" -> microsoftOauth2.getUser(code);
