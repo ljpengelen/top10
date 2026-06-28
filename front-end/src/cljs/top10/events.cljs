@@ -112,8 +112,11 @@
 (rf/reg-event-fx
  ::log-in
  [(rf/inject-cofx :oauth-state)]
- (fn-traced [{{:keys [code-verifier path state]} :oauth-state} [_ code returned-state]]
-   (if (= state returned-state)
+ (fn-traced [{{:keys [code-verifier path state]} :oauth-state} [_ code error returned-state]]
+   (cond
+     error
+     {:dispatch-n [[::authentication-failed] [::relative-redirect path]]}
+     (= state returned-state)
      {:async-flow {:first-dispatch [::fetch-token code code-verifier]
                    :rules [{:when :seen?
                             :events ::token-fetch-succeeded
@@ -122,10 +125,19 @@
                            {:when :seen?
                             :events ::token-fetch-failed
                             :dispatch-n [[::request-failed] [::relative-redirect "/"]]
-                            :halt? true}
-                           ]}}
+                            :halt? true}]}}
+     :else
      {:dispatch [::request-failed]
       :relative-redirect "/"})))
+
+(rf/reg-event-db
+ ::authentication-failed
+ [check-spec-interceptor]
+ (fn-traced [db _]
+   (assoc db :dialog {:show? true
+                      :title "Log in failed!"
+                      :text (str "Something went wrong while logging you in. "
+                                 "Please try again if you're convinced this should work.")})))
 
 (rf/reg-event-fx
  ::log-out-succeeded
