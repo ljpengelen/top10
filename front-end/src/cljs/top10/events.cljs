@@ -194,14 +194,22 @@
    (let [participants (:body response)]
      (assoc db :quiz-participants participants :loading-quiz-participants? false))))
 
-(rf/reg-event-db
+(rf/reg-event-fx
  ::request-failed
  [check-spec-interceptor]
- (fn-traced [db _]
-   (assoc db :dialog {:show? true
-                      :title "Oh no!"
-                      :text (str "Something unexpected went wrong. "
-                                 "Please try again if you're convinced this should work.")})))
+ (fn-traced [{:keys [db]} [_ response]]
+   (let [status (:status response)]
+     (if (= 401 status)
+       {:db (assoc db :dialog {:show? true
+                               :title "Oh no!"
+                               :text (str "It looks like you're no longer logged in. "
+                                          "Please log in and try again.")}
+                   :logged-in? false)
+        :set-access-token nil}
+       {:db (assoc db :dialog {:show? true
+                               :title "Oh no!"
+                               :text (str "Something unexpected went wrong. "
+                                          "Please try again if you're convinced this should work.")})}))))
 
 (rf/reg-event-db
  ::dismiss-dialog
