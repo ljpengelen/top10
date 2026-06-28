@@ -7,8 +7,6 @@ import javax.crypto.SecretKey;
 
 public interface Config {
 
-    String getCsrfTarget();
-
     String getGoogleOauth2ClientId();
 
     String getGoogleOauth2ClientSecret();

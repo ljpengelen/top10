@@ -24,14 +24,11 @@ import nl.cofx.top10.session.GoogleOauth2;
 import nl.cofx.top10.session.JwtSessionHandler;
 import nl.cofx.top10.session.MicrosoftOauth2;
 import nl.cofx.top10.session.PrivateRouteHandler;
-import nl.cofx.top10.session.csrf.CsrfHeaderChecker;
-import nl.cofx.top10.session.csrf.CsrfTokenHandler;
 
 import java.util.List;
 import java.util.Set;
 
 import static nl.cofx.top10.session.JwtSessionHandler.AUTHORIZATION_HEADER_NAME;
-import static nl.cofx.top10.session.csrf.CsrfTokenHandler.CSRF_TOKEN_HEADER_NAME;
 
 @Slf4j
 public class Application {
@@ -117,18 +114,15 @@ public class Application {
             var router = Router.router(vertx);
 
             var corsHandler = CorsHandler.create()
-                    .addOrigin(config.getCsrfTarget())
+                    .addOrigin(config.getHomeUrl())
                     .allowCredentials(true)
-                    .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, CSRF_TOKEN_HEADER_NAME, "content-type"))
-                    .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT))
-                    .exposedHeader(CSRF_TOKEN_HEADER_NAME);
+                    .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, "content-type"))
+                    .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT));
             router.route().handler(corsHandler);
 
             ErrorHandlers.configure(router);
 
-            router.route("/session/*").handler(new CsrfHeaderChecker(config.getCsrfTarget()));
             var jwt = new Jwt(config.getJwtSecretKey());
-            router.route("/session/*").handler(new CsrfTokenHandler(jwt, config.getJwtSecretKey(), config.useSecureCookies()));
             router.route("/private/*")
                     .handler(new JwtSessionHandler(jwt))
                     .handler(new PrivateRouteHandler());

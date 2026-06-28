@@ -327,7 +327,6 @@
                     <excludes>
                         <exclude>**/config/*</exclude>
                         <exclude>**/heartbeat/*</exclude>
-                        <exclude>**/session/SessionConfiguration.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>

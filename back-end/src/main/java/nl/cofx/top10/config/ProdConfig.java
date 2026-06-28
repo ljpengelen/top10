@@ -8,7 +8,6 @@ import javax.crypto.SecretKey;
 @Getter
 public class ProdConfig extends AbstractConfig implements Config {
 
-    private final String csrfTarget = fetchMandatoryString("CSRF_TARGET");
     private final String googleOauth2ClientId = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_ID");
     private final String googleOauth2ClientSecret = fetchMandatoryString("GOOGLE_OAUTH2_CLIENT_SECRET");
     private final String googleOauth2Endpoint = fetchMandatoryString("GOOGLE_OAUTH2_ENDPOINT");
