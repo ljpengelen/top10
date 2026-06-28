@@ -5,7 +5,7 @@
    [day8.re-frame.tracing :refer-macros [fn-traced]]
    [expound.alpha :as expound]
    [re-frame.core :as rf]
-   [top10.config :refer [api-base-url oauth2 redirect-url]]
+   [top10.config :refer [api-base-url oauth2-authorize-endpoint redirect-url]]
    [top10.db :as db]))
 
 (defn check-and-throw
@@ -459,14 +459,14 @@
 (defn log-in-url
   ([code-challenge provider state]
    (str
-    (:authorize-endpoint oauth2) "?"
+    oauth2-authorize-endpoint "?"
     "code_challenge=" code-challenge "&"
     "provider=" (name provider) "&"
     "redirect_url=" redirect-url "&"
     "state=" state)))
 
 (comment
-  oauth2
+  oauth2-authorize-endpoint
   (log-in-url "challenge" :google "state"))
 
 (rf/reg-event-fx
