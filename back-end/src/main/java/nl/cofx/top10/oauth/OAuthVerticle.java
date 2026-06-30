@@ -114,7 +114,7 @@ public class OAuthVerticle extends AbstractVerticle {
                 .setHttpOnly(true)
                 .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
                 .setPath("/")
-                .setSameSite(CookieSameSite.LAX)
+                .setSameSite(CookieSameSite.STRICT)
                 .setSecure(useSecureCookies);
 
         routingContext.response().addCookie(newCookie);
@@ -269,7 +269,7 @@ public class OAuthVerticle extends AbstractVerticle {
                 .setHttpOnly(true)
                 .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
                 .setPath("/")
-                .setSameSite(CookieSameSite.LAX)
+                .setSameSite(CookieSameSite.STRICT)
                 .setSecure(useSecureCookies);
 
         routingContext.response()
@@ -295,7 +295,7 @@ public class OAuthVerticle extends AbstractVerticle {
                 .setHttpOnly(true)
                 .setMaxAge(0)
                 .setPath("/")
-                .setSameSite(CookieSameSite.LAX)
+                .setSameSite(CookieSameSite.STRICT)
                 .setSecure(useSecureCookies);
 
         routingContext.response()
