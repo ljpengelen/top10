@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static nl.cofx.top10.account.ExternalAccountVerticle.EXTERNAL_LOGIN_ADDRESS;
@@ -179,7 +180,14 @@ public class OAuthVerticle extends AbstractVerticle {
             return;
         }
 
-        var externalUser = getExternalUser(provider, code);
+        var optionalExternalUser = getExternalUser(provider, code);
+        if (optionalExternalUser.isEmpty()) {
+            log.debug("No external user found for code {} and provider {}", code, provider);
+            routingContext.redirect(clientState.getRedirectUrl() + "?error=error");
+            return;
+        }
+
+        var externalUser = optionalExternalUser.get();
 
         vertx.eventBus().request(EXTERNAL_LOGIN_ADDRESS, externalUser, reply -> {
             if (reply.failed()) {
@@ -235,7 +243,7 @@ public class OAuthVerticle extends AbstractVerticle {
         return jws;
     }
 
-    private JsonObject getExternalUser(String provider, String code) {
+    private Optional<JsonObject> getExternalUser(String provider, String code) {
         return switch (provider) {
             case "google" -> googleOauth2.getUser(code);
             case "microsoft" -> microsoftOauth2.getUser(code);

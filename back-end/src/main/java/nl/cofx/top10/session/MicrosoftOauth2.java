@@ -7,6 +7,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import nl.cofx.top10.config.Config;
 
+import java.util.Optional;
+
 public class MicrosoftOauth2 {
 
     private static final String[] SCOPES = {"openid", "offline_access", "User.Read"};
@@ -25,17 +27,21 @@ public class MicrosoftOauth2 {
         scope = config.getMicrosoftOauth2Scope();
     }
 
-    public JsonObject getUser(String code) {
-        var user = getUserFromGraph(code);
+    public Optional<JsonObject> getUser(String code) {
+        var optionalUser = getUserFromGraph(code);
+        if (optionalUser.isEmpty()) return Optional.empty();
 
-        return new JsonObject()
+        var user = optionalUser.get();
+        var jsonObject = new JsonObject()
                 .put("name", user.getDisplayName())
                 .put("emailAddress", user.getMail() != null ? user.getMail() : user.getUserPrincipalName())
                 .put("id", user.getId())
                 .put("provider", "microsoft");
+
+        return Optional.of(jsonObject);
     }
 
-    private User getUserFromGraph(String code) {
+    private Optional<User> getUserFromGraph(String code) {
         var authProvider = new AuthorizationCodeCredentialBuilder()
                 .clientId(clientId)
                 .clientSecret(clientSecret)
@@ -46,7 +52,11 @@ public class MicrosoftOauth2 {
 
         var graphServiceClient = new GraphServiceClient(authProvider, SCOPES);
 
-        return graphServiceClient.me().get();
+        try {
+            return Optional.ofNullable(graphServiceClient.me().get());
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     public void redirectToLoginForm(RoutingContext routingContext, String state) {

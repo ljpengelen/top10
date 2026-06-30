@@ -11,10 +11,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import nl.cofx.top10.InvalidCredentialsException;
 import nl.cofx.top10.config.Config;
 
 import java.util.Collections;
+import java.util.Optional;
 
 @Slf4j
 public class GoogleOauth2 {
@@ -47,26 +47,29 @@ public class GoogleOauth2 {
         return GoogleNetHttpTransport.newTrustedTransport();
     }
 
-    public JsonObject getUser(String code) {
-        var googleIdToken = getIdToken(code);
-        var payload = googleIdToken.getPayload();
+    public Optional<JsonObject> getUser(String code) {
+        var optionalGoogleIdToken = getIdToken(code);
+        if (optionalGoogleIdToken.isEmpty()) return Optional.empty();
 
-        return new JsonObject()
+        var googleIdToken = optionalGoogleIdToken.get();
+        var payload = googleIdToken.getPayload();
+        var jsonObject = new JsonObject()
                 .put("name", payload.get("name"))
                 .put("emailAddress", payload.getEmail())
                 .put("id", payload.getSubject())
                 .put("provider", "google");
+
+        return Optional.of(jsonObject);
     }
 
-    private GoogleIdToken getIdToken(String code) {
+    private Optional<GoogleIdToken> getIdToken(String code) {
         try {
             var request = new GoogleAuthorizationCodeTokenRequest(HTTP_TRANSPORT, JSON_FACTORY, clientId, clientSecret, code, redirectUri);
             var idTokenString = request.execute().getIdToken();
 
-            return googleIdTokenVerifier.verify(idTokenString);
+            return Optional.of(googleIdTokenVerifier.verify(idTokenString));
         } catch (Exception e) {
-            log.debug("Unable to get ID token for authorization code \"{}\"", code, e);
-            throw new InvalidCredentialsException(String.format("Invalid authorization code: \"%s\"", code));
+            return Optional.empty();
         }
     }
 
