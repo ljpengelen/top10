@@ -17,7 +17,8 @@ public class TestConfig extends AbstractConfig implements Config {
     private final String googleOauth2Endpoint = "https://accounts.google.com/o/oauth2/v2/auth";
     private final String googleOauth2RedirectUrl = "https://www.example.org/google/oauth2";
     private final String googleOauth2Scope = "openid email profile";
-    private final String homeUrl = "http://localhost:9050";
+    private final String apiBaseUrl = "http://localhost:8080";
+    private final String frontEndBaseUrl = "http://localhost:9050";
     private final String microsoftOauth2ClientId = randomString();
     private final String microsoftOauth2ClientSecret = randomString();
     private final String microsoftOauth2Endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize";

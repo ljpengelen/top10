@@ -47,7 +47,7 @@ public class OAuthVerticle extends AbstractVerticle {
     private static final MessageDigest SHA_256_INSTANCE = sha256Instance();
 
     private final GoogleOauth2 googleOauth2;
-    private final String homeUrl;
+    private final String frontEndBaseUrl;
     private final Jwt jwt;
     private final MicrosoftOauth2 microsoftOauth2;
     private final Router router;
@@ -58,7 +58,8 @@ public class OAuthVerticle extends AbstractVerticle {
     public void start() {
         log.info("Starting");
 
-        router.route(HttpMethod.GET, "/oauth/authorize").handler(this::handleAuthorize);
+        router.route(HttpMethod.GET, "/oauth/authorize")
+                .handler(this::handleAuthorize);
         router.route(HttpMethod.GET, "/oauth/log-in/:provider").handler(this::handleLogIn);
         router.route(HttpMethod.POST, "/oauth/token")
                 .handler(BodyHandler.create())
@@ -164,7 +165,7 @@ public class OAuthVerticle extends AbstractVerticle {
         var clientState = serverStateToOAuthState.get(serverState);
         if (clientState == null) {
             log.debug("No client state found for server state {}", serverState);
-            routingContext.redirect(homeUrl);
+            routingContext.redirect(frontEndBaseUrl);
             return;
         }
 

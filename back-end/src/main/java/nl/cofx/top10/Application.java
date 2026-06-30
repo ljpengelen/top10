@@ -24,6 +24,7 @@ import nl.cofx.top10.session.GoogleOauth2;
 import nl.cofx.top10.session.JwtSessionHandler;
 import nl.cofx.top10.session.MicrosoftOauth2;
 import nl.cofx.top10.session.PrivateRouteHandler;
+import nl.cofx.top10.session.csrf.CsrfHeaderChecker;
 
 import java.util.List;
 import java.util.Set;
@@ -81,7 +82,7 @@ public class Application {
         return Future.future(promise -> {
             log.info("Deploying verticles");
 
-            var homeUrl = config.getHomeUrl();
+            var frontEndBaseUrl = config.getFrontEndBaseUrl();
             var jdbcOptions = config.getJdbcOptions();
             var jwtSecretKey = config.getJwtSecretKey();
             var useSecureCookies = config.useSecureCookies();
@@ -91,7 +92,7 @@ public class Application {
                     .compose(migrationResult ->
                             Future.all(List.of(
                                     deploy(new ExternalAccountVerticle(jdbcOptions)),
-                                    deploy(new OAuthVerticle(googleOauth2, homeUrl, jwt, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
+                                    deploy(new OAuthVerticle(googleOauth2, frontEndBaseUrl, jwt, microsoftOauth2, router, jwtSecretKey, useSecureCookies)),
                                     deploy(new QuizHttpVerticle(router)),
                                     deploy(new QuizEntityVerticle(jdbcOptions)),
                                     deploy(new ListHttpVerticle(router)),
@@ -114,11 +115,14 @@ public class Application {
             var router = Router.router(vertx);
 
             var corsHandler = CorsHandler.create()
-                    .addOrigin(config.getHomeUrl())
+                    .addOrigin(config.getFrontEndBaseUrl())
                     .allowCredentials(true)
                     .allowedHeaders(Set.of(AUTHORIZATION_HEADER_NAME, "content-type"))
                     .allowedMethods(Set.of(HttpMethod.DELETE, HttpMethod.PUT));
             router.route().handler(corsHandler);
+
+            var csrfHeaderChecker = new CsrfHeaderChecker(List.of(config.getApiBaseUrl(), config.getFrontEndBaseUrl()));
+            router.route().handler(csrfHeaderChecker);
 
             ErrorHandlers.configure(router);
 

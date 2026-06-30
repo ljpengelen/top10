@@ -14,7 +14,8 @@ public class ProdConfig extends AbstractConfig implements Config {
 
     private final String googleOauth2RedirectUrl = fetchMandatoryString("GOOGLE_OAUTH2_REDIRECT_URL");
     private final String googleOauth2Scope = fetchMandatoryString("GOOGLE_OAUTH2_SCOPE");
-    private final String homeUrl = fetchMandatoryString("HOME_URL");
+    private final String apiBaseUrl = fetchMandatoryString("API_BASE_URL");
+    private final String frontEndBaseUrl = fetchMandatoryString("FRONT_END_BASE_URL");
     private final String microsoftOauth2ClientId = fetchMandatoryString("MICROSOFT_OAUTH2_CLIENT_ID");
     private final String microsoftOauth2ClientSecret = fetchMandatoryString("MICROSOFT_OAUTH2_CLIENT_SECRET");
     private final String microsoftOauth2Endpoint = fetchMandatoryString("MICROSOFT_OAUTH2_ENDPOINT");

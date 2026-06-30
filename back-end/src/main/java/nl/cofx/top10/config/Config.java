@@ -17,7 +17,9 @@ public interface Config {
 
     String getGoogleOauth2Scope();
 
-    String getHomeUrl();
+    String getApiBaseUrl();
+
+    String getFrontEndBaseUrl();
 
     String getMicrosoftOauth2ClientId();
 
