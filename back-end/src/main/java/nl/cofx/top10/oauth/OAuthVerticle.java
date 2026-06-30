@@ -91,7 +91,7 @@ public class OAuthVerticle extends AbstractVerticle {
         var emailAddress = body.get("emailAddress", String.class);
         var provider = body.get("provider", String.class);
         var jwt = Jwts.builder()
-                .expiration(Date.from(Instant.now().plusSeconds(SESSION_EXPIRATION_IN_SECONDS)))
+                .expiration(body.getExpiration())
                 .subject(subject)
                 .claim("name", name)
                 .claim("emailAddress", emailAddress)
@@ -110,15 +110,6 @@ public class OAuthVerticle extends AbstractVerticle {
                 .state(clientState)
                 .token(jwt)
                 .build());
-
-        var newCookie = Cookie.cookie(JWT_COOKIE_NAME, jwt)
-                .setHttpOnly(true)
-                .setMaxAge(SESSION_EXPIRATION_IN_SECONDS)
-                .setPath("/")
-                .setSameSite(CookieSameSite.STRICT)
-                .setSecure(useSecureCookies);
-
-        routingContext.response().addCookie(newCookie);
 
         var redirectUrl = request.getParam("redirect_url");
         var state = request.getParam("state");
