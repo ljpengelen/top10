@@ -28,6 +28,7 @@
 
 (s/def ::logged-in? boolean?)
 (s/def ::account-id string?)
+(s/def ::active-list string?)
 (s/def ::active-page #{:blank
                        :personal-results-page
                        :quizzes-page
