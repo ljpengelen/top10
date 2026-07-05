@@ -1,5 +1,7 @@
 (ns top10.db (:require [cljs.spec.alpha :as s]))
 
+(s/def ::access-token string?)
+
 (s/def ::loading-quiz-lists? boolean?)
 
 (s/def :quiz-list/id string?)
@@ -131,7 +133,8 @@
                              ::active-page
                              ::dialog
                              ::loading-quiz-participants?]
-                    :opt-un [::active-list
+                    :opt-un [::access-token
+                             ::active-list
                              ::account-id
                              ::list
                              ::active-quiz

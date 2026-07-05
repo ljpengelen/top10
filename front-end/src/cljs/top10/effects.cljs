@@ -9,20 +9,6 @@
  :enable-browser-navigation
  routes/enable-browser-navigation)
 
-(def access-token-key "access-token")
-
-(rf/reg-fx
- :set-access-token
- (fn [new-token] 
-   (if new-token 
-     (.setItem js/localStorage access-token-key new-token)
-     (.removeItem js/localStorage access-token-key))))
-
-(rf/reg-cofx
- :access-token
- (fn [cofx]
-   (assoc cofx :access-token (.getItem js/localStorage access-token-key))))
-
 (rf/reg-fx
  :relative-redirect
  (fn [url] (routes/nav! url)))

@@ -65,57 +65,15 @@ public class OAuthVerticle extends AbstractVerticle {
         router.route(HttpMethod.POST, "/oauth/token")
                 .handler(BodyHandler.create())
                 .handler(this::handleToken);
+        router.route(HttpMethod.POST, "/oauth/token/refresh")
+                .handler(this::handleTokenRefresh);
         router.route(HttpMethod.POST, "/oauth/log-out").handler(this::handleLogOut);
     }
 
     private void handleAuthorize(RoutingContext routingContext) {
         log.debug("Authenticating");
 
-        var request = routingContext.request();
-        var jws = jws(request);
-
-        if (jws != null) {
-            handleValidSessionCookie(routingContext, jws, request);
-            return;
-        }
-
         authenticate(routingContext);
-    }
-
-    private void handleValidSessionCookie(RoutingContext routingContext, Jws<Claims> jws, HttpServerRequest request) {
-        log.debug("Extending expiration date of existing session cookie");
-
-        var body = jws.getPayload();
-        var subject = body.getSubject();
-        var name = body.get("name", String.class);
-        var emailAddress = body.get("emailAddress", String.class);
-        var provider = body.get("provider", String.class);
-        var jwt = Jwts.builder()
-                .expiration(body.getExpiration())
-                .subject(subject)
-                .claim("name", name)
-                .claim("emailAddress", emailAddress)
-                .claim("provider", provider)
-                .signWith(secretKey, Jwts.SIG.HS512)
-                .compact();
-
-        var codeChallenge = request.getParam("code_challenge");
-        var clientRedirectUrl = request.getParam("redirect_url");
-        var clientState = request.getParam("state");
-
-        var code = TokenGenerator.generateToken();
-        codeToOAuthState.put(code, OAuthState.builder()
-                .codeChallenge(codeChallenge)
-                .redirectUrl(clientRedirectUrl)
-                .state(clientState)
-                .token(jwt)
-                .build());
-
-        var redirectUrl = request.getParam("redirect_url");
-        var state = request.getParam("state");
-        redirectUrl += "?state=" + state + "&code=" + code;
-
-        routingContext.redirect(redirectUrl);
     }
 
     private void authenticate(RoutingContext routingContext) {
@@ -193,7 +151,6 @@ public class OAuthVerticle extends AbstractVerticle {
                     .subject(account.getString("accountId"))
                     .claim("name", account.getString("name"))
                     .claim("emailAddress", account.getString("emailAddress"))
-                    .claim("provider", provider)
                     .signWith(secretKey, Jwts.SIG.HS512)
                     .compact();
 
@@ -209,29 +166,6 @@ public class OAuthVerticle extends AbstractVerticle {
                     "&code=" + newCode;
             routingContext.redirect(redirectUrl);
         });
-    }
-
-    private Jws<Claims> jws(HttpServerRequest request) {
-        var existingCookie = request.getCookie(JWT_COOKIE_NAME);
-        if (existingCookie == null) {
-            log.debug("No session cookie present");
-            return null;
-        }
-
-        var jws = jwt.getJws(existingCookie.getValue());
-        if (jws == null) {
-            log.debug("Session cookie is invalid");
-            return null;
-        }
-
-        var actualProvider = jws.getPayload().get("provider", String.class);
-        var expectedProvider = request.getParam("provider");
-        if (expectedProvider != null && !expectedProvider.equals(actualProvider)) {
-            log.debug("Session cookie has provider {} instead of {}", actualProvider, expectedProvider);
-            return null;
-        }
-
-        return jws;
     }
 
     private Optional<JsonObject> getExternalUser(String provider, String code) {
@@ -277,6 +211,53 @@ public class OAuthVerticle extends AbstractVerticle {
                 .end(new JsonObject().put("token", token).toBuffer());
     }
 
+    private void handleTokenRefresh(RoutingContext routingContext) {
+        log.debug("Refreshing token");
+
+        var request = routingContext.request();
+        var jws = jws(request);
+
+        if (jws == null) {
+            routingContext.response()
+                    .addCookie(clearCookie())
+                    .setStatusCode(HttpResponseStatus.UNAUTHORIZED.code())
+                    .end();
+            return;
+        }
+
+        var body = jws.getPayload();
+        var subject = body.getSubject();
+        var name = body.get("name", String.class);
+        var emailAddress = body.get("emailAddress", String.class);
+        var token = Jwts.builder()
+                .expiration(body.getExpiration())
+                .subject(subject)
+                .claim("name", name)
+                .claim("emailAddress", emailAddress)
+                .signWith(secretKey, Jwts.SIG.HS512)
+                .compact();
+
+        routingContext.response()
+                .putHeader("content-type", "application/json")
+                .end(new JsonObject().put("token", token).toBuffer());
+    }
+
+    private Jws<Claims> jws(HttpServerRequest request) {
+        var existingCookie = request.getCookie(JWT_COOKIE_NAME);
+        if (existingCookie == null) {
+            log.debug("No session cookie present");
+            return null;
+        }
+
+        var jws = jwt.getJws(existingCookie.getValue());
+        if (jws == null) {
+            log.debug("Session cookie is invalid");
+            return null;
+        }
+
+        return jws;
+    }
+
     @SneakyThrows
     private static MessageDigest sha256Instance() {
         return MessageDigest.getInstance("SHA-256");
@@ -290,16 +271,18 @@ public class OAuthVerticle extends AbstractVerticle {
     private void handleLogOut(RoutingContext routingContext) {
         log.debug("Logging out");
 
-        var cookie = Cookie.cookie(JWT_COOKIE_NAME, "")
+        routingContext.response()
+                .addCookie(clearCookie())
+                .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
+                .end();
+    }
+
+    private Cookie clearCookie() {
+        return Cookie.cookie(JWT_COOKIE_NAME, "")
                 .setHttpOnly(true)
                 .setMaxAge(0)
                 .setPath("/")
                 .setSameSite(CookieSameSite.STRICT)
                 .setSecure(useSecureCookies);
-
-        routingContext.response()
-                .addCookie(cookie)
-                .setStatusCode(HttpResponseStatus.NO_CONTENT.code())
-                .end();
     }
 }
