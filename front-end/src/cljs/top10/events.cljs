@@ -324,6 +324,17 @@
      (update-in db [:list :videos] conj video))))
 
 (rf/reg-event-fx
+ ::add-video-failed
+ [check-spec-interceptor]
+ (fn-traced [{:keys [db]} [id response]]
+   (let [status (:status response)]
+     (if (= 400 status)
+       {:db (assoc db :dialog {:show? true
+                               :title "Oh no!"
+                               :text "That was not a valid YouTube URL."})}
+       {:dispatch [::request-failed id response]}))))
+
+(rf/reg-event-fx
  ::add-video
  []
  (fn-traced [{:keys [db]} [_ list-id url]]
@@ -335,7 +346,7 @@
                    :format (ajax/json-request-format)
                    :response-format ring-json-response-format
                    :on-success [::add-video-succeeded]
-                   :on-failure [::request-failed]}})))
+                   :on-failure [::add-video-failed]}})))
 
 (rf/reg-event-db
  ::remove-video-succeeded
